@@ -510,4 +510,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()d = strategy(image=image)['image']
+    main()

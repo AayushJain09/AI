@@ -59,7 +59,7 @@ class RecognitionPipeline:
         checkpoint = torch.load(model_path, map_location=self.device)
         
         # Import model architecture
-        from training_system import SiameseNetwork
+        from src.training.modletraining import SiameseNetwork
         
         self.model = SiameseNetwork(
             base_model=checkpoint['config']['clip_model'],
@@ -70,7 +70,7 @@ class RecognitionPipeline:
         self.model.eval()
         
         # Load feature extractor
-        from feature_extraction_system import MultiModalFeatureExtractor
+        from src.feature_extraction.feature_extractor import MultiModalFeatureExtractor
         
         self.feature_extractor = MultiModalFeatureExtractor({
             'clip_variant': checkpoint['config']['clip_model']

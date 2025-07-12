@@ -1,0 +1,74 @@
+📋 How to Run - Step-by-Step Instructions:
+
+  1. Initial Setup (First Time Only):
+
+  # Execute the configuration generator
+  python3 conf_and_main_entry_point.py
+
+  # Run setup script to install dependencies
+  chmod +x setup.sh
+  ./setup.sh
+
+  2. Prepare Your Data:
+
+  # Create your dataset structure:
+  mkdir -p data/raw/item1 data/raw/item2 data/raw/item3
+  # Place exactly 8 images per item in each folder
+  # Example: data/raw/item1/img1.jpg, img2.jpg, ..., 
+  img8.jpg
+
+  3. Run Complete Pipeline:
+
+  # Activate virtual environment
+  source venv/bin/activate
+
+  # Run entire pipeline (all 5 steps)
+  python3 main.py --step all
+
+  # OR run individual steps:
+  python3 main.py --step prepare   # Data augmentation
+  python3 main.py --step extract   # Feature extraction  
+  python3 main.py --step train     # Model training
+  python3 main.py --step index     # Build recognition 
+  index
+  python3 main.py --step evaluate  # Performance evaluation
+
+  4. Recognize Images:
+
+  # Single image recognition
+  python3 main.py --recognize path/to/test_image.jpg
+
+  # Results show: Item ID, Confidence, Processing Time
+
+  📝 Code Documentation:
+
+  The script generates 3 critical files:
+
+  config.yaml - System Configuration
+
+  - Data paths: Raw images, augmented data, features,
+  models
+  - Model settings: CLIP ViT-B/32, 512-dim embeddings
+  - Training params: 100 epochs, 0.0001 learning rate
+  - Performance targets: 95% accuracy, <500ms inference
+
+  main.py - Main Pipeline Orchestrator
+
+  - AIRecognitionSystem class: Manages entire workflow
+  - 5 pipeline steps: prepare → extract → train → index →
+  evaluate
+  - Command-line interface: Flexible step execution
+  - Performance monitoring: Accuracy tracking and reporting
+
+  setup.sh - Environment Setup
+
+  - Virtual environment: Creates isolated Python
+  environment
+  - Dependencies: Installs PyTorch, CLIP, and required
+  packages
+  - Directory structure: Creates data folders
+  - CLIP download: Pre-loads ViT-B/32 model
+
+  The file is now production-ready and follows the
+  CLAUDE.md development guide specifications.
+

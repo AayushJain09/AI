@@ -1,66 +1,4 @@
-"""
-Main entry point and configuration for the AI Recognition System
-"""
 
-# config.yaml
-config_yaml = """
-# AI Recognition System Configuration
-
-# Data paths
-data:
-  raw_images_dir: "data/raw"
-  augmented_images_dir: "data/augmented" 
-  features_file: "data/features.h5"
-  models_dir: "data/models"
-
-# Model configuration
-model:
-  clip_variant: "ViT-B/32"
-  embedding_dim: 256
-  num_classes: 1000
-
-# Training configuration  
-training:
-  batch_size: 32
-  epochs: 100
-  learning_rate: 0.0001
-  weight_decay: 0.00001
-  triplet_margin: 0.5
-  arcface_margin: 0.5
-  save_every: 5
-  checkpoint_dir: "checkpoints"
-
-# Augmentation configuration
-augmentation:
-  augmentations_per_image: 50
-  image_size: [1024, 1024]
-  quality: 95
-
-# Feature extraction configuration
-features:
-  feature_image_size: 512
-  batch_size: 32
-
-# Recognition configuration
-recognition:
-  model_path: "checkpoints/best_model.pth"
-  index_path: "data/models/faiss_index.bin"
-  metadata_path: "data/models/metadata.pkl"
-  cache_size: 1000
-  confidence_threshold: 0.85
-  high_confidence_threshold: 0.95
-  batch_confidence_threshold: 0.90
-  batch_size: 16
-
-# Performance targets
-targets:
-  accuracy: 0.95
-  inference_time: 0.5  # seconds
-  memory_usage: 4000  # MB
-"""
-
-# main.py
-main_py = """
 #!/usr/bin/env python3
 '''
 AI Recognition System - Main Entry Point
@@ -79,10 +17,16 @@ import numpy as np
 from typing import Dict, List
 
 # Import our modules
-from data_augmentation_core import AdvancedAugmentationPipeline
-from feature_extraction_system import MultiModalFeatureExtractor
-from training_system import ModelTrainer, FewShotDataset
-from inference_pipeline import RecognitionPipeline, PerformanceMonitor, create_pipeline
+# from data_augmentation_core import AdvancedAugmentationPipeline
+# from feature_extraction_system import MultiModalFeatureExtractor
+# from training_system import ModelTrainer, FewShotDataset
+# from inference_pipeline import RecognitionPipeline, PerformanceMonitor, create_pipeline
+
+# Fix imports (correct paths):
+from src.data_preparation.prepare import AdvancedAugmentationPipeline
+from src.feature_extraction.feature_extractor import MultiModalFeatureExtractor
+from src.training.modletraining import ModelTrainer, FewShotDataset
+from src.inference.recognize import RecognitionPipeline, PerformanceMonitor
 
 # Setup logging
 logging.basicConfig(
@@ -273,16 +217,16 @@ class AIRecognitionSystem:
         # Calculate metrics
         report = monitor.get_report()
         
-        logger.info("\\nEVALUATION RESULTS:")
+        logger.info("\nEVALUATION RESULTS:")
         logger.info(f"Overall Accuracy: {report['overall_metrics']['accuracy']:.2%}")
         logger.info(f"Average Confidence: {report['overall_metrics']['avg_confidence']:.3f}")
         logger.info(f"Average Inference Time: {report['overall_metrics']['avg_inference_time']:.3f}s")
         
         # Check if we met our target
         if report['overall_metrics']['accuracy'] >= self.config['targets']['accuracy']:
-            logger.info("\\n✅ TARGET ACCURACY ACHIEVED!")
+            logger.info("\n✅ TARGET ACCURACY ACHIEVED!")
         else:
-            logger.warning("\\n❌ Target accuracy not met. Consider:")
+            logger.warning("\n❌ Target accuracy not met. Consider:")
             logger.warning("- Adding more training data")
             logger.warning("- Adjusting augmentation parameters")
             logger.warning("- Fine-tuning model hyperparameters")
@@ -319,7 +263,7 @@ def main():
         pipeline = create_pipeline(args.config)
         result = pipeline.recognize(args.recognize)
         
-        print(f"\\nRecognition Result:")
+        print(f"\nRecognition Result:")
         print(f"Item: {result.item_id}")
         print(f"Confidence: {result.confidence:.3f}")
         print(f"Time: {result.inference_time:.3f}s")
@@ -347,9 +291,9 @@ def main():
                         break
             
             if success:
-                logger.info("\\n🎉 PIPELINE COMPLETED SUCCESSFULLY!")
+                logger.info("\n🎉 PIPELINE COMPLETED SUCCESSFULLY!")
                 logger.info("Your AI recognition system is ready to use.")
-                logger.info("\\nTo recognize an image:")
+                logger.info("\nTo recognize an image:")
                 logger.info("  python main.py --recognize path/to/image.jpg")
         
         else:
@@ -359,48 +303,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-"""
-
-# setup.sh
-setup_sh = """#!/bin/bash
-# Setup script for AI Recognition System
-
-echo "Setting up AI Recognition System..."
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install --upgrade pip
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-pip install -r requirements.txt
-
-# Create directory structure
-mkdir -p data/{raw,augmented,processed,embeddings,models}
-mkdir -p checkpoints
-mkdir -p logs
-
-# Download CLIP model
-python -c "import clip; clip.load('ViT-B/32')"
-
-echo "Setup complete!"
-echo "To start using the system:"
-echo "1. Place your images in data/raw/ITEM_ID/ (8 images per item)"
-echo "2. Run: python main.py --step all"
-"""
-
-# Save files
-with open('config.yaml', 'w') as f:
-    f.write(config_yaml)
-
-with open('main.py', 'w') as f:
-    f.write(main_py)
-
-with open('setup.sh', 'w') as f:
-    f.write(setup_sh)
-
-# Make setup script executable
-os.chmod('setup.sh', 0o755)
-
-print("Configuration files created successfully!")
