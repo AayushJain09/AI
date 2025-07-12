@@ -38,7 +38,13 @@ class RecognitionPipeline:
     
     def __init__(self, config: Dict):
         self.config = config
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # Use GPU acceleration if available (CUDA or Apple Silicon MPS)
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            self.device = torch.device('mps')
+        else:
+            self.device = torch.device('cpu')
         
         # Load models
         self._load_models()

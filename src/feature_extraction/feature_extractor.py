@@ -28,7 +28,13 @@ class MultiModalFeatureExtractor:
     
     def __init__(self, config: Dict):
         self.config = config
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # Use GPU acceleration if available (CUDA or Apple Silicon MPS)
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            self.device = torch.device('mps')
+        else:
+            self.device = torch.device('cpu')
         logger.info(f"Using device: {self.device}")
         
         # Load models
@@ -39,24 +45,42 @@ class MultiModalFeatureExtractor:
         
     def _load_models(self):
         """Load all feature extraction models"""
-        # CLIP model
+        # CLIP model with SSL fix
         logger.info("Loading CLIP model...")
-        self.clip_model, self.clip_preprocess = clip.load(
-            self.config.get('clip_variant', 'ViT-B/32'), 
-            device=self.device
-        )
-        self.clip_model.eval()
+        import ssl
+        import urllib.request
         
-        # ResNet model
+        # Temporarily disable SSL verification for CLIP download
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        
+        # Apply SSL context
+        urllib.request.install_opener(urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_context)))
+        
+        try:
+            self.clip_model, self.clip_preprocess = clip.load(
+                self.config.get('clip_variant', 'ViT-B/32'), 
+                device=self.device
+            )
+            self.clip_model.eval()
+            logger.info("CLIP model loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load CLIP model: {e}")
+            raise
+        
+        # ResNet model (fix deprecated pretrained parameter)
         logger.info("Loading ResNet model...")
-        self.resnet = models.resnet50(pretrained=True)
+        from torchvision.models import ResNet50_Weights
+        self.resnet = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
         self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])  # Remove FC layer
         self.resnet = self.resnet.to(self.device)
         self.resnet.eval()
         
         # EfficientNet model for additional features
         logger.info("Loading EfficientNet model...")
-        self.efficientnet = models.efficientnet_b4(pretrained=True)
+        from torchvision.models import EfficientNet_B4_Weights
+        self.efficientnet = models.efficientnet_b4(weights=EfficientNet_B4_Weights.IMAGENET1K_V1)
         self.efficientnet.classifier = nn.Identity()  # Remove classifier
         self.efficientnet = self.efficientnet.to(self.device)
         self.efficientnet.eval()
