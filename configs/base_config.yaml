@@ -1,0 +1,18 @@
+data:
+  raw_images_per_item: 8
+  augmentations_per_image: 50
+  image_size: [1024, 1024]
+  
+model:
+  clip_variant: "ViT-B/32"
+  embedding_dim: 512
+  similarity_threshold: 0.85
+  
+training:
+  batch_size: 32
+  epochs: 100
+  learning_rate: 1e-4
+  
+inference:
+  top_k: 5
+  confidence_threshold: 0.90
