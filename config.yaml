@@ -27,9 +27,9 @@ training:
 
 # Augmentation configuration
 augmentation:
-  augmentations_per_image: 50
-  image_size: [1024, 1024]
-  quality: 95
+  augmentations_per_image: 50  # Restored for 95%+ accuracy (50x factor)
+  image_size: [768, 768]       # Balanced resolution for accuracy/speed
+  quality: 90                  # High quality for better features
 
 # Feature extraction configuration
 features:

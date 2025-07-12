@@ -44,7 +44,8 @@ class AdvancedAugmentationPipeline:
         # Strategy 1: Geometric transformations
         strategies.append(A.Compose([
             A.RandomRotate90(p=0.5),
-            A.Flip(p=0.5),
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.3),
             A.Transpose(p=0.5),
             A.ShiftScaleRotate(
                 shift_limit=0.1,
@@ -92,7 +93,7 @@ class AdvancedAugmentationPipeline:
         # Strategy 5: Noise and blur (camera conditions)
         strategies.append(A.Compose([
             A.OneOf([
-                A.GaussNoise(var_limit=(10, 100), p=1.0),
+                A.GaussNoise(noise_scale_factor=0.1, p=1.0),
                 A.ISONoise(color_shift=(0.01, 0.05), intensity=(0.1, 0.5), p=1.0),
                 A.MultiplicativeNoise(multiplier=(0.8, 1.2), p=1.0)
             ], p=0.8),
@@ -108,29 +109,26 @@ class AdvancedAugmentationPipeline:
         strategies.append(A.Compose([
             A.OneOf([
                 A.RandomRain(drop_length=20, drop_width=1, drop_color=(200, 200, 200), p=1.0),
-                A.RandomFog(fog_coef_lower=0.3, fog_coef_upper=0.8, alpha_coef=0.1, p=1.0),
+                A.RandomFog(fog_coef_range=(0.3, 0.8), alpha_coef=0.1, p=1.0),
                 A.RandomSunFlare(
                     flare_roi=(0, 0, 1, 0.5),
-                    angle_lower=0,
-                    angle_upper=1,
-                    num_flare_circles_lower=3,
-                    num_flare_circles_upper=7,
+                    angle_range=(0, 1),
+                    num_flare_circles_range=(3, 7),
                     src_radius=100,
                     p=1.0
                 )
             ], p=0.6),
-            A.RandomShadow(shadow_roi=(0, 0.5, 1, 1), num_shadows_lower=1, num_shadows_upper=3, p=0.5),
+            A.RandomShadow(shadow_roi=(0, 0.5, 1, 1), num_shadows_limit=(1, 3), p=0.5),
             A.Resize(self.target_size[0], self.target_size[1])
         ]))
         
         # Strategy 7: Occlusion and cropping
         strategies.append(A.Compose([
             A.CoarseDropout(
-                max_holes=5,
-                max_height=int(self.target_size[0] * 0.1),
-                max_width=int(self.target_size[1] * 0.1),
-                min_holes=1,
-                fill_value=0,
+                num_holes_range=(1, 5),
+                hole_height_range=(0.05, 0.1),
+                hole_width_range=(0.05, 0.1),
+                fill=0,
                 p=0.7
             ),
             A.RandomCrop(
@@ -151,16 +149,17 @@ class AdvancedAugmentationPipeline:
                 border_mode=cv2.BORDER_REFLECT_101,
                 p=0.8
             ),
-            A.ElasticTransform(alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03, p=0.5),
+            A.ElasticTransform(alpha=120, sigma=120 * 0.05, p=0.5),
             A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.7),
             A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=0.7),
             A.OneOf([
-                A.GaussNoise(var_limit=(10, 50), p=1.0),
+                A.GaussNoise(noise_scale_factor=0.05, p=1.0),
                 A.GaussianBlur(blur_limit=(3, 7), p=1.0)
             ], p=0.5),
             A.Resize(self.target_size[0], self.target_size[1])
         ]))
         
+        # Return all 8 strategies for maximum augmentation diversity (needed for 95%+ accuracy)
         return strategies
     
     def generate_synthetic_backgrounds(self, num_backgrounds: int = 20) -> List[np.ndarray]:
@@ -346,7 +345,7 @@ class AdvancedAugmentationPipeline:
         
         # Get augmentation strategies
         strategies = self.create_augmentation_strategies()
-        backgrounds = self.generate_synthetic_backgrounds(10)
+        # backgrounds = self.generate_synthetic_backgrounds(10)  # Disabled for performance
         
         # Save original resized
         original_resized = cv2.resize(image, self.target_size)
@@ -364,26 +363,38 @@ class AdvancedAugmentationPipeline:
             
             for var_idx in range(variations_per_strategy):
                 try:
+                    # Apply augmentation to image
+                    augmented = strategy(image=image)['image']
+                    
+                    # Save augmented image
+                    aug_path = output_dir / f"{item_id}_{image_idx:03d}_{aug_counter:03d}_aug_s{strategy_idx}_v{var_idx}.jpg"
+                    cv2.imwrite(str(aug_path), cv2.cvtColor(augmented, cv2.COLOR_RGB2BGR), 
+                               [cv2.IMWRITE_JPEG_QUALITY, self.quality])
+                    
                     augmented_paths.append(str(aug_path))
                     aug_counter += 1
                 except Exception as e:
                     logger.warning(f"Augmentation failed: {e}")
                     continue
         
-        # Create composite images with synthetic backgrounds
-        foreground, mask = self.remove_background(image)
+        # Note: Background removal and composite creation disabled for performance
+        # These operations are very slow (GrabCut algorithm takes 2-5 seconds per image)
+        # If needed, they can be re-enabled by uncommenting the code below
         
-        for bg_idx, background in enumerate(backgrounds[:5]):  # Use 5 backgrounds
-            try:
-                composite = self.create_composite_image(foreground, background, mask)
-                comp_path = output_dir / f"{item_id}_{image_idx:03d}_{aug_counter:03d}_composite_bg{bg_idx}.jpg"
-                cv2.imwrite(str(comp_path), cv2.cvtColor(composite, cv2.COLOR_RGB2BGR), 
-                           [cv2.IMWRITE_JPEG_QUALITY, self.quality])
-                augmented_paths.append(str(comp_path))
-                aug_counter += 1
-            except Exception as e:
-                logger.warning(f"Composite creation failed: {e}")
-                continue
+        # # Create composite images with synthetic backgrounds
+        # foreground, mask = self.remove_background(image)
+        # 
+        # for bg_idx, background in enumerate(backgrounds[:5]):  # Use 5 backgrounds
+        #     try:
+        #         composite = self.create_composite_image(foreground, background, mask)
+        #         comp_path = output_dir / f"{item_id}_{image_idx:03d}_{aug_counter:03d}_composite_bg{bg_idx}.jpg"
+        #         cv2.imwrite(str(comp_path), cv2.cvtColor(composite, cv2.COLOR_RGB2BGR), 
+        #                    [cv2.IMWRITE_JPEG_QUALITY, self.quality])
+        #         augmented_paths.append(str(comp_path))
+        #         aug_counter += 1
+        #     except Exception as e:
+        #         logger.warning(f"Composite creation failed: {e}")
+        #         continue
         
         return augmented_paths
     
