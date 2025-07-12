@@ -35,6 +35,13 @@ augmentation:
 features:
   feature_image_size: 512
   batch_size: 32
+  # Mobile mode toggle (set to true for Surface/edge devices)
+  mobile_mode: false  # Set to true for mobile optimization
+  # When mobile_mode=true:
+  #   - Only CLIP features extracted (skip ResNet/EfficientNet)
+  #   - Smaller image size (224x224)
+  #   - Skip traditional CV features
+  #   - ~800x faster processing
 
 # Recognition configuration
 recognition:

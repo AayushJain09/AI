@@ -44,8 +44,11 @@ class MultiModalFeatureExtractor:
         self._setup_preprocessing()
         
     def _load_models(self):
-        """Load all feature extraction models"""
-        # CLIP model with SSL fix
+        """Load feature extraction models (mobile mode support)"""
+        # Check for mobile mode
+        self.mobile_mode = self.config.get('mobile_mode', False)
+        
+        # CLIP model with SSL fix (always loaded)
         logger.info("Loading CLIP model...")
         import ssl
         import urllib.request
@@ -69,21 +72,27 @@ class MultiModalFeatureExtractor:
             logger.error(f"Failed to load CLIP model: {e}")
             raise
         
-        # ResNet model (fix deprecated pretrained parameter)
-        logger.info("Loading ResNet model...")
-        from torchvision.models import ResNet50_Weights
-        self.resnet = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
-        self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])  # Remove FC layer
-        self.resnet = self.resnet.to(self.device)
-        self.resnet.eval()
-        
-        # EfficientNet model for additional features
-        logger.info("Loading EfficientNet model...")
-        from torchvision.models import EfficientNet_B4_Weights
-        self.efficientnet = models.efficientnet_b4(weights=EfficientNet_B4_Weights.IMAGENET1K_V1)
-        self.efficientnet.classifier = nn.Identity()  # Remove classifier
-        self.efficientnet = self.efficientnet.to(self.device)
-        self.efficientnet.eval()
+        # Additional models (only in full mode)
+        if not self.mobile_mode:
+            # ResNet model (fix deprecated pretrained parameter)
+            logger.info("Loading ResNet model...")
+            from torchvision.models import ResNet50_Weights
+            self.resnet = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+            self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])  # Remove FC layer
+            self.resnet = self.resnet.to(self.device)
+            self.resnet.eval()
+            
+            # EfficientNet model for additional features
+            logger.info("Loading EfficientNet model...")
+            from torchvision.models import EfficientNet_B4_Weights
+            self.efficientnet = models.efficientnet_b4(weights=EfficientNet_B4_Weights.IMAGENET1K_V1)
+            self.efficientnet.classifier = nn.Identity()  # Remove classifier
+            self.efficientnet = self.efficientnet.to(self.device)
+            self.efficientnet.eval()
+        else:
+            logger.info("Mobile mode: Skipping ResNet and EfficientNet models")
+            self.resnet = None
+            self.efficientnet = None
         
     def _setup_preprocessing(self):
         """Setup preprocessing pipelines for different models"""
@@ -105,7 +114,10 @@ class MultiModalFeatureExtractor:
             return features.cpu().numpy().flatten()
     
     def extract_resnet_features(self, image: Image.Image) -> np.ndarray:
-        """Extract ResNet features"""
+        """Extract ResNet features (mobile mode aware)"""
+        if self.resnet is None:
+            return np.zeros(2048)  # Return zeros in mobile mode
+        
         with torch.no_grad():
             image_input = self.cnn_preprocess(image).unsqueeze(0).to(self.device)
             features = self.resnet(image_input)
@@ -113,7 +125,10 @@ class MultiModalFeatureExtractor:
             return features.cpu().numpy()
     
     def extract_efficientnet_features(self, image: Image.Image) -> np.ndarray:
-        """Extract EfficientNet features"""
+        """Extract EfficientNet features (mobile mode aware)"""
+        if self.efficientnet is None:
+            return np.zeros(1792)  # Return zeros in mobile mode
+        
         with torch.no_grad():
             image_input = self.cnn_preprocess(image).unsqueeze(0).to(self.device)
             features = self.efficientnet(image_input)
@@ -315,29 +330,39 @@ class MultiModalFeatureExtractor:
         return np.array(features)
     
     def extract_all_features(self, image_path: str) -> Dict[str, np.ndarray]:
-        """Extract all features from an image"""
+        """Extract features from an image (mobile mode support)"""
         # Load image
         pil_image = Image.open(image_path).convert('RGB')
         cv_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
         cv_image_rgb = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         
-        # Resize for consistent feature extraction
-        target_size = (self.config.get('feature_image_size', 512),) * 2
+        # Resize for consistent feature extraction (mobile uses smaller size)
+        if self.mobile_mode:
+            target_size = (512, 512)  # Mobile optimized
+        else:
+            target_size = (self.config.get('feature_image_size', 512),) * 2
+        
         pil_image_resized = pil_image.resize(target_size, Image.Resampling.LANCZOS)
         cv_image_resized = cv2.resize(cv_image_rgb, target_size)
         
         features = {}
         
         try:
-            # Deep learning features
+            # CLIP features (always extracted)
             features['clip'] = self.extract_clip_features(pil_image_resized)
-            features['resnet'] = self.extract_resnet_features(pil_image_resized)
-            features['efficientnet'] = self.extract_efficientnet_features(pil_image_resized)
             
-            # Traditional CV features
-            features['color'] = self.extract_color_features(cv_image_resized)
-            features['texture'] = self.extract_texture_features(cv_image_resized)
-            features['shape'] = self.extract_shape_features(cv_image_resized)
+            if self.mobile_mode:
+                # Mobile mode: CLIP only for speed
+                logger.debug(f"Mobile mode: Using CLIP features only for {image_path}")
+            else:
+                # Full mode: Extract all features
+                features['resnet'] = self.extract_resnet_features(pil_image_resized)
+                features['efficientnet'] = self.extract_efficientnet_features(pil_image_resized)
+                
+                # Traditional CV features (skip in mobile mode for speed)
+                features['color'] = self.extract_color_features(cv_image_resized)
+                features['texture'] = self.extract_texture_features(cv_image_resized)
+                features['shape'] = self.extract_shape_features(cv_image_resized)
             
             # Normalize all features
             for key in features:

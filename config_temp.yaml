@@ -1,0 +1,41 @@
+augmentation:
+  augmentations_per_image: 50
+  image_size:
+  - 768
+  - 768
+  quality: 90
+data:
+  augmented_images_dir: data/augmented
+  features_file: data/features.h5
+  models_dir: data/models
+  raw_images_dir: data/raw
+features:
+  batch_size: 32
+  feature_image_size: 512
+  mobile_mode: true
+model:
+  clip_variant: ViT-B/32
+  embedding_dim: 512
+  num_classes: 1000
+recognition:
+  batch_confidence_threshold: 0.9
+  batch_size: 16
+  cache_size: 1000
+  confidence_threshold: 0.85
+  high_confidence_threshold: 0.95
+  index_path: data/models/faiss_index.bin
+  metadata_path: data/models/metadata.pkl
+  model_path: checkpoints/best_model.pth
+targets:
+  accuracy: 0.95
+  inference_time: 0.5
+  memory_usage: 4000
+training:
+  arcface_margin: 0.5
+  batch_size: 32
+  checkpoint_dir: checkpoints
+  epochs: 100
+  learning_rate: 0.0001
+  save_every: 5
+  triplet_margin: 0.5
+  weight_decay: 1.0e-05

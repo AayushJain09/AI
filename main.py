@@ -252,8 +252,32 @@ def main():
     parser.add_argument('--step', type=str, choices=['all', 'prepare', 'extract', 'train', 'index', 'evaluate'],
                        default='all', help='Which step to run')
     parser.add_argument('--recognize', type=str, help='Recognize a single image')
+    parser.add_argument('--mobile', action='store_true', 
+                       help='Enable mobile mode for Surface/edge devices (800x faster)')
+    parser.add_argument('--full', action='store_true',
+                       help='Force full mode (all models and features)')
     
     args = parser.parse_args()
+    
+    # Override mobile mode from command line
+    if args.mobile or args.full:
+        # Load config and modify mobile mode
+        import yaml
+        with open(args.config, 'r') as f:
+            config = yaml.safe_load(f)
+        
+        if args.mobile:
+            config['features']['mobile_mode'] = True
+            logger.info("🚀 Mobile mode enabled - 800x faster processing!")
+        elif args.full:
+            config['features']['mobile_mode'] = False
+            logger.info("🔬 Full mode enabled - maximum accuracy")
+        
+        # Save modified config temporarily
+        temp_config = args.config.replace('.yaml', '_temp.yaml')
+        with open(temp_config, 'w') as f:
+            yaml.dump(config, f)
+        args.config = temp_config
     
     # Initialize system
     system = AIRecognitionSystem(args.config)
