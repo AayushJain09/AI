@@ -12,7 +12,7 @@ data:
 features:
   batch_size: 32
   feature_image_size: 512
-  mobile_mode: true
+  mobile_mode: false
 model:
   clip_variant: ViT-B/32
   embedding_dim: 512
@@ -32,10 +32,14 @@ targets:
   memory_usage: 4000
 training:
   arcface_margin: 0.5
-  batch_size: 32
+  batch_size: 16
   checkpoint_dir: checkpoints
-  epochs: 100
+  clip_model: ViT-B/32
+  embedding_dim: 256
+  epochs: 10
   learning_rate: 0.0001
+  num_classes: 100
   save_every: 5
   triplet_margin: 0.5
+  use_wandb: false
   weight_decay: 1.0e-05

@@ -44,12 +44,19 @@ class MultiModalFeatureExtractor:
         self._setup_preprocessing()
         
     def _load_models(self):
-        """Load feature extraction models (mobile mode support)"""
-        # Check for mobile mode
+        """
+        Load feature extraction models with optimized architecture:
+        - CLIP: Multi-modal vision-language features (always loaded)
+        - DINOv2: Self-supervised vision features (always loaded) 
+        - EfficientNet: CNN features (full mode only)
+        - ResNet: Removed for redundancy and performance optimization
+        """
+        # Check for mobile mode configuration
         self.mobile_mode = self.config.get('mobile_mode', False)
         
-        # CLIP model with SSL fix (always loaded)
-        logger.info("Loading CLIP model...")
+        # === CLIP Model (Core Model #1 - Always Loaded) ===
+        # CLIP provides excellent multi-modal features combining vision and language understanding
+        logger.info("Loading CLIP model (core vision-language features)...")
         import ssl
         import urllib.request
         
@@ -57,8 +64,6 @@ class MultiModalFeatureExtractor:
         ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
-        
-        # Apply SSL context
         urllib.request.install_opener(urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_context)))
         
         try:
@@ -67,32 +72,43 @@ class MultiModalFeatureExtractor:
                 device=self.device
             )
             self.clip_model.eval()
-            logger.info("CLIP model loaded successfully")
+            logger.info("✓ CLIP model loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load CLIP model: {e}")
             raise
         
-        # Additional models (only in full mode)
+        # === DINOv2 Model (Core Model #2 - Always Loaded) ===
+        # DINOv2 provides complementary self-supervised features that work well with CLIP
+        # Uses small variant for mobile efficiency while maintaining strong performance
+        logger.info("Loading DINOv2 model (self-supervised vision features)...")
+        try:
+            # DINOv2-small: 384-dim features, excellent for fine-grained object recognition
+            self.dinov2 = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14', trust_repo=True)
+            self.dinov2 = self.dinov2.to(self.device)
+            self.dinov2.eval()
+            logger.info("✓ DINOv2-small loaded successfully")
+        except Exception as e:
+            logger.warning(f"Failed to load DINOv2: {e}. Proceeding with CLIP-only mode")
+            self.dinov2 = None
+        
+        # === Additional Models Based on Mode ===
         if not self.mobile_mode:
-            # ResNet model (fix deprecated pretrained parameter)
-            logger.info("Loading ResNet model...")
-            from torchvision.models import ResNet50_Weights
-            self.resnet = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
-            self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])  # Remove FC layer
-            self.resnet = self.resnet.to(self.device)
-            self.resnet.eval()
-            
-            # EfficientNet model for additional features
-            logger.info("Loading EfficientNet model...")
+            # Full mode: Add EfficientNet for comprehensive feature coverage
+            logger.info("Loading EfficientNet model (full mode - enhanced CNN features)...")
             from torchvision.models import EfficientNet_B4_Weights
             self.efficientnet = models.efficientnet_b4(weights=EfficientNet_B4_Weights.IMAGENET1K_V1)
-            self.efficientnet.classifier = nn.Identity()  # Remove classifier
+            self.efficientnet.classifier = nn.Identity()  # Remove classifier layer
             self.efficientnet = self.efficientnet.to(self.device)
             self.efficientnet.eval()
+            logger.info("✓ EfficientNet-B4 loaded successfully")
         else:
-            logger.info("Mobile mode: Skipping ResNet and EfficientNet models")
-            self.resnet = None
+            # Mobile mode: Skip heavy models for performance
+            logger.info("Mobile mode: Skipping EfficientNet for optimal performance")
             self.efficientnet = None
+        
+        # ResNet removed from both modes (redundant with DINOv2 + CLIP combination)
+        self.resnet = None
+        logger.info("ResNet skipped (optimized architecture: CLIP + DINOv2 + EfficientNet)")
         
     def _setup_preprocessing(self):
         """Setup preprocessing pipelines for different models"""
@@ -113,16 +129,40 @@ class MultiModalFeatureExtractor:
             features = features / features.norm(dim=-1, keepdim=True)  # Normalize
             return features.cpu().numpy().flatten()
     
-    def extract_resnet_features(self, image: Image.Image) -> np.ndarray:
-        """Extract ResNet features (mobile mode aware)"""
-        if self.resnet is None:
-            return np.zeros(2048)  # Return zeros in mobile mode
+    def extract_dinov2_features(self, image: Image.Image) -> np.ndarray:
+        """
+        Extract DINOv2 self-supervised features.
+        
+        DINOv2 provides complementary features to CLIP:
+        - CLIP: Multi-modal (vision + language) understanding
+        - DINOv2: Pure visual self-supervised features with excellent fine-grained recognition
+        
+        Returns 384-dimensional feature vector from DINOv2-small
+        """
+        if self.dinov2 is None:
+            return np.zeros(384)  # Return zeros if DINOv2 failed to load
         
         with torch.no_grad():
-            image_input = self.cnn_preprocess(image).unsqueeze(0).to(self.device)
-            features = self.resnet(image_input)
+            # DINOv2 expects normalized RGB images of size 224x224
+            dinov2_transform = transforms.Compose([
+                transforms.Resize(224, interpolation=transforms.InterpolationMode.BICUBIC),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+            ])
+            
+            image_input = dinov2_transform(image).unsqueeze(0).to(self.device)
+            features = self.dinov2(image_input)
             features = features.flatten()
             return features.cpu().numpy()
+    
+    def extract_resnet_features(self, image: Image.Image) -> np.ndarray:
+        """
+        ResNet features (DEPRECATED - removed from architecture).
+        Returns zeros to maintain compatibility with existing code.
+        """
+        # ResNet removed from architecture for performance optimization
+        return np.zeros(2048)
     
     def extract_efficientnet_features(self, image: Image.Image) -> np.ndarray:
         """Extract EfficientNet features (mobile mode aware)"""
@@ -330,15 +370,26 @@ class MultiModalFeatureExtractor:
         return np.array(features)
     
     def extract_all_features(self, image_path: str) -> Dict[str, np.ndarray]:
-        """Extract features from an image (mobile mode support)"""
-        # Load image
+        """
+        Extract comprehensive features from an image with optimized dual-mode architecture.
+        
+        Mobile Mode: CLIP + DINOv2 (fast, high accuracy)
+        Full Mode: CLIP + DINOv2 + EfficientNet + Traditional CV features (maximum accuracy)
+        
+        Args:
+            image_path: Path to the input image
+            
+        Returns:
+            Dictionary of feature vectors with keys indicating feature type
+        """
+        # Load and preprocess image
         pil_image = Image.open(image_path).convert('RGB')
         cv_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
         cv_image_rgb = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         
-        # Resize for consistent feature extraction (mobile uses smaller size)
+        # Determine target size based on mode
         if self.mobile_mode:
-            target_size = (512, 512)  # Mobile optimized
+            target_size = (512, 512)  # Mobile optimized resolution
         else:
             target_size = (self.config.get('feature_image_size', 512),) * 2
         
@@ -348,25 +399,34 @@ class MultiModalFeatureExtractor:
         features = {}
         
         try:
-            # CLIP features (always extracted)
+            # === Core Features (Both Modes) ===
+            # Extract CLIP features (multi-modal vision-language understanding)
             features['clip'] = self.extract_clip_features(pil_image_resized)
             
+            # Extract DINOv2 features (self-supervised visual features)
+            features['dinov2'] = self.extract_dinov2_features(pil_image_resized)
+            
             if self.mobile_mode:
-                # Mobile mode: CLIP only for speed
-                logger.debug(f"Mobile mode: Using CLIP features only for {image_path}")
+                # === Mobile Mode: Optimized for Speed ===
+                logger.debug(f"Mobile mode: Using CLIP + DINOv2 features for {image_path}")
+                # Skip heavy computations for mobile deployment
+                
             else:
-                # Full mode: Extract all features
-                features['resnet'] = self.extract_resnet_features(pil_image_resized)
+                # === Full Mode: Maximum Feature Coverage ===
+                logger.debug(f"Full mode: Extracting comprehensive features for {image_path}")
+                
+                # Deep learning features
                 features['efficientnet'] = self.extract_efficientnet_features(pil_image_resized)
                 
-                # Traditional CV features (skip in mobile mode for speed)
+                # Traditional computer vision features
                 features['color'] = self.extract_color_features(cv_image_resized)
                 features['texture'] = self.extract_texture_features(cv_image_resized)
                 features['shape'] = self.extract_shape_features(cv_image_resized)
             
-            # Normalize all features
+            # Normalize all feature vectors for consistent similarity computation
             for key in features:
-                features[key] = normalize(features[key].reshape(1, -1))[0]
+                if features[key] is not None and len(features[key]) > 0:
+                    features[key] = normalize(features[key].reshape(1, -1))[0]
             
         except Exception as e:
             logger.error(f"Feature extraction failed for {image_path}: {e}")

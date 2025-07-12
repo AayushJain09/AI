@@ -25,21 +25,19 @@ logger = logging.getLogger(__name__)
 
 
 class SiameseNetwork(nn.Module):
-    """Siamese network for few-shot learning with metric learning"""
+    """Siamese network for few-shot learning with CLIP + DINOv2 features"""
     
-    def __init__(self, base_model: str = 'ViT-B/32', embedding_dim: int = 256):
+    def __init__(self, base_model: str = 'ViT-B/32', embedding_dim: int = 256, input_dim: int = 896):
         super(SiameseNetwork, self).__init__()
         
-        # Load CLIP as base encoder
-        self.clip_model, _ = clip.load(base_model, device='cpu')
+        # Note: We don't load CLIP here since we're using pre-extracted features
+        # input_dim = 512 (CLIP) + 384 (DINOv2) = 896 for combined features
+        # or 512 for CLIP-only fallback
+        self.input_dim = input_dim
         
-        # Freeze CLIP backbone initially
-        for param in self.clip_model.parameters():
-            param.requires_grad = False
-        
-        # Custom projection head
+        # Custom projection head for combined features
         self.projection = nn.Sequential(
-            nn.Linear(512, 1024),
+            nn.Linear(input_dim, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(inplace=True),
             nn.Dropout(0.3),
@@ -67,12 +65,8 @@ class SiameseNetwork(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
     
-    def forward_one(self, x):
-        """Forward pass for one image"""
-        # Extract CLIP features
-        with torch.no_grad():
-            features = self.clip_model.encode_image(x)
-        
+    def forward_one(self, features):
+        """Forward pass for pre-extracted features"""
         # Project to embedding space
         embeddings = self.projection(features.float())
         
@@ -82,7 +76,7 @@ class SiameseNetwork(nn.Module):
         return embeddings
     
     def forward(self, anchor, positive=None, negative=None):
-        """Forward pass for triplet or single image"""
+        """Forward pass for triplet or single feature vector"""
         anchor_embedding = self.forward_one(anchor)
         
         if positive is not None and negative is not None:
@@ -170,11 +164,17 @@ class FewShotDataset(Dataset):
                         'path': image_path
                     })
         
+        # Filter out items with insufficient samples
+        self.items = {k: v for k, v in self.items.items() if len(v) >= 2}
+        
         # Split items for train/val
         self.item_ids = list(self.items.keys())
+        if len(self.item_ids) < 2:
+            raise ValueError(f"Insufficient items for training. Found {len(self.item_ids)} items, need at least 2.")
+        
         np.random.shuffle(self.item_ids)
         
-        split_point = int(len(self.item_ids) * 0.8)
+        split_point = max(1, int(len(self.item_ids) * 0.8))  # Ensure at least 1 item in each split
         if mode == 'train':
             self.item_ids = self.item_ids[:split_point]
         else:
@@ -186,7 +186,7 @@ class FewShotDataset(Dataset):
         return len(self.item_ids) * 100  # Synthetic epoch size
     
     def __getitem__(self, idx):
-        """Get triplet of (anchor, positive, negative)"""
+        """Get triplet of (anchor, positive, negative) with combined features"""
         # Sample anchor item
         anchor_item = np.random.choice(self.item_ids)
         anchor_images = self.items[anchor_item]
@@ -198,21 +198,41 @@ class FewShotDataset(Dataset):
             anchor_idx = positive_idx = 0
         
         # Sample negative from different item
-        negative_item = np.random.choice([i for i in self.item_ids if i != anchor_item])
-        negative_images = self.items[negative_item]
-        negative_idx = np.random.choice(len(negative_images))
+        available_negatives = [i for i in self.item_ids if i != anchor_item]
+        if not available_negatives:
+            # Fallback: use same item but different image
+            negative_item = anchor_item
+            negative_images = anchor_images
+            available_indices = [i for i in range(len(negative_images)) if i not in [anchor_idx, positive_idx]]
+            negative_idx = np.random.choice(available_indices) if available_indices else 0
+        else:
+            negative_item = np.random.choice(available_negatives)
+            negative_images = self.items[negative_item]
+            negative_idx = np.random.choice(len(negative_images))
         
-        # Load images
+        # Load features from HDF5
         with h5py.File(self.features_file, 'r') as hf:
-            anchor_path = anchor_images[anchor_idx]['path']
-            positive_path = anchor_images[positive_idx]['path']
-            negative_path = negative_images[negative_idx]['path']
+            # Load CLIP features (primary)
+            anchor_clip = hf[anchor_images[anchor_idx]['key']]['clip'][:]
+            positive_clip = hf[anchor_images[positive_idx]['key']]['clip'][:]
+            negative_clip = hf[negative_images[negative_idx]['key']]['clip'][:]
             
-            # For this example, we'll load pre-computed CLIP features
-            # In practice, you'd load and preprocess actual images
-            anchor_features = hf[anchor_images[anchor_idx]['key']]['clip'][:]
-            positive_features = hf[anchor_images[positive_idx]['key']]['clip'][:]
-            negative_features = hf[negative_images[negative_idx]['key']]['clip'][:]
+            # Load DINOv2 features if available (secondary)
+            try:
+                anchor_dino = hf[anchor_images[anchor_idx]['key']]['dinov2'][:]
+                positive_dino = hf[anchor_images[positive_idx]['key']]['dinov2'][:]
+                negative_dino = hf[negative_images[negative_idx]['key']]['dinov2'][:]
+                
+                # Combine CLIP + DINOv2 features
+                anchor_features = np.concatenate([anchor_clip, anchor_dino])
+                positive_features = np.concatenate([positive_clip, positive_dino])
+                negative_features = np.concatenate([negative_clip, negative_dino])
+            except KeyError:
+                # Fallback to CLIP only if DINOv2 not available
+                logger.warning("DINOv2 features not found, using CLIP only")
+                anchor_features = anchor_clip
+                positive_features = positive_clip
+                negative_features = negative_clip
         
         return {
             'anchor': torch.FloatTensor(anchor_features),
@@ -225,7 +245,7 @@ class FewShotDataset(Dataset):
 class ModelTrainer:
     """Training pipeline for few-shot learning"""
     
-    def __init__(self, config: Dict):
+    def __init__(self, config: Dict, features_file: str = None):
         self.config = config
         # Use GPU acceleration if available (CUDA or Apple Silicon MPS)
         if torch.cuda.is_available():
@@ -236,10 +256,15 @@ class ModelTrainer:
             self.device = torch.device('cpu')
         logger.info(f"Using device: {self.device}")
         
+        # Auto-detect input feature dimensions from features file
+        input_dim = self._detect_feature_dim(features_file) if features_file else 896
+        logger.info(f"Using input feature dimension: {input_dim}")
+        
         # Initialize model
         self.model = SiameseNetwork(
             base_model=config['clip_model'],
-            embedding_dim=config['embedding_dim']
+            embedding_dim=config['embedding_dim'],
+            input_dim=input_dim
         ).to(self.device)
         
         # Loss functions
@@ -264,6 +289,33 @@ class ModelTrainer:
         # Best model tracking
         self.best_val_accuracy = 0
         self.best_model_path = None
+    
+    def _detect_feature_dim(self, features_file: str) -> int:
+        """Auto-detect feature dimensions from HDF5 file"""
+        try:
+            with h5py.File(features_file, 'r') as hf:
+                # Find first image entry
+                for key in hf.keys():
+                    if key.startswith('image_'):
+                        clip_dim = hf[key]['clip'].shape[0]
+                        
+                        # Check if DINOv2 features exist
+                        if 'dinov2' in hf[key]:
+                            dino_dim = hf[key]['dinov2'].shape[0]
+                            total_dim = clip_dim + dino_dim
+                            logger.info(f"Detected CLIP({clip_dim}) + DINOv2({dino_dim}) = {total_dim} dimensions")
+                            return total_dim
+                        else:
+                            logger.info(f"Detected CLIP-only with {clip_dim} dimensions")
+                            return clip_dim
+                            
+            # Fallback if no images found
+            logger.warning("No image features found in HDF5 file, using default 896 dimensions")
+            return 896
+            
+        except Exception as e:
+            logger.error(f"Error detecting feature dimensions: {e}, using default 896")
+            return 896
         
     def train_epoch(self, dataloader: DataLoader, epoch: int):
         """Train for one epoch"""

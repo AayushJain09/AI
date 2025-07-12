@@ -134,7 +134,7 @@ class AIRecognitionSystem:
             train_dataset,
             batch_size=self.config['training']['batch_size'],
             shuffle=True,
-            num_workers=4,
+            num_workers=0,  # Reduced to avoid multiprocessing issues
             pin_memory=True
         )
         
@@ -142,12 +142,12 @@ class AIRecognitionSystem:
             val_dataset,
             batch_size=self.config['training']['batch_size'],
             shuffle=False,
-            num_workers=4,
+            num_workers=0,  # Reduced to avoid multiprocessing issues
             pin_memory=True
         )
         
         # Train model
-        trainer = ModelTrainer(self.config['training'])
+        trainer = ModelTrainer(self.config['training'], self.config['data']['features_file'])
         best_model_path = trainer.train(train_loader, val_loader)
         
         logger.info(f"Training complete! Best model: {best_model_path}")
