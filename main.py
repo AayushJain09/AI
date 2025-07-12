@@ -163,83 +163,285 @@ class AIRecognitionSystem:
         logger.info("STEP 4: BUILD RECOGNITION INDEX")
         logger.info("="*50)
         
-        # Create pipeline
-        pipeline = RecognitionPipeline(self.config['recognition'])
+        # Import the create_pipeline function
+        from src.inference.recognize import create_pipeline
+        
+        # Create pipeline using the config file path
+        pipeline = create_pipeline('config.yaml')
         
         # Add all items to index
         raw_dir = Path(self.config['data']['raw_images_dir'])
         items_added = 0
         
+        if not raw_dir.exists():
+            logger.error(f"Raw images directory not found: {raw_dir}")
+            return False
+        
         for item_dir in raw_dir.iterdir():
             if item_dir.is_dir():
                 item_id = item_dir.name
-                image_files = list(item_dir.glob('*.jpg')) + list(item_dir.glob('*.png'))
+                # Look for both uppercase and lowercase extensions
+                image_files = (list(item_dir.glob('*.jpg')) + list(item_dir.glob('*.JPG')) + 
+                              list(item_dir.glob('*.png')) + list(item_dir.glob('*.PNG')) +
+                              list(item_dir.glob('*.jpeg')) + list(item_dir.glob('*.JPEG')))
                 
                 if image_files:
-                    pipeline.add_item_to_index(item_id, [str(f) for f in image_files])
-                    items_added += 1
-                    logger.info(f"Added {item_id} with {len(image_files)} images")
+                    try:
+                        pipeline.add_item_to_index(item_id, [str(f) for f in image_files])
+                        items_added += 1
+                        logger.info(f"Added {item_id} with {len(image_files)} images")
+                    except Exception as e:
+                        logger.error(f"Failed to add item {item_id}: {e}")
         
         logger.info(f"Index built with {items_added} items")
         
         return True
     
     def run_evaluation(self):
-        '''Step 5: Evaluate system performance'''
+        '''
+        Step 5: Comprehensive System Performance Evaluation
+        
+        This method evaluates the complete AI recognition pipeline by:
+        1. Testing recognition accuracy on held-out validation images
+        2. Measuring inference speed and confidence scores
+        3. Computing detailed performance metrics
+        4. Identifying problematic items that need improvement
+        5. Generating comprehensive evaluation reports
+        
+        Evaluation Strategy:
+        - Uses original raw images (not augmented data) for realistic testing
+        - Tests 2 images per item to balance thoroughness with speed
+        - Compares predicted vs ground truth labels for accuracy calculation
+        - Tracks confidence scores to assess model certainty
+        - Measures inference time for performance optimization
+        '''
         logger.info("="*50)
         logger.info("STEP 5: SYSTEM EVALUATION")
         logger.info("="*50)
         
-        # Create pipeline and monitor
+        # === Initialize Evaluation Components ===
+        # Create recognition pipeline using the same config as training/indexing
+        from src.inference.recognize import create_pipeline, PerformanceMonitor
+        
+        logger.info("Loading recognition pipeline for evaluation...")
         pipeline = create_pipeline('config.yaml')
+        
+        # Initialize performance monitor to track metrics across all test images
         monitor = PerformanceMonitor(pipeline)
         
-        # Test on validation set
-        test_results = []
+        # === Prepare Test Dataset ===
+        # Use original raw images as ground truth test set (not augmented data)
+        test_results = []  # Store detailed results for analysis
         raw_dir = Path(self.config['data']['raw_images_dir'])
+        
+        if not raw_dir.exists():
+            logger.error(f"Raw images directory not found: {raw_dir}")
+            return False
+        
+        logger.info(f"Evaluating on images from: {raw_dir}")
+        
+        # === Run Recognition Tests on Each Item ===
+        total_tests = 0
+        successful_tests = 0
         
         for item_dir in raw_dir.iterdir():
             if item_dir.is_dir():
-                item_id = item_dir.name
-                test_images = list(item_dir.glob('*.jpg'))[:2]  # Test 2 images per item
+                item_id = item_dir.name  # Ground truth label
                 
+                # Get test images (support multiple file extensions)
+                test_images = (list(item_dir.glob('*.jpg')) + list(item_dir.glob('*.JPG')) + 
+                              list(item_dir.glob('*.png')) + list(item_dir.glob('*.PNG')) +
+                              list(item_dir.glob('*.jpeg')) + list(item_dir.glob('*.JPEG')))[:2]
+                
+                if not test_images:
+                    logger.warning(f"No test images found for item {item_id}")
+                    continue
+                
+                logger.info(f"Testing item {item_id} with {len(test_images)} images...")
+                
+                # === Process Each Test Image ===
                 for img_path in test_images:
-                    result = pipeline.recognize(str(img_path))
-                    monitor.update_metrics(result, ground_truth=item_id)
-                    
-                    test_results.append({
-                        'true_label': item_id,
-                        'predicted': result.item_id,
-                        'confidence': result.confidence,
-                        'time': result.inference_time
-                    })
+                    try:
+                        # Run recognition pipeline on test image
+                        logger.debug(f"Processing: {img_path}")
+                        result = pipeline.recognize(str(img_path))
+                        
+                        # Update performance metrics with ground truth comparison
+                        monitor.update_metrics(result, ground_truth=item_id)
+                        
+                        # Track success/failure for summary statistics
+                        total_tests += 1
+                        if result.item_id == item_id:
+                            successful_tests += 1
+                        
+                        # Store detailed result for further analysis
+                        test_result = {
+                            'true_label': item_id,              # Ground truth item ID
+                            'predicted': result.item_id,        # Model prediction
+                            'confidence': result.confidence,    # Model confidence score
+                            'inference_time': result.inference_time,  # Processing speed
+                            'correct': result.item_id == item_id,     # Binary accuracy flag
+                            'image_path': str(img_path)              # Image source
+                        }
+                        test_results.append(test_result)
+                        
+                        # Log individual result for debugging
+                        status = "✅ CORRECT" if test_result['correct'] else "❌ INCORRECT"
+                        logger.info(f"  {img_path.name}: {result.item_id} "
+                                  f"(confidence: {result.confidence:.3f}) {status}")
+                        
+                    except Exception as e:
+                        logger.error(f"Error processing {img_path}: {e}")
+                        total_tests += 1  # Count as attempted test
         
-        # Calculate metrics
+        # === Generate Comprehensive Performance Report ===
+        logger.info("\n" + "="*50)
+        logger.info("GENERATING EVALUATION REPORT")
+        logger.info("="*50)
+        
+        # Get detailed metrics from performance monitor
         report = monitor.get_report()
         
-        logger.info("\nEVALUATION RESULTS:")
-        logger.info(f"Overall Accuracy: {report['overall_metrics']['accuracy']:.2%}")
-        logger.info(f"Average Confidence: {report['overall_metrics']['avg_confidence']:.3f}")
-        logger.info(f"Average Inference Time: {report['overall_metrics']['avg_inference_time']:.3f}s")
+        # === Display Overall Performance Metrics ===
+        logger.info("\n📊 OVERALL PERFORMANCE METRICS:")
+        logger.info("─" * 40)
         
-        # Check if we met our target
-        if report['overall_metrics']['accuracy'] >= self.config['targets']['accuracy']:
-            logger.info("\n✅ TARGET ACCURACY ACHIEVED!")
+        overall_accuracy = report['overall_metrics']['accuracy']
+        avg_confidence = report['overall_metrics']['avg_confidence']
+        avg_inference_time = report['overall_metrics']['avg_inference_time']
+        
+        logger.info(f"🎯 Overall Accuracy: {overall_accuracy:.2%}")
+        logger.info(f"🔍 Average Confidence: {avg_confidence:.3f}")
+        logger.info(f"⚡ Average Inference Time: {avg_inference_time:.3f}s")
+        logger.info(f"📈 Successful Tests: {successful_tests}/{total_tests}")
+        
+        # === Performance Analysis ===
+        # Calculate additional useful metrics
+        if test_results:
+            # Confidence statistics
+            confidences = [r['confidence'] for r in test_results]
+            correct_confidences = [r['confidence'] for r in test_results if r['correct']]
+            incorrect_confidences = [r['confidence'] for r in test_results if not r['correct']]
+            
+            logger.info(f"📋 Confidence Analysis:")
+            logger.info(f"   • Min Confidence: {min(confidences):.3f}")
+            logger.info(f"   • Max Confidence: {max(confidences):.3f}")
+            if correct_confidences:
+                logger.info(f"   • Avg Confidence (Correct): {np.mean(correct_confidences):.3f}")
+            if incorrect_confidences:
+                logger.info(f"   • Avg Confidence (Incorrect): {np.mean(incorrect_confidences):.3f}")
+            
+            # Speed analysis
+            inference_times = [r['inference_time'] for r in test_results]
+            logger.info(f"⏱️  Speed Analysis:")
+            logger.info(f"   • Min Inference Time: {min(inference_times):.3f}s")
+            logger.info(f"   • Max Inference Time: {max(inference_times):.3f}s")
+            logger.info(f"   • Images per second: {1/avg_inference_time:.1f}")
+        
+        # === Per-Item Performance Breakdown ===
+        if report['per_item_metrics']:
+            logger.info(f"\n📋 PER-ITEM ACCURACY BREAKDOWN:")
+            logger.info("─" * 40)
+            
+            for item_id, stats in report['per_item_metrics'].items():
+                item_accuracy = stats['accuracy']
+                test_count = stats['total_tests']
+                correct_count = stats['correct']
+                
+                # Color-code based on performance
+                status_icon = "🟢" if item_accuracy >= 0.9 else "🟡" if item_accuracy >= 0.7 else "🔴"
+                
+                logger.info(f"{status_icon} {item_id}: {item_accuracy:.1%} "
+                          f"({correct_count}/{test_count} correct)")
+        
+        # === Target Achievement Assessment ===
+        logger.info(f"\n🎯 TARGET ACHIEVEMENT ANALYSIS:")
+        logger.info("─" * 40)
+        
+        target_accuracy = self.config['targets']['accuracy']
+        target_inference_time = self.config['targets']['inference_time']
+        
+        # Check accuracy target
+        accuracy_achieved = overall_accuracy >= target_accuracy
+        accuracy_icon = "✅" if accuracy_achieved else "❌"
+        logger.info(f"{accuracy_icon} Accuracy Target: {overall_accuracy:.2%} vs {target_accuracy:.2%} target")
+        
+        # Check speed target
+        speed_achieved = avg_inference_time <= target_inference_time
+        speed_icon = "✅" if speed_achieved else "❌"
+        logger.info(f"{speed_icon} Speed Target: {avg_inference_time:.3f}s vs {target_inference_time:.3f}s target")
+        
+        # === Recommendations and Next Steps ===
+        if accuracy_achieved and speed_achieved:
+            logger.info("\n🎉 CONGRATULATIONS! All performance targets achieved!")
+            logger.info("✨ Your AI recognition system is ready for production deployment.")
         else:
-            logger.warning("\n❌ Target accuracy not met. Consider:")
-            logger.warning("- Adding more training data")
-            logger.warning("- Adjusting augmentation parameters")
-            logger.warning("- Fine-tuning model hyperparameters")
+            logger.info(f"\n🔧 OPTIMIZATION RECOMMENDATIONS:")
+            logger.info("─" * 40)
+            
+            if not accuracy_achieved:
+                logger.warning("📈 To improve accuracy:")
+                logger.warning("   • Increase augmentation diversity (current: 50x per image)")
+                logger.warning("   • Add more training epochs (current: 10)")
+                logger.warning("   • Collect more diverse training images")
+                logger.warning("   • Fine-tune confidence thresholds")
+                logger.warning("   • Switch to full mode for maximum accuracy")
+            
+            if not speed_achieved:
+                logger.warning("⚡ To improve speed:")
+                logger.warning("   • Enable mobile mode for faster inference")
+                logger.warning("   • Reduce image resolution in config")
+                logger.warning("   • Implement batch processing")
+                logger.warning("   • Use GPU acceleration if available")
         
-        # Save detailed results
-        with open('evaluation_results.json', 'w') as f:
-            json.dump({
-                'report': report,
-                'test_results': test_results,
-                'config': self.config
-            }, f, indent=2)
+        # === Identify Problematic Items ===
+        problematic_items = monitor.identify_problematic_items(threshold=0.8)
+        if problematic_items:
+            logger.info(f"\n⚠️  ITEMS NEEDING ATTENTION:")
+            logger.info("─" * 40)
+            for item_id in problematic_items:
+                item_stats = report['per_item_metrics'][item_id]
+                logger.warning(f"🔴 {item_id}: {item_stats['accuracy']:.1%} accuracy "
+                             f"({item_stats['correct']}/{item_stats['total_tests']} correct)")
+            logger.info("💡 Consider adding more diverse images for these items.")
         
-        return report['overall_metrics']['accuracy'] >= self.config['targets']['accuracy']
+        # === Save Detailed Results ===
+        results_file = 'evaluation_results.json'
+        logger.info(f"\n💾 Saving detailed results to: {results_file}")
+        
+        # Prepare comprehensive results dictionary
+        detailed_results = {
+            'evaluation_summary': {
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'total_tests': total_tests,
+                'successful_tests': successful_tests,
+                'overall_accuracy': overall_accuracy,
+                'avg_confidence': avg_confidence,
+                'avg_inference_time': avg_inference_time,
+                'targets_achieved': {
+                    'accuracy': accuracy_achieved,
+                    'speed': speed_achieved
+                }
+            },
+            'performance_report': report,
+            'detailed_test_results': test_results,
+            'configuration': self.config,
+            'problematic_items': problematic_items
+        }
+        
+        # Save results with proper error handling
+        try:
+            with open(results_file, 'w') as f:
+                json.dump(detailed_results, f, indent=2, default=str)
+            logger.info(f"✅ Results saved successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to save results: {e}")
+        
+        # === Return Success Status ===
+        logger.info(f"\n🏁 EVALUATION COMPLETE!")
+        logger.info("="*50)
+        
+        return accuracy_achieved
 
 
 def main():

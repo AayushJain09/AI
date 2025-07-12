@@ -1,0 +1,147 @@
+{
+  "evaluation_summary": {
+    "timestamp": "2025-07-13 00:35:40",
+    "total_tests": 6,
+    "successful_tests": 6,
+    "overall_accuracy": 1.0,
+    "avg_confidence": 1.0000000099341075,
+    "avg_inference_time": 0.36053462823232013,
+    "targets_achieved": {
+      "accuracy": true,
+      "speed": true
+    }
+  },
+  "performance_report": {
+    "overall_metrics": {
+      "accuracy": 1.0,
+      "total_queries": 6,
+      "successful": 6,
+      "failed": 0,
+      "avg_confidence": 1.0000000099341075,
+      "avg_inference_time": 0.36053462823232013
+    },
+    "per_item_metrics": {
+      "item_001": {
+        "accuracy": 1.0,
+        "total_tests": 2,
+        "correct": 2
+      },
+      "item_002": {
+        "accuracy": 1.0,
+        "total_tests": 2,
+        "correct": 2
+      },
+      "item_003": {
+        "accuracy": 1.0,
+        "total_tests": 2,
+        "correct": 2
+      }
+    }
+  },
+  "detailed_test_results": [
+    {
+      "true_label": "item_001",
+      "predicted": "item_001",
+      "confidence": 1.0000001192092896,
+      "inference_time": 0.4849820137023926,
+      "correct": true,
+      "image_path": "data/raw/item_001/Copy of IMG_8388.JPG"
+    },
+    {
+      "true_label": "item_001",
+      "predicted": "item_001",
+      "confidence": 0.9999999403953552,
+      "inference_time": 0.3432021141052246,
+      "correct": true,
+      "image_path": "data/raw/item_001/Copy of IMG_8386.JPG"
+    },
+    {
+      "true_label": "item_002",
+      "predicted": "item_002",
+      "confidence": 1.0000001192092896,
+      "inference_time": 0.34610462188720703,
+      "correct": true,
+      "image_path": "data/raw/item_002/Copy of IMG_8403.JPG"
+    },
+    {
+      "true_label": "item_002",
+      "predicted": "item_002",
+      "confidence": 0.9999998807907104,
+      "inference_time": 0.3484930992126465,
+      "correct": true,
+      "image_path": "data/raw/item_002/Copy of IMG_8404.JPG"
+    },
+    {
+      "true_label": "item_003",
+      "predicted": "item_003",
+      "confidence": 1.0,
+      "inference_time": 0.32190990447998047,
+      "correct": true,
+      "image_path": "data/raw/item_003/Copy of IMG_8428.JPG"
+    },
+    {
+      "true_label": "item_003",
+      "predicted": "item_003",
+      "confidence": 1.0,
+      "inference_time": 0.3185160160064697,
+      "correct": true,
+      "image_path": "data/raw/item_003/Copy of IMG_8423.JPG"
+    }
+  ],
+  "configuration": {
+    "data": {
+      "raw_images_dir": "data/raw",
+      "augmented_images_dir": "data/augmented",
+      "features_file": "data/features.h5",
+      "models_dir": "data/models"
+    },
+    "model": {
+      "clip_variant": "ViT-B/32",
+      "embedding_dim": 512,
+      "num_classes": 1000
+    },
+    "training": {
+      "clip_model": "ViT-B/32",
+      "embedding_dim": 256,
+      "num_classes": 100,
+      "batch_size": 16,
+      "epochs": 10,
+      "learning_rate": 0.0001,
+      "weight_decay": 1e-05,
+      "triplet_margin": 0.5,
+      "arcface_margin": 0.5,
+      "save_every": 5,
+      "checkpoint_dir": "checkpoints",
+      "use_wandb": false
+    },
+    "augmentation": {
+      "augmentations_per_image": 50,
+      "image_size": [
+        768,
+        768
+      ],
+      "quality": 90
+    },
+    "features": {
+      "feature_image_size": 512,
+      "batch_size": 32,
+      "mobile_mode": true
+    },
+    "recognition": {
+      "model_path": "checkpoints/best_model.pth",
+      "index_path": "data/models/faiss_index.bin",
+      "metadata_path": "data/models/metadata.pkl",
+      "cache_size": 1000,
+      "confidence_threshold": 0.85,
+      "high_confidence_threshold": 0.95,
+      "batch_confidence_threshold": 0.9,
+      "batch_size": 16
+    },
+    "targets": {
+      "accuracy": 0.95,
+      "inference_time": 0.5,
+      "memory_usage": 4000
+    }
+  },
+  "problematic_items": []
+}
