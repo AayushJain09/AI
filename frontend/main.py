@@ -10,6 +10,7 @@ import asyncio
 import json
 import requests
 import base64
+import time
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 import logging
@@ -44,7 +45,7 @@ class ApiClient:
     def __init__(self, base_url: str = "http://127.0.0.1:8000"):
         self.base_url = base_url
         self.session = requests.Session()
-        self.session.timeout = 30
+        self.timeout = 30
         self.max_retries = 3
         self.retry_delay = 1.0
         self.is_connected = False
@@ -61,7 +62,7 @@ class ApiClient:
         
         for attempt in range(self.max_retries):
             try:
-                response = getattr(self.session, method.lower())(url, **kwargs)
+                response = getattr(self.session, method.lower())(url, timeout=self.timeout, **kwargs)
                 
                 # Check for HTTP errors
                 response.raise_for_status()
@@ -132,7 +133,7 @@ class ApiClient:
         """GET request to API"""
         return self._make_request("GET", endpoint)
     
-    def post(self, endpoint: str, data: Dict[str, Any] = None, files: Dict = None) -> Dict[str, Any]:
+    def post(self, endpoint: str, data: Optional[Dict[str, Any]] = None, files: Optional[Dict] = None) -> Dict[str, Any]:
         """POST request to API"""
         if files:
             return self._make_request("POST", endpoint, data=data, files=files)
@@ -143,7 +144,7 @@ class ApiClient:
         """DELETE request to API"""
         return self._make_request("DELETE", endpoint)
     
-    def put(self, endpoint: str, data: Dict[str, Any] = None) -> Dict[str, Any]:
+    def put(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """PUT request to API"""
         return self._make_request("PUT", endpoint, json=data)
     
@@ -204,7 +205,6 @@ class ModernButton(QPushButton):
             }}
             QPushButton:hover {{
                 background-color: {self._darken_color(self.color)};
-                transform: translateY(-2px);
             }}
             QPushButton:pressed {{
                 background-color: {self._darken_color(self.color, 0.3)};
@@ -548,7 +548,6 @@ class DashboardWidget(QWidget):
             }}
             QFrame:hover {{
                 border-color: {color};
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             }}
         """)
         
@@ -643,12 +642,12 @@ class MainWindow(QMainWindow):
         self.dashboard = DashboardWidget(self.api_client)
         
         # Import and create other widgets
-        from frontend.widgets.items import ItemsWidget
-        from frontend.widgets.recognition import RecognitionWidget
-        from frontend.widgets.training import TrainingWidget
-        from frontend.widgets.evaluation import EvaluationWidget
-        from frontend.widgets.settings import SettingsWidget
-        from frontend.widgets.logs import LogsWidget
+        from widgets.items import ItemsWidget
+        from widgets.recognition import RecognitionWidget
+        from widgets.training import TrainingWidget
+        from widgets.evaluation import EvaluationWidget
+        from widgets.settings import SettingsWidget
+        from widgets.logs import LogsWidget
         
         self.items_page = ItemsWidget(self.api_client)
         self.recognition_page = RecognitionWidget(self.api_client)

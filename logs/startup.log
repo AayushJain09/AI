@@ -1,0 +1,521 @@
+2025-07-13 01:58:37,201 - __main__ - INFO - 🚀 AI Recognition System - Starting up...
+2025-07-13 01:58:37,201 - __main__ - INFO - Checking system dependencies...
+2025-07-13 01:58:57,730 - __main__ - ERROR - ✗ pillow is missing
+2025-07-13 01:58:57,731 - faiss.loader - INFO - Loading faiss.
+2025-07-13 01:58:58,082 - faiss.loader - INFO - Successfully loaded faiss.
+2025-07-13 01:58:58,084 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 01:59:10,058 - __main__ - ERROR - Missing dependencies: pillow
+2025-07-13 01:59:10,058 - __main__ - ERROR - Please install missing packages using:
+2025-07-13 01:59:10,058 - __main__ - ERROR - pip install pillow
+2025-07-13 01:59:10,058 - __main__ - ERROR - ❌ Dependency check failed
+2025-07-13 01:59:10,058 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 01:59:10,059 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 01:59:55,054 - __main__ - INFO - 🚀 AI Recognition System - Starting up...
+2025-07-13 01:59:55,054 - __main__ - INFO - Checking system dependencies...
+2025-07-13 01:59:56,414 - __main__ - ERROR - ✗ pillow is missing
+2025-07-13 01:59:56,414 - faiss.loader - INFO - Loading faiss.
+2025-07-13 01:59:56,426 - faiss.loader - INFO - Successfully loaded faiss.
+2025-07-13 01:59:56,427 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 01:59:56,927 - __main__ - ERROR - Missing dependencies: pillow
+2025-07-13 01:59:56,927 - __main__ - ERROR - Please install missing packages using:
+2025-07-13 01:59:56,927 - __main__ - ERROR - pip install pillow
+2025-07-13 01:59:56,928 - __main__ - ERROR - ❌ Dependency check failed
+2025-07-13 01:59:56,928 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 01:59:56,928 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 02:02:15,530 - __main__ - INFO - 🚀 AI Recognition System - Starting up...
+2025-07-13 02:02:15,530 - __main__ - INFO - Checking system dependencies...
+2025-07-13 02:02:16,771 - faiss.loader - INFO - Loading faiss.
+2025-07-13 02:02:16,783 - faiss.loader - INFO - Successfully loaded faiss.
+2025-07-13 02:02:16,785 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 02:02:17,297 - __main__ - INFO - ✓ All dependencies are available
+2025-07-13 02:02:17,297 - __main__ - INFO - Checking configuration files...
+2025-07-13 02:02:17,297 - __main__ - INFO - ✓ All configuration files are available
+2025-07-13 02:02:17,297 - __main__ - INFO - Starting backend API server...
+2025-07-13 02:02:17,304 - __main__ - INFO - Waiting for backend to start on http://127.0.0.1:8000...
+2025-07-13 02:02:17,371 - __main__ - INFO - [Backend] INFO:     Will watch for changes in these directories: ['/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system']
+2025-07-13 02:02:17,371 - __main__ - INFO - [Backend] INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-07-13 02:02:17,371 - __main__ - INFO - [Backend] INFO:     Started reloader process [25356] using StatReload
+2025-07-13 02:02:18,548 - __main__ - INFO - [Backend] /Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/albumentations/check_version.py:147: UserWarning: Error fetching version info <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)>
+2025-07-13 02:02:18,548 - __main__ - INFO - [Backend] data = fetch_version_info()
+2025-07-13 02:02:37,678 - __main__ - INFO - [Backend] Process SpawnProcess-1:
+2025-07-13 02:02:37,678 - __main__ - INFO - [Backend] Traceback (most recent call last):
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/process.py", line 313, in _bootstrap
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] self.run()
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] ~~~~~~~~^^
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/process.py", line 108, in run
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] self._target(*self._args, **self._kwargs)
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] File "/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] target(sockets=sockets)
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] ~~~~~~^^^^^^^^^^^^^^^^^
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] File "/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/uvicorn/server.py", line 67, in run
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] return asyncio.run(self.serve(sockets=sockets))
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/asyncio/runners.py", line 195, in run
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] return runner.run(main)
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] ~~~~~~~~~~^^^^^^
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/asyncio/runners.py", line 118, in run
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] return self._loop.run_until_complete(task)
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] return future.result()
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] ~~~~~~~~~~~~~^^
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] File "/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/uvicorn/server.py", line 71, in serve
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] await self._serve(sockets)
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] File "/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/uvicorn/server.py", line 78, in _serve
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] config.load()
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] ~~~~~~~~~~~^^
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] File "/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/uvicorn/config.py", line 436, in load
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] self.loaded_app = import_from_string(self.app)
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] ~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] File "/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/uvicorn/importer.py", line 22, in import_from_string
+2025-07-13 02:02:37,679 - __main__ - INFO - [Backend] raise exc from None
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] File "/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/uvicorn/importer.py", line 19, in import_from_string
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] module = importlib.import_module(module_str)
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/importlib/__init__.py", line 88, in import_module
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] return _bootstrap._gcd_import(name[level:], package, level)
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] File "<frozen importlib._bootstrap_external>", line 1026, in exec_module
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] File "/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/backend/main.py", line 31, in <module>
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] from main import AIRecognitionSystem
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] File "/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/main.py", line 28, in <module>
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] from src.training.modletraining import ModelTrainer, FewShotDataset
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] File "/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/src/training/modletraining.py", line 20, in <module>
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] import wandb
+2025-07-13 02:02:37,680 - __main__ - INFO - [Backend] ModuleNotFoundError: No module named 'wandb'
+2025-07-13 02:02:48,341 - __main__ - ERROR - ✗ Backend did not start within 30 seconds
+2025-07-13 02:02:48,341 - __main__ - ERROR - ✗ Backend failed to start
+2025-07-13 02:02:48,341 - __main__ - INFO - Stopping backend...
+2025-07-13 02:02:49,278 - __main__ - INFO - [Backend] INFO:     Stopping reloader process [25356]
+2025-07-13 02:02:49,342 - __main__ - INFO - ✓ Backend stopped gracefully
+2025-07-13 02:02:49,342 - __main__ - ERROR - ❌ Failed to start backend
+2025-07-13 02:02:49,342 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 02:02:49,342 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 02:03:13,711 - __main__ - INFO - 🚀 AI Recognition System - Starting up...
+2025-07-13 02:03:13,711 - __main__ - INFO - Checking system dependencies...
+2025-07-13 02:03:14,862 - faiss.loader - INFO - Loading faiss.
+2025-07-13 02:03:14,873 - faiss.loader - INFO - Successfully loaded faiss.
+2025-07-13 02:03:14,875 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 02:03:15,403 - __main__ - INFO - ✓ All dependencies are available
+2025-07-13 02:03:15,403 - __main__ - INFO - Checking configuration files...
+2025-07-13 02:03:15,403 - __main__ - INFO - ✓ All configuration files are available
+2025-07-13 02:03:15,403 - __main__ - INFO - Starting backend API server...
+2025-07-13 02:03:15,409 - __main__ - INFO - Waiting for backend to start on http://127.0.0.1:8000...
+2025-07-13 02:03:15,469 - __main__ - INFO - [Backend] INFO:     Will watch for changes in these directories: ['/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system']
+2025-07-13 02:03:15,469 - __main__ - INFO - [Backend] INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-07-13 02:03:15,469 - __main__ - INFO - [Backend] INFO:     Started reloader process [25452] using StatReload
+2025-07-13 02:03:16,626 - __main__ - INFO - [Backend] /Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/albumentations/check_version.py:147: UserWarning: Error fetching version info <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)>
+2025-07-13 02:03:16,626 - __main__ - INFO - [Backend] data = fetch_version_info()
+2025-07-13 02:03:18,767 - __main__ - INFO - [Backend] INFO:faiss.loader:Loading faiss.
+2025-07-13 02:03:18,782 - __main__ - INFO - [Backend] INFO:faiss.loader:Successfully loaded faiss.
+2025-07-13 02:03:18,784 - __main__ - INFO - [Backend] INFO:faiss:Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 02:03:18,789 - __main__ - INFO - [Backend] INFO:     Started server process [25454]
+2025-07-13 02:03:18,789 - __main__ - INFO - [Backend] INFO:     Waiting for application startup.
+2025-07-13 02:03:18,789 - __main__ - INFO - [Backend] INFO:backend.main:🚀 Starting AI Recognition System Backend...
+2025-07-13 02:03:18,791 - __main__ - INFO - [Backend] INFO:backend.main:✅ AI System initialized successfully
+2025-07-13 02:03:18,813 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition models...
+2025-07-13 02:03:18,851 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded trained model with 896-dim input
+2025-07-13 02:03:18,852 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Using device: mps
+2025-07-13 02:03:18,852 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading CLIP model (core vision-language features)...
+2025-07-13 02:03:20,988 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ CLIP model loaded successfully
+2025-07-13 02:03:20,988 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading DINOv2 model (self-supervised vision features)...
+2025-07-13 02:03:21,761 - __main__ - INFO - [Backend] Using cache found in /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main
+2025-07-13 02:03:21,770 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+2025-07-13 02:03:21,770 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (SwiGLU)")
+2025-07-13 02:03:21,771 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+2025-07-13 02:03:21,771 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Attention)")
+2025-07-13 02:03:21,771 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+2025-07-13 02:03:21,771 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Block)")
+2025-07-13 02:03:21,772 - __main__ - INFO - [Backend] INFO:dinov2:using MLP layer as FFN
+2025-07-13 02:03:22,184 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ DINOv2-small loaded successfully
+2025-07-13 02:03:22,184 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Mobile mode: Skipping EfficientNet for optimal performance
+2025-07-13 02:03:22,184 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:ResNet skipped (optimized architecture: CLIP + DINOv2 + EfficientNet)
+2025-07-13 02:03:22,184 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Models loaded successfully
+2025-07-13 02:03:22,184 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition index...
+2025-07-13 02:03:22,186 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded index with 38 vectors
+2025-07-13 02:03:22,186 - __main__ - INFO - [Backend] INFO:backend.main:✅ Recognition pipeline loaded successfully
+2025-07-13 02:03:22,187 - __main__ - INFO - [Backend] INFO:     Application startup complete.
+2025-07-13 02:03:22,428 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58574 - "GET /health HTTP/1.1" 200 OK
+2025-07-13 02:03:22,428 - __main__ - INFO - ✓ Backend is healthy and ready
+2025-07-13 02:03:22,428 - __main__ - INFO - ✓ Backend started successfully
+2025-07-13 02:03:22,428 - __main__ - INFO - Starting frontend GUI application...
+2025-07-13 02:03:22,435 - __main__ - INFO - ✓ Frontend started successfully
+2025-07-13 02:03:22,435 - __main__ - INFO - ✅ AI Recognition System started successfully!
+2025-07-13 02:03:22,435 - __main__ - INFO - Backend API: http://127.0.0.1:8000
+2025-07-13 02:03:22,435 - __main__ - INFO - Frontend GUI: Running
+2025-07-13 02:03:27,426 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 02:03:27,426 - __main__ - INFO - Stopping frontend...
+2025-07-13 02:03:27,426 - __main__ - INFO - ✓ Frontend stopped gracefully
+2025-07-13 02:03:27,426 - __main__ - INFO - Stopping backend...
+2025-07-13 02:03:28,354 - __main__ - INFO - [Backend] INFO:     Shutting down
+2025-07-13 02:03:28,456 - __main__ - INFO - [Backend] INFO:     Waiting for application shutdown.
+2025-07-13 02:03:28,456 - __main__ - INFO - [Backend] INFO:     Application shutdown complete.
+2025-07-13 02:03:28,456 - __main__ - INFO - [Backend] INFO:     Finished server process [25454]
+2025-07-13 02:03:28,543 - __main__ - INFO - [Backend] INFO:     Stopping reloader process [25452]
+2025-07-13 02:03:28,591 - __main__ - INFO - ✓ Backend stopped gracefully
+2025-07-13 02:03:28,591 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 02:03:28,591 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 02:03:28,591 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 02:08:34,914 - __main__ - INFO - 🚀 AI Recognition System - Starting up...
+2025-07-13 02:08:34,914 - __main__ - INFO - Checking system dependencies...
+2025-07-13 02:08:36,389 - faiss.loader - INFO - Loading faiss.
+2025-07-13 02:08:36,400 - faiss.loader - INFO - Successfully loaded faiss.
+2025-07-13 02:08:36,402 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 02:08:36,974 - __main__ - INFO - ✓ All dependencies are available
+2025-07-13 02:08:36,974 - __main__ - INFO - Checking configuration files...
+2025-07-13 02:08:36,975 - __main__ - INFO - ✓ All configuration files are available
+2025-07-13 02:08:36,975 - __main__ - INFO - Starting backend API server...
+2025-07-13 02:08:36,980 - __main__ - INFO - Waiting for backend to start on http://127.0.0.1:8000...
+2025-07-13 02:08:37,044 - __main__ - INFO - [Backend] INFO:     Will watch for changes in these directories: ['/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system']
+2025-07-13 02:08:37,044 - __main__ - INFO - [Backend] INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-07-13 02:08:37,044 - __main__ - INFO - [Backend] INFO:     Started reloader process [26072] using StatReload
+2025-07-13 02:08:38,186 - __main__ - INFO - [Backend] /Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/albumentations/check_version.py:147: UserWarning: Error fetching version info <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)>
+2025-07-13 02:08:38,186 - __main__ - INFO - [Backend] data = fetch_version_info()
+2025-07-13 02:08:39,991 - __main__ - INFO - [Backend] INFO:faiss.loader:Loading faiss.
+2025-07-13 02:08:40,100 - __main__ - INFO - [Backend] INFO:faiss.loader:Successfully loaded faiss.
+2025-07-13 02:08:40,102 - __main__ - INFO - [Backend] INFO:faiss:Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 02:08:40,107 - __main__ - INFO - [Backend] INFO:     Started server process [26074]
+2025-07-13 02:08:40,107 - __main__ - INFO - [Backend] INFO:     Waiting for application startup.
+2025-07-13 02:08:40,107 - __main__ - INFO - [Backend] INFO:backend.main:🚀 Starting AI Recognition System Backend...
+2025-07-13 02:08:40,109 - __main__ - INFO - [Backend] INFO:backend.main:✅ AI System initialized successfully
+2025-07-13 02:08:40,128 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition models...
+2025-07-13 02:08:40,170 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded trained model with 896-dim input
+2025-07-13 02:08:40,170 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Using device: mps
+2025-07-13 02:08:40,170 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading CLIP model (core vision-language features)...
+2025-07-13 02:08:42,280 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ CLIP model loaded successfully
+2025-07-13 02:08:42,280 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading DINOv2 model (self-supervised vision features)...
+2025-07-13 02:08:42,994 - __main__ - INFO - [Backend] Using cache found in /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main
+2025-07-13 02:08:43,004 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+2025-07-13 02:08:43,004 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (SwiGLU)")
+2025-07-13 02:08:43,005 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+2025-07-13 02:08:43,005 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Attention)")
+2025-07-13 02:08:43,005 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+2025-07-13 02:08:43,005 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Block)")
+2025-07-13 02:08:43,006 - __main__ - INFO - [Backend] INFO:dinov2:using MLP layer as FFN
+2025-07-13 02:08:43,461 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ DINOv2-small loaded successfully
+2025-07-13 02:08:43,461 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Mobile mode: Skipping EfficientNet for optimal performance
+2025-07-13 02:08:43,461 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:ResNet skipped (optimized architecture: CLIP + DINOv2 + EfficientNet)
+2025-07-13 02:08:43,461 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Models loaded successfully
+2025-07-13 02:08:43,461 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition index...
+2025-07-13 02:08:43,463 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded index with 38 vectors
+2025-07-13 02:08:43,463 - __main__ - INFO - [Backend] INFO:backend.main:✅ Recognition pipeline loaded successfully
+2025-07-13 02:08:43,465 - __main__ - INFO - [Backend] INFO:     Application startup complete.
+2025-07-13 02:08:44,000 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58646 - "GET /health HTTP/1.1" 200 OK
+2025-07-13 02:08:44,001 - __main__ - INFO - ✓ Backend is healthy and ready
+2025-07-13 02:08:44,001 - __main__ - INFO - ✓ Backend started successfully
+2025-07-13 02:08:44,001 - __main__ - INFO - Starting frontend GUI application...
+2025-07-13 02:08:44,005 - __main__ - INFO - ✓ Frontend started successfully
+2025-07-13 02:08:44,006 - __main__ - INFO - ✅ AI Recognition System started successfully!
+2025-07-13 02:08:44,006 - __main__ - INFO - Backend API: http://127.0.0.1:8000
+2025-07-13 02:08:44,006 - __main__ - INFO - Frontend GUI: Running
+2025-07-13 02:08:44,402 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 02:08:44,402 - __main__ - INFO - Stopping frontend...
+2025-07-13 02:08:44,402 - __main__ - INFO - ✓ Frontend stopped gracefully
+2025-07-13 02:08:44,402 - __main__ - INFO - Stopping backend...
+2025-07-13 02:08:44,881 - __main__ - INFO - [Backend] INFO:     Shutting down
+2025-07-13 02:08:44,982 - __main__ - INFO - [Backend] INFO:     Waiting for application shutdown.
+2025-07-13 02:08:44,982 - __main__ - INFO - [Backend] INFO:     Application shutdown complete.
+2025-07-13 02:08:44,983 - __main__ - INFO - [Backend] INFO:     Finished server process [26074]
+2025-07-13 02:08:45,078 - __main__ - INFO - [Backend] INFO:     Stopping reloader process [26072]
+2025-07-13 02:08:45,125 - __main__ - INFO - ✓ Backend stopped gracefully
+2025-07-13 02:08:45,125 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 02:08:45,125 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 02:08:45,125 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 02:09:44,888 - __main__ - INFO - 🚀 AI Recognition System - Starting up...
+2025-07-13 02:09:44,889 - __main__ - INFO - Checking system dependencies...
+2025-07-13 02:09:46,075 - faiss.loader - INFO - Loading faiss.
+2025-07-13 02:09:46,087 - faiss.loader - INFO - Successfully loaded faiss.
+2025-07-13 02:09:46,089 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 02:09:46,597 - __main__ - INFO - ✓ All dependencies are available
+2025-07-13 02:09:46,598 - __main__ - INFO - Checking configuration files...
+2025-07-13 02:09:46,598 - __main__ - INFO - ✓ All configuration files are available
+2025-07-13 02:09:46,598 - __main__ - INFO - Starting backend API server...
+2025-07-13 02:09:46,606 - __main__ - INFO - Waiting for backend to start on http://127.0.0.1:8000...
+2025-07-13 02:09:46,670 - __main__ - INFO - [Backend] INFO:     Will watch for changes in these directories: ['/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system']
+2025-07-13 02:09:46,670 - __main__ - INFO - [Backend] INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-07-13 02:09:46,670 - __main__ - INFO - [Backend] INFO:     Started reloader process [26137] using StatReload
+2025-07-13 02:09:47,835 - __main__ - INFO - [Backend] /Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/albumentations/check_version.py:147: UserWarning: Error fetching version info <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)>
+2025-07-13 02:09:47,835 - __main__ - INFO - [Backend] data = fetch_version_info()
+2025-07-13 02:09:49,809 - __main__ - INFO - [Backend] INFO:faiss.loader:Loading faiss.
+2025-07-13 02:09:49,824 - __main__ - INFO - [Backend] INFO:faiss.loader:Successfully loaded faiss.
+2025-07-13 02:09:49,826 - __main__ - INFO - [Backend] INFO:faiss:Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 02:09:49,831 - __main__ - INFO - [Backend] INFO:     Started server process [26139]
+2025-07-13 02:09:49,831 - __main__ - INFO - [Backend] INFO:     Waiting for application startup.
+2025-07-13 02:09:49,832 - __main__ - INFO - [Backend] INFO:backend.main:🚀 Starting AI Recognition System Backend...
+2025-07-13 02:09:49,833 - __main__ - INFO - [Backend] INFO:backend.main:✅ AI System initialized successfully
+2025-07-13 02:09:49,850 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition models...
+2025-07-13 02:09:49,886 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded trained model with 896-dim input
+2025-07-13 02:09:49,886 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Using device: mps
+2025-07-13 02:09:49,887 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading CLIP model (core vision-language features)...
+2025-07-13 02:09:51,794 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ CLIP model loaded successfully
+2025-07-13 02:09:51,794 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading DINOv2 model (self-supervised vision features)...
+2025-07-13 02:09:52,524 - __main__ - INFO - [Backend] Using cache found in /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main
+2025-07-13 02:09:52,531 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+2025-07-13 02:09:52,531 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (SwiGLU)")
+2025-07-13 02:09:52,532 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+2025-07-13 02:09:52,532 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Attention)")
+2025-07-13 02:09:52,532 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+2025-07-13 02:09:52,532 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Block)")
+2025-07-13 02:09:52,534 - __main__ - INFO - [Backend] INFO:dinov2:using MLP layer as FFN
+2025-07-13 02:09:53,051 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ DINOv2-small loaded successfully
+2025-07-13 02:09:53,051 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Mobile mode: Skipping EfficientNet for optimal performance
+2025-07-13 02:09:53,051 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:ResNet skipped (optimized architecture: CLIP + DINOv2 + EfficientNet)
+2025-07-13 02:09:53,051 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Models loaded successfully
+2025-07-13 02:09:53,051 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition index...
+2025-07-13 02:09:53,052 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded index with 38 vectors
+2025-07-13 02:09:53,053 - __main__ - INFO - [Backend] INFO:backend.main:✅ Recognition pipeline loaded successfully
+2025-07-13 02:09:53,053 - __main__ - INFO - [Backend] INFO:     Application startup complete.
+2025-07-13 02:09:53,622 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58685 - "GET /health HTTP/1.1" 200 OK
+2025-07-13 02:09:53,623 - __main__ - INFO - ✓ Backend is healthy and ready
+2025-07-13 02:09:53,623 - __main__ - INFO - ✓ Backend started successfully
+2025-07-13 02:09:53,623 - __main__ - INFO - Starting frontend GUI application...
+2025-07-13 02:09:53,632 - __main__ - INFO - ✓ Frontend started successfully
+2025-07-13 02:09:53,632 - __main__ - INFO - ✅ AI Recognition System started successfully!
+2025-07-13 02:09:53,632 - __main__ - INFO - Backend API: http://127.0.0.1:8000
+2025-07-13 02:09:53,632 - __main__ - INFO - Frontend GUI: Running
+2025-07-13 02:09:54,014 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 02:09:54,014 - __main__ - INFO - Stopping frontend...
+2025-07-13 02:09:54,014 - __main__ - INFO - ✓ Frontend stopped gracefully
+2025-07-13 02:09:54,014 - __main__ - INFO - Stopping backend...
+2025-07-13 02:09:54,670 - __main__ - INFO - [Backend] INFO:     Shutting down
+2025-07-13 02:09:54,771 - __main__ - INFO - [Backend] INFO:     Waiting for application shutdown.
+2025-07-13 02:09:54,772 - __main__ - INFO - [Backend] INFO:     Application shutdown complete.
+2025-07-13 02:09:54,772 - __main__ - INFO - [Backend] INFO:     Finished server process [26139]
+2025-07-13 02:09:54,843 - __main__ - INFO - [Backend] INFO:     Stopping reloader process [26137]
+2025-07-13 02:09:54,893 - __main__ - INFO - ✓ Backend stopped gracefully
+2025-07-13 02:09:54,893 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 02:09:54,893 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 02:09:54,893 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 02:12:19,600 - __main__ - INFO - 🚀 AI Recognition System - Starting up...
+2025-07-13 02:12:19,600 - __main__ - INFO - Checking system dependencies...
+2025-07-13 02:12:20,825 - faiss.loader - INFO - Loading faiss.
+2025-07-13 02:12:20,837 - faiss.loader - INFO - Successfully loaded faiss.
+2025-07-13 02:12:20,839 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 02:12:21,358 - __main__ - INFO - ✓ All dependencies are available
+2025-07-13 02:12:21,358 - __main__ - INFO - Checking configuration files...
+2025-07-13 02:12:21,358 - __main__ - INFO - ✓ All configuration files are available
+2025-07-13 02:12:21,358 - __main__ - INFO - Starting backend API server...
+2025-07-13 02:12:21,365 - __main__ - INFO - Waiting for backend to start on http://127.0.0.1:8000...
+2025-07-13 02:12:21,430 - __main__ - INFO - [Backend] INFO:     Will watch for changes in these directories: ['/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system']
+2025-07-13 02:12:21,430 - __main__ - INFO - [Backend] INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-07-13 02:12:21,430 - __main__ - INFO - [Backend] INFO:     Started reloader process [26607] using StatReload
+2025-07-13 02:12:22,616 - __main__ - INFO - [Backend] /Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/albumentations/check_version.py:147: UserWarning: Error fetching version info <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)>
+2025-07-13 02:12:22,616 - __main__ - INFO - [Backend] data = fetch_version_info()
+2025-07-13 02:12:24,517 - __main__ - INFO - [Backend] INFO:faiss.loader:Loading faiss.
+2025-07-13 02:12:24,532 - __main__ - INFO - [Backend] INFO:faiss.loader:Successfully loaded faiss.
+2025-07-13 02:12:24,534 - __main__ - INFO - [Backend] INFO:faiss:Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 02:12:24,539 - __main__ - INFO - [Backend] INFO:     Started server process [26609]
+2025-07-13 02:12:24,539 - __main__ - INFO - [Backend] INFO:     Waiting for application startup.
+2025-07-13 02:12:24,539 - __main__ - INFO - [Backend] INFO:backend.main:🚀 Starting AI Recognition System Backend...
+2025-07-13 02:12:24,541 - __main__ - INFO - [Backend] INFO:backend.main:✅ AI System initialized successfully
+2025-07-13 02:12:24,558 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition models...
+2025-07-13 02:12:24,597 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded trained model with 896-dim input
+2025-07-13 02:12:24,598 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Using device: mps
+2025-07-13 02:12:24,598 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading CLIP model (core vision-language features)...
+2025-07-13 02:12:26,746 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ CLIP model loaded successfully
+2025-07-13 02:12:26,746 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading DINOv2 model (self-supervised vision features)...
+2025-07-13 02:12:27,547 - __main__ - INFO - [Backend] Using cache found in /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main
+2025-07-13 02:12:27,554 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+2025-07-13 02:12:27,554 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (SwiGLU)")
+2025-07-13 02:12:27,555 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+2025-07-13 02:12:27,555 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Attention)")
+2025-07-13 02:12:27,555 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+2025-07-13 02:12:27,555 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Block)")
+2025-07-13 02:12:27,556 - __main__ - INFO - [Backend] INFO:dinov2:using MLP layer as FFN
+2025-07-13 02:12:28,029 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ DINOv2-small loaded successfully
+2025-07-13 02:12:28,029 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Mobile mode: Skipping EfficientNet for optimal performance
+2025-07-13 02:12:28,029 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:ResNet skipped (optimized architecture: CLIP + DINOv2 + EfficientNet)
+2025-07-13 02:12:28,029 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Models loaded successfully
+2025-07-13 02:12:28,030 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition index...
+2025-07-13 02:12:28,031 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded index with 38 vectors
+2025-07-13 02:12:28,031 - __main__ - INFO - [Backend] INFO:backend.main:✅ Recognition pipeline loaded successfully
+2025-07-13 02:12:28,031 - __main__ - INFO - [Backend] INFO:     Application startup complete.
+2025-07-13 02:12:28,364 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58766 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:12:28,380 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58767 - "GET /health HTTP/1.1" 200 OK
+2025-07-13 02:12:28,381 - __main__ - INFO - ✓ Backend is healthy and ready
+2025-07-13 02:12:28,381 - __main__ - INFO - ✓ Backend started successfully
+2025-07-13 02:12:28,381 - __main__ - INFO - Starting frontend GUI application...
+2025-07-13 02:12:28,398 - __main__ - INFO - ✓ Frontend started successfully
+2025-07-13 02:12:28,398 - __main__ - INFO - ✅ AI Recognition System started successfully!
+2025-07-13 02:12:28,398 - __main__ - INFO - Backend API: http://127.0.0.1:8000
+2025-07-13 02:12:28,398 - __main__ - INFO - Frontend GUI: Running
+2025-07-13 02:12:29,031 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58769 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-13 02:12:29,111 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58769 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-13 02:12:29,114 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58769 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:12:29,114 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58769 - "GET /health HTTP/1.1" 200 OK
+2025-07-13 02:12:29,116 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58769 - "GET /api/config HTTP/1.1" 200 OK
+2025-07-13 02:12:31,553 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58769 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:12:31,554 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58770 - "GET /health HTTP/1.1" 200 OK
+2025-07-13 02:12:33,372 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58771 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:12:36,590 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 02:12:36,590 - __main__ - INFO - Stopping frontend...
+2025-07-13 02:12:36,590 - __main__ - INFO - ✓ Frontend stopped gracefully
+2025-07-13 02:12:36,590 - __main__ - INFO - Stopping backend...
+2025-07-13 02:12:37,526 - __main__ - INFO - [Backend] INFO:     Shutting down
+2025-07-13 02:12:37,627 - __main__ - INFO - [Backend] INFO:     Waiting for application shutdown.
+2025-07-13 02:12:37,627 - __main__ - INFO - [Backend] INFO:     Application shutdown complete.
+2025-07-13 02:12:37,627 - __main__ - INFO - [Backend] INFO:     Finished server process [26609]
+2025-07-13 02:12:37,669 - __main__ - INFO - [Backend] INFO:     Stopping reloader process [26607]
+2025-07-13 02:12:37,743 - __main__ - INFO - ✓ Backend stopped gracefully
+2025-07-13 02:12:37,744 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 02:12:37,744 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 02:12:37,744 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 02:13:02,371 - __main__ - INFO - 🚀 AI Recognition System - Starting up...
+2025-07-13 02:13:02,371 - __main__ - INFO - Checking system dependencies...
+2025-07-13 02:13:03,771 - faiss.loader - INFO - Loading faiss.
+2025-07-13 02:13:03,783 - faiss.loader - INFO - Successfully loaded faiss.
+2025-07-13 02:13:03,786 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 02:13:04,332 - __main__ - INFO - ✓ All dependencies are available
+2025-07-13 02:13:04,332 - __main__ - INFO - Checking configuration files...
+2025-07-13 02:13:04,332 - __main__ - INFO - ✓ All configuration files are available
+2025-07-13 02:13:04,332 - __main__ - INFO - Starting backend API server...
+2025-07-13 02:13:04,339 - __main__ - INFO - Waiting for backend to start on http://127.0.0.1:8000...
+2025-07-13 02:13:04,404 - __main__ - INFO - [Backend] INFO:     Will watch for changes in these directories: ['/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system']
+2025-07-13 02:13:04,404 - __main__ - INFO - [Backend] INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-07-13 02:13:04,404 - __main__ - INFO - [Backend] INFO:     Started reloader process [26746] using StatReload
+2025-07-13 02:13:05,646 - __main__ - INFO - [Backend] /Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/albumentations/check_version.py:147: UserWarning: Error fetching version info <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)>
+2025-07-13 02:13:05,646 - __main__ - INFO - [Backend] data = fetch_version_info()
+2025-07-13 02:13:07,637 - __main__ - INFO - [Backend] INFO:faiss.loader:Loading faiss.
+2025-07-13 02:13:07,652 - __main__ - INFO - [Backend] INFO:faiss.loader:Successfully loaded faiss.
+2025-07-13 02:13:07,653 - __main__ - INFO - [Backend] INFO:faiss:Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-13 02:13:07,659 - __main__ - INFO - [Backend] INFO:     Started server process [26748]
+2025-07-13 02:13:07,659 - __main__ - INFO - [Backend] INFO:     Waiting for application startup.
+2025-07-13 02:13:07,659 - __main__ - INFO - [Backend] INFO:backend.main:🚀 Starting AI Recognition System Backend...
+2025-07-13 02:13:07,661 - __main__ - INFO - [Backend] INFO:backend.main:✅ AI System initialized successfully
+2025-07-13 02:13:07,678 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition models...
+2025-07-13 02:13:07,718 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded trained model with 896-dim input
+2025-07-13 02:13:07,718 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Using device: mps
+2025-07-13 02:13:07,718 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading CLIP model (core vision-language features)...
+2025-07-13 02:13:09,637 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ CLIP model loaded successfully
+2025-07-13 02:13:09,638 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading DINOv2 model (self-supervised vision features)...
+2025-07-13 02:13:09,748 - __main__ - INFO - [Backend] Using cache found in /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main
+2025-07-13 02:13:09,755 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+2025-07-13 02:13:09,755 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (SwiGLU)")
+2025-07-13 02:13:09,756 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+2025-07-13 02:13:09,756 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Attention)")
+2025-07-13 02:13:09,756 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+2025-07-13 02:13:09,756 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Block)")
+2025-07-13 02:13:09,758 - __main__ - INFO - [Backend] INFO:dinov2:using MLP layer as FFN
+2025-07-13 02:13:10,158 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ DINOv2-small loaded successfully
+2025-07-13 02:13:10,158 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Mobile mode: Skipping EfficientNet for optimal performance
+2025-07-13 02:13:10,158 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:ResNet skipped (optimized architecture: CLIP + DINOv2 + EfficientNet)
+2025-07-13 02:13:10,158 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Models loaded successfully
+2025-07-13 02:13:10,158 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition index...
+2025-07-13 02:13:10,161 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded index with 38 vectors
+2025-07-13 02:13:10,161 - __main__ - INFO - [Backend] INFO:backend.main:✅ Recognition pipeline loaded successfully
+2025-07-13 02:13:10,161 - __main__ - INFO - [Backend] INFO:     Application startup complete.
+2025-07-13 02:13:11,356 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58791 - "GET /health HTTP/1.1" 200 OK
+2025-07-13 02:13:11,356 - __main__ - INFO - ✓ Backend is healthy and ready
+2025-07-13 02:13:11,356 - __main__ - INFO - ✓ Backend started successfully
+2025-07-13 02:13:11,356 - __main__ - INFO - Starting frontend GUI application...
+2025-07-13 02:13:11,364 - __main__ - INFO - ✓ Frontend started successfully
+2025-07-13 02:13:11,364 - __main__ - INFO - ✅ AI Recognition System started successfully!
+2025-07-13 02:13:11,364 - __main__ - INFO - Backend API: http://127.0.0.1:8000
+2025-07-13 02:13:11,364 - __main__ - INFO - Frontend GUI: Running
+2025-07-13 02:13:11,983 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58793 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-13 02:13:12,064 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58793 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-13 02:13:12,066 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58793 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:13:12,067 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58793 - "GET /health HTTP/1.1" 200 OK
+2025-07-13 02:13:12,068 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58793 - "GET /api/config HTTP/1.1" 200 OK
+2025-07-13 02:13:14,306 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58793 - "GET /health HTTP/1.1" 200 OK
+2025-07-13 02:13:14,306 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58794 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:13:19,308 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58795 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:13:24,315 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58801 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:13:29,320 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58808 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:13:34,324 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58809 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:13:39,331 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58810 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:13:44,338 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58811 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:13:49,345 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58812 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:13:54,351 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58813 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:13:59,358 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58814 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:04,364 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58815 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:09,371 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58817 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:14,378 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58818 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:19,385 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58819 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:23,873 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmpn6jf1df_.jpg
+2025-07-13 02:14:24,571 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-13 02:14:24,571 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-13 02:14:24,571 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⚡ Skipping Stage 3: High confidence (1.000 >= 0.95)
+2025-07-13 02:14:24,571 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✅ RECOGNIZED: item_003 (confidence: 1.000)
+2025-07-13 02:14:24,571 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 0.698s
+2025-07-13 02:14:24,571 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: item_003 (confidence: 1.000)
+2025-07-13 02:14:24,571 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: item_003 (confidence: 1.000)
+2025-07-13 02:14:24,571 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58819 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-13 02:14:24,572 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58820 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:29,580 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58827 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:34,587 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58833 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:39,597 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58834 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:44,604 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58835 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:49,610 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58836 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:54,617 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58837 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:14:59,619 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58838 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:04,629 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58839 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:09,636 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58840 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:14,643 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58841 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:19,649 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58842 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:20,242 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmp14rcw76k.jpg
+2025-07-13 02:15:20,665 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-13 02:15:20,665 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-13 02:15:20,775 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✨ Stage 3: Geometric verification applied
+2025-07-13 02:15:20,776 - __main__ - INFO - [Backend] WARNING:src.inference.recognize:❌ RECOGNITION FAILED: confidence 0.358 < 0.85
+2025-07-13 02:15:20,776 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 0.534s
+2025-07-13 02:15:20,776 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: unknown (confidence: 0.358)
+2025-07-13 02:15:20,776 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: unknown (confidence: 0.358)
+2025-07-13 02:15:20,777 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58842 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-13 02:15:24,656 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58842 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:29,665 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58845 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:34,675 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58846 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:39,682 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58847 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:44,689 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58848 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:49,696 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58849 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:54,703 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58850 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:15:59,709 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58851 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:02,679 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58851 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:02,680 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58851 - "GET /health HTTP/1.1" 200 OK
+2025-07-13 02:16:03,152 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58851 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:03,152 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58851 - "GET /health HTTP/1.1" 200 OK
+2025-07-13 02:16:04,716 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58851 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:09,718 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58852 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:14,720 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58854 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:19,726 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58855 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:24,731 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58856 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:26,419 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmpfgljy507.jpg
+2025-07-13 02:16:26,786 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-13 02:16:26,787 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-13 02:16:26,895 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✨ Stage 3: Geometric verification applied
+2025-07-13 02:16:26,895 - __main__ - INFO - [Backend] WARNING:src.inference.recognize:❌ RECOGNITION FAILED: confidence 0.358 < 0.85
+2025-07-13 02:16:26,895 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 0.476s
+2025-07-13 02:16:26,895 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: unknown (confidence: 0.358)
+2025-07-13 02:16:26,896 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: unknown (confidence: 0.358)
+2025-07-13 02:16:26,897 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58856 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-13 02:16:29,738 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58856 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:32,573 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmpjys7dm86.jpg
+2025-07-13 02:16:32,959 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-13 02:16:32,959 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-13 02:16:32,959 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⚡ Skipping Stage 3: High confidence (1.000 >= 0.95)
+2025-07-13 02:16:32,960 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✅ RECOGNIZED: item_001 (confidence: 1.000)
+2025-07-13 02:16:32,960 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 0.386s
+2025-07-13 02:16:32,960 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: item_001 (confidence: 1.000)
+2025-07-13 02:16:32,960 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: item_001 (confidence: 1.000)
+2025-07-13 02:16:32,960 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58856 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-13 02:16:34,745 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58856 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:39,752 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58859 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:44,758 - __main__ - INFO - [Backend] INFO:     127.0.0.1:58860 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-13 02:16:49,805 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 02:16:49,806 - __main__ - INFO - Stopping frontend...
+2025-07-13 02:16:49,806 - __main__ - INFO - ✓ Frontend stopped gracefully
+2025-07-13 02:16:49,806 - __main__ - INFO - Stopping backend...
+2025-07-13 02:16:50,542 - __main__ - INFO - [Backend] INFO:     Shutting down
+2025-07-13 02:16:50,644 - __main__ - INFO - [Backend] INFO:     Waiting for application shutdown.
+2025-07-13 02:16:50,644 - __main__ - INFO - [Backend] INFO:     Application shutdown complete.
+2025-07-13 02:16:50,644 - __main__ - INFO - [Backend] INFO:     Finished server process [26748]
+2025-07-13 02:16:50,727 - __main__ - INFO - [Backend] INFO:     Stopping reloader process [26746]
+2025-07-13 02:16:50,800 - __main__ - INFO - ✓ Backend stopped gracefully
+2025-07-13 02:16:50,800 - __main__ - INFO - ✓ System shutdown complete
+2025-07-13 02:16:50,800 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-13 02:16:50,800 - __main__ - INFO - ✓ System shutdown complete

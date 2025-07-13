@@ -53,7 +53,8 @@ class SystemLauncher:
         
         required_packages = [
             'fastapi', 'uvicorn', 'requests', 'PyQt6', 'torch', 
-            'torchvision', 'opencv-python', 'pillow', 'numpy',
+            # 'torchvision', 'opencv-python', 'pillow', 'numpy',
+            'torchvision', 'opencv-python',  'numpy',
             'faiss-cpu', 'clip-by-openai', 'albumentations', 'h5py'
         ]
         
