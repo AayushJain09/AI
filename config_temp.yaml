@@ -12,7 +12,7 @@ data:
 features:
   batch_size: 32
   feature_image_size: 512
-  mobile_mode: false
+  mobile_mode: true
 model:
   clip_variant: ViT-B/32
   embedding_dim: 512

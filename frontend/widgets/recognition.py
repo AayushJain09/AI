@@ -101,9 +101,10 @@ class RecognitionResultWidget(QFrame):
         self.setStyleSheet("""
             QFrame {
                 background-color: white;
-                border: 2px solid #ddd;
+                border: 1px solid #dee2e6;
                 border-radius: 10px;
                 padding: 15px;
+                color: #212529;
             }
         """)
         
@@ -115,7 +116,7 @@ class RecognitionResultWidget(QFrame):
             QLabel {
                 font-size: 16px;
                 font-weight: bold;
-                color: #333;
+                color: #212529;
                 margin-bottom: 10px;
             }
         """)
@@ -128,7 +129,9 @@ class RecognitionResultWidget(QFrame):
         
         # Confidence bar
         confidence_layout = QHBoxLayout()
-        confidence_layout.addWidget(QLabel("Confidence:"))
+        conf_label = QLabel("Confidence:")
+        conf_label.setStyleSheet("color: #495057; font-weight: 500;")
+        confidence_layout.addWidget(conf_label)
         
         self.confidence_bar = QProgressBar()
         self.confidence_bar.setRange(0, 100)
@@ -150,12 +153,12 @@ class RecognitionResultWidget(QFrame):
         
         # Processing time
         self.time_label = QLabel()
-        self.time_label.setStyleSheet("color: #666; font-size: 12px;")
+        self.time_label.setStyleSheet("color: #6c757d; font-size: 12px; font-weight: 400;")
         layout.addWidget(self.time_label)
         
         # Top matches
         self.matches_label = QLabel("Top Matches:")
-        self.matches_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
+        self.matches_label.setStyleSheet("font-weight: bold; margin-top: 10px; color: #212529;")
         layout.addWidget(self.matches_label)
         
         self.matches_list = QTextEdit()
@@ -163,11 +166,13 @@ class RecognitionResultWidget(QFrame):
         self.matches_list.setReadOnly(True)
         self.matches_list.setStyleSheet("""
             QTextEdit {
-                border: 1px solid #ddd;
+                border: 1px solid #ced4da;
                 border-radius: 4px;
-                background-color: #f9f9f9;
-                font-family: monospace;
+                background-color: #f8f9fa;
+                font-family: 'Consolas', 'Monaco', monospace;
                 font-size: 11px;
+                color: #495057;
+                padding: 8px;
             }
         """)
         layout.addWidget(self.matches_list)
@@ -179,32 +184,34 @@ class RecognitionResultWidget(QFrame):
         processing_time = result_data.get("processing_time", 0.0)
         top_matches = result_data.get("top_matches", [])
         
-        # Update main result
+        # Update main result with better visibility
         if item_id == "unknown":
             self.result_label.setText("❌ No match found")
-            self.result_label.setStyleSheet("color: #f44336; font-size: 14px; font-weight: bold;")
+            self.result_label.setStyleSheet("color: #dc3545; font-size: 14px; font-weight: bold;")
         else:
             self.result_label.setText(f"✅ Recognized: {item_id}")
-            self.result_label.setStyleSheet("color: #4CAF50; font-size: 14px; font-weight: bold;")
+            self.result_label.setStyleSheet("color: #28a745; font-size: 14px; font-weight: bold;")
         
         # Update confidence
         confidence_percent = int(confidence * 100)
         self.confidence_bar.setValue(confidence_percent)
         
-        # Color code confidence bar
+        # Color code confidence bar with better contrast
         if confidence_percent >= 85:
-            color = "#4CAF50"  # Green
+            color = "#28a745"  # Bootstrap success green
         elif confidence_percent >= 70:
-            color = "#FF9800"  # Orange
+            color = "#fd7e14"  # Bootstrap warning orange
         else:
-            color = "#f44336"  # Red
+            color = "#dc3545"  # Bootstrap danger red
         
         self.confidence_bar.setStyleSheet(f"""
             QProgressBar {{
-                border: 1px solid #ddd;
+                border: 1px solid #ced4da;
                 border-radius: 4px;
                 text-align: center;
                 font-weight: bold;
+                color: #212529;
+                background-color: #e9ecef;
             }}
             QProgressBar::chunk {{
                 background-color: {color};
@@ -227,7 +234,7 @@ class RecognitionResultWidget(QFrame):
     def clear_result(self):
         """Clear the result display"""
         self.result_label.setText("No recognition performed yet")
-        self.result_label.setStyleSheet("color: #666; font-size: 14px;")
+        self.result_label.setStyleSheet("color: #6c757d; font-size: 14px; font-style: italic;")
         self.confidence_bar.setValue(0)
         self.time_label.setText("")
         self.matches_list.setText("")
@@ -253,11 +260,12 @@ class CameraWidget(QWidget):
         self.camera_label.setMinimumSize(640, 480)
         self.camera_label.setStyleSheet("""
             QLabel {
-                border: 2px solid #ddd;
+                border: 2px solid #dee2e6;
                 border-radius: 8px;
-                background-color: #f0f0f0;
+                background-color: #f8f9fa;
                 font-size: 16px;
-                color: #666;
+                color: #495057;
+                font-weight: 500;
             }
         """)
         self.camera_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -391,11 +399,12 @@ class FileUploadWidget(QWidget):
         self.drop_area.setMinimumSize(640, 400)
         self.drop_area.setStyleSheet("""
             QLabel {
-                border: 3px dashed #ddd;
+                border: 3px dashed #ced4da;
                 border-radius: 8px;
-                background-color: #f9f9f9;
+                background-color: #f8f9fa;
                 font-size: 16px;
-                color: #666;
+                color: #495057;
+                font-weight: 500;
             }
         """)
         self.drop_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -476,12 +485,12 @@ class FileUploadWidget(QWidget):
                 self.drop_area.setPixmap(scaled_pixmap)
                 self.recognize_btn.setEnabled(True)
                 
-                # Update border style
+                # Update border style for loaded image
                 self.drop_area.setStyleSheet("""
                     QLabel {
-                        border: 3px solid #4CAF50;
+                        border: 3px solid #28a745;
                         border-radius: 8px;
-                        background-color: #f9f9f9;
+                        background-color: #f8f9fa;
                     }
                 """)
             else:
@@ -516,7 +525,7 @@ class RecognitionWidget(QWidget):
             QLabel {
                 font-size: 28px;
                 font-weight: bold;
-                color: #333;
+                color: #212529;
                 margin-bottom: 10px;
             }
         """)
@@ -565,7 +574,9 @@ class RecognitionWidget(QWidget):
         
         # Confidence threshold
         threshold_layout = QHBoxLayout()
-        threshold_layout.addWidget(QLabel("Confidence Threshold:"))
+        threshold_label = QLabel("Confidence Threshold:")
+        threshold_label.setStyleSheet("color: #495057; font-weight: 500;")
+        threshold_layout.addWidget(threshold_label)
         
         self.threshold_slider = QSlider(Qt.Orientation.Horizontal)
         self.threshold_slider.setRange(50, 99)
@@ -574,6 +585,7 @@ class RecognitionWidget(QWidget):
         self.threshold_slider.setTickInterval(10)
         
         self.threshold_label = QLabel("85%")
+        self.threshold_label.setStyleSheet("color: #212529; font-weight: 600; min-width: 40px;")
         self.threshold_slider.valueChanged.connect(
             lambda v: self.threshold_label.setText(f"{v}%")
         )
@@ -603,16 +615,27 @@ class RecognitionWidget(QWidget):
         self.history_table.setMaximumHeight(200)
         self.history_table.setStyleSheet("""
             QTableWidget {
-                border: 1px solid #ddd;
+                border: 1px solid #dee2e6;
                 border-radius: 4px;
                 background-color: white;
-                gridline-color: #eee;
+                gridline-color: #dee2e6;
+                color: #212529;
+            }
+            QTableWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #dee2e6;
+            }
+            QTableWidget::item:selected {
+                background-color: #007bff;
+                color: white;
             }
             QHeaderView::section {
-                background-color: #f0f0f0;
-                padding: 8px;
+                background-color: #f8f9fa;
+                padding: 10px 8px;
                 border: none;
-                font-weight: bold;
+                border-bottom: 2px solid #dee2e6;
+                font-weight: 600;
+                color: #495057;
             }
         """)
         
@@ -674,7 +697,7 @@ class RecognitionWidget(QWidget):
             # Show progress
             self.result_widget.clear_result()
             self.result_widget.result_label.setText("🔄 Processing...")
-            self.result_widget.result_label.setStyleSheet("color: #FF9800; font-size: 14px; font-weight: bold;")
+            self.result_widget.result_label.setStyleSheet("color: #fd7e14; font-size: 14px; font-weight: bold;")
             
             # Make API request
             start_time = time.time()
@@ -693,12 +716,12 @@ class RecognitionWidget(QWidget):
             else:
                 error_msg = response.get("error", "Unknown error")
                 self.result_widget.result_label.setText(f"❌ Recognition failed: {error_msg}")
-                self.result_widget.result_label.setStyleSheet("color: #f44336; font-size: 14px; font-weight: bold;")
+                self.result_widget.result_label.setStyleSheet("color: #dc3545; font-size: 14px; font-weight: bold;")
         
         except Exception as e:
             logger.error(f"Recognition error: {e}")
             self.result_widget.result_label.setText(f"❌ Error: {str(e)}")
-            self.result_widget.result_label.setStyleSheet("color: #f44336; font-size: 14px; font-weight: bold;")
+            self.result_widget.result_label.setStyleSheet("color: #dc3545; font-size: 14px; font-weight: bold;")
     
     def add_to_history(self, result_data: Dict[str, Any]):
         """Add recognition result to history table"""
@@ -723,13 +746,13 @@ class RecognitionWidget(QWidget):
         time_item = QTableWidgetItem(f"{proc_time:.3f}s")
         self.history_table.setItem(row, 3, time_item)
         
-        # Color code by confidence
+        # Color code by confidence with better contrast
         if confidence >= 0.85:
-            color = "#E8F5E8"  # Light green
+            color = "#d4edda"  # Bootstrap success background
         elif confidence >= 0.70:
-            color = "#FFF3E0"  # Light orange
+            color = "#fff3cd"  # Bootstrap warning background
         else:
-            color = "#FFEBEE"  # Light red
+            color = "#f8d7da"  # Bootstrap danger background
         
         for col in range(4):
             item = self.history_table.item(row, col)

@@ -69,11 +69,72 @@ system_status = {
     "system_ready": False
 }
 
-# Background task tracking
+# Background task tracking and utility functions
 background_tasks = {}
 
-# Pydantic models
+def validate_file_upload(file: UploadFile) -> None:
+    """Validate uploaded file for security and format compliance.
+    
+    Args:
+        file: The uploaded file object
+        
+    Raises:
+        HTTPException: If file validation fails
+    """
+    # Check content type
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid file type. Expected image, got: {file.content_type}"
+        )
+    
+    # Check file size (10MB limit)
+    max_size = 10 * 1024 * 1024  # 10MB
+    if hasattr(file.file, 'seek') and hasattr(file.file, 'tell'):
+        file.file.seek(0, 2)  # Seek to end
+        size = file.file.tell()
+        file.file.seek(0)  # Reset to beginning
+        
+        if size > max_size:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large. Maximum size: {max_size // (1024*1024)}MB"
+            )
+    
+    # Check filename
+    if not file.filename or len(file.filename.strip()) == 0:
+        raise HTTPException(status_code=400, detail="No filename provided")
+
+def sanitize_filename(filename: str) -> str:
+    """Sanitize filename for safe storage.
+    
+    Args:
+        filename: Original filename
+        
+    Returns:
+        Sanitized filename safe for filesystem storage
+    """
+    import re
+    # Remove any path separators and invalid characters
+    name = re.sub(r'[<>:"/\\|?*]', '_', filename)
+    # Remove leading/trailing spaces and dots
+    name = name.strip(' .')
+    # Ensure it's not empty
+    if not name:
+        name = f"image_{int(time.time())}"
+    return name
+
+# Pydantic models for API request/response validation
 class SystemStatus(BaseModel):
+    """System status information model.
+    
+    Attributes:
+        initialized: Whether the AI system has been initialized
+        training_in_progress: Whether model training is currently running
+        evaluation_in_progress: Whether system evaluation is running
+        last_error: Most recent error message, if any
+        system_ready: Whether the system is ready for recognition tasks
+    """
     initialized: bool
     training_in_progress: bool
     evaluation_in_progress: bool
@@ -81,21 +142,50 @@ class SystemStatus(BaseModel):
     system_ready: bool
 
 class ItemCreate(BaseModel):
+    """Model for creating new items in the system.
+    
+    Attributes:
+        item_id: Unique identifier for the item
+        name: Human-readable name for the item
+        description: Optional description of the item
+        category: Optional category classification
+    """
     item_id: str
     name: str
     description: Optional[str] = ""
     category: Optional[str] = ""
 
 class RecognitionRequest(BaseModel):
-    image_data: str  # Base64 encoded image
+    """Request model for image recognition.
+    
+    Attributes:
+        image_data: Base64 encoded image data
+        confidence_threshold: Minimum confidence for positive recognition (0.0-1.0)
+    """
+    image_data: str
     confidence_threshold: Optional[float] = 0.85
 
 class TrainingConfig(BaseModel):
+    """Configuration model for training parameters.
+    
+    Attributes:
+        epochs: Number of training epochs
+        batch_size: Training batch size
+        learning_rate: Learning rate for optimization
+    """
     epochs: Optional[int] = 10
     batch_size: Optional[int] = 16
     learning_rate: Optional[float] = 0.0001
 
 class ApiResponse(BaseModel):
+    """Standardized API response model.
+    
+    Attributes:
+        success: Whether the operation was successful
+        message: Human-readable status message
+        data: Optional response data
+        error: Optional error details if success is False
+    """
     success: bool
     message: str
     data: Optional[Any] = None
@@ -104,16 +194,38 @@ class ApiResponse(BaseModel):
 # Startup event
 @app.on_event("startup")
 async def startup_event():
-    """Initialize the AI system on startup"""
+    """Initialize the AI system on startup with comprehensive error handling.
+    
+    This function sets up the entire AI recognition system including:
+    - Directory structure creation
+    - AI system initialization
+    - Recognition pipeline loading
+    - System status updates
+    """
     global ai_system, recognition_pipeline, system_status
     
     try:
         logger.info("🚀 Starting AI Recognition System Backend...")
         
-        # Create necessary directories
-        os.makedirs("backend/logs", exist_ok=True)
-        os.makedirs("backend/temp", exist_ok=True)
-        os.makedirs("backend/uploads", exist_ok=True)
+        # Create necessary directories with proper error handling
+        required_dirs = [
+            "backend/logs",
+            "backend/temp", 
+            "backend/uploads",
+            "data/raw",
+            "data/augmented",
+            "data/models",
+            "checkpoints"
+        ]
+        
+        for dir_path in required_dirs:
+            try:
+                os.makedirs(dir_path, exist_ok=True)
+                logger.debug(f"Created/verified directory: {dir_path}")
+            except OSError as e:
+                logger.error(f"Failed to create directory {dir_path}: {e}")
+                system_status["last_error"] = f"Directory creation failed: {str(e)}"
+                return
         
         # Initialize AI system
         config_path = "config.yaml"
@@ -121,20 +233,32 @@ async def startup_event():
             ai_system = AIRecognitionSystem(config_path)
             logger.info("✅ AI System initialized successfully")
             
-            # Try to load recognition pipeline
+            # Try to load recognition pipeline with detailed error handling
             try:
                 recognition_pipeline = create_pipeline(config_path)
                 system_status["system_ready"] = True
                 logger.info("✅ Recognition pipeline loaded successfully")
+                
+                # Validate pipeline functionality
+                if hasattr(recognition_pipeline, 'is_ready') and not recognition_pipeline.is_ready():
+                    logger.warning("⚠️  Recognition pipeline loaded but not ready")
+                    system_status["system_ready"] = False
+                    
+            except FileNotFoundError as e:
+                logger.warning(f"⚠️  Model files not found: {e}")
+                system_status["system_ready"] = False
+                system_status["last_error"] = f"Model files missing: {str(e)}"
             except Exception as e:
                 logger.warning(f"⚠️  Recognition pipeline not ready: {e}")
                 system_status["system_ready"] = False
+                system_status["last_error"] = f"Pipeline initialization failed: {str(e)}"
             
             system_status["initialized"] = True
             
         else:
-            logger.error("❌ Configuration file not found")
-            system_status["last_error"] = "Configuration file not found"
+            error_msg = f"Configuration file not found: {config_path}"
+            logger.error(f"❌ {error_msg}")
+            system_status["last_error"] = error_msg
             
     except Exception as e:
         logger.error(f"❌ Failed to initialize system: {e}")
@@ -143,12 +267,31 @@ async def startup_event():
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    """Check system health status"""
-    return {
-        "status": "healthy" if system_status["initialized"] else "unhealthy",
-        "timestamp": datetime.now().isoformat(),
-        "system_status": system_status
-    }
+    """Check system health status.
+    
+    Returns comprehensive health information including system initialization
+    status, backend readiness, and any recent errors.
+    
+    Returns:
+        dict: Health status information with timestamp
+    """
+    try:
+        is_healthy = system_status["initialized"] and system_status.get("last_error") is None
+        
+        return {
+            "status": "healthy" if is_healthy else "unhealthy",
+            "timestamp": datetime.now().isoformat(),
+            "system_status": system_status,
+            "api_version": "1.0.0",
+            "uptime": datetime.now().isoformat()  # Could track actual uptime
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "timestamp": datetime.now().isoformat(),
+            "error": f"Health check error: {str(e)}"
+        }
 
 # System status endpoint
 @app.get("/api/status", response_model=SystemStatus)
@@ -187,7 +330,17 @@ async def initialize_system():
 # Item management endpoints
 @app.get("/api/items")
 async def get_items():
-    """Get list of all items in the system"""
+    """Get comprehensive list of all items in the system.
+    
+    Retrieves all items from the raw images directory with metadata
+    including image counts and file information.
+    
+    Returns:
+        ApiResponse: List of items with metadata
+        
+    Raises:
+        HTTPException: If system is not initialized or directory access fails
+    """
     try:
         if not ai_system:
             raise HTTPException(status_code=503, detail="System not initialized")
@@ -217,7 +370,20 @@ async def get_items():
 
 @app.post("/api/items")
 async def create_item(item: ItemCreate):
-    """Create a new item in the system"""
+    """Create a new item in the system with validation.
+    
+    Creates a new item directory and metadata file. Validates that
+    the item ID is unique and follows naming conventions.
+    
+    Args:
+        item: ItemCreate model with item details
+        
+    Returns:
+        ApiResponse: Success confirmation with item details
+        
+    Raises:
+        HTTPException: If item already exists or creation fails
+    """
     try:
         if not ai_system:
             raise HTTPException(status_code=503, detail="System not initialized")
@@ -225,10 +391,25 @@ async def create_item(item: ItemCreate):
         raw_dir = Path(ai_system.config['data']['raw_images_dir'])
         item_dir = raw_dir / item.item_id
         
-        if item_dir.exists():
-            raise HTTPException(status_code=400, detail="Item already exists")
+        # Validate item ID format
+        if not item.item_id or not item.item_id.strip():
+            raise HTTPException(status_code=400, detail="Item ID cannot be empty")
         
-        item_dir.mkdir(parents=True, exist_ok=True)
+        if not item.item_id.replace('_', '').replace('-', '').isalnum():
+            raise HTTPException(
+                status_code=400, 
+                detail="Item ID must contain only letters, numbers, hyphens, and underscores"
+            )
+        
+        if item_dir.exists():
+            raise HTTPException(status_code=409, detail=f"Item '{item.item_id}' already exists")
+        
+        # Create item directory with error handling
+        try:
+            item_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            logger.error(f"Failed to create item directory {item_dir}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to create item directory: {str(e)}")
         
         # Create item metadata file
         metadata = {
@@ -239,8 +420,18 @@ async def create_item(item: ItemCreate):
             "created_at": datetime.now().isoformat()
         }
         
-        with open(item_dir / "metadata.json", "w") as f:
-            json.dump(metadata, f, indent=2)
+        # Create metadata file with error handling
+        try:
+            with open(item_dir / "metadata.json", "w") as f:
+                json.dump(metadata, f, indent=2)
+        except (OSError, json.JSONEncodeError) as e:
+            logger.error(f"Failed to create metadata file: {e}")
+            # Clean up directory if metadata creation fails
+            try:
+                item_dir.rmdir()
+            except OSError:
+                pass
+            raise HTTPException(status_code=500, detail=f"Failed to create item metadata: {str(e)}")
         
         logger.info(f"✅ Created new item: {item.item_id}")
         return ApiResponse(success=True, message=f"Item '{item.item_id}' created successfully")
@@ -254,7 +445,21 @@ async def create_item(item: ItemCreate):
 
 @app.post("/api/items/{item_id}/images")
 async def upload_item_images(item_id: str, files: List[UploadFile] = File(...)):
-    """Upload images for an item"""
+    """Upload images for an item with comprehensive validation.
+    
+    Accepts multiple image files and stores them in the item's directory.
+    Validates file types, sizes, and names for security.
+    
+    Args:
+        item_id: The unique identifier of the item
+        files: List of image files to upload
+        
+    Returns:
+        ApiResponse: Upload results with file information
+        
+    Raises:
+        HTTPException: If item not found, validation fails, or upload errors
+    """
     try:
         if not ai_system:
             raise HTTPException(status_code=503, detail="System not initialized")
@@ -266,26 +471,80 @@ async def upload_item_images(item_id: str, files: List[UploadFile] = File(...)):
             raise HTTPException(status_code=404, detail="Item not found")
         
         uploaded_files = []
-        for file in files:
-            if not file.content_type.startswith('image/'):
-                continue
-            
-            # Generate unique filename
-            timestamp = int(time.time() * 1000)
-            filename = f"{timestamp}_{file.filename}"
-            file_path = item_dir / filename
-            
-            # Save file
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-            
-            uploaded_files.append(filename)
+        failed_files = []
         
-        logger.info(f"✅ Uploaded {len(uploaded_files)} images for item {item_id}")
+        for file in files:
+            try:
+                # Validate each file
+                validate_file_upload(file)
+                
+                # Generate unique, sanitized filename
+                timestamp = int(time.time() * 1000)
+                safe_filename = sanitize_filename(file.filename)
+                filename = f"{timestamp}_{safe_filename}"
+                file_path = item_dir / filename
+                
+                # Save file with error handling
+                try:
+                    with open(file_path, "wb") as buffer:
+                        shutil.copyfileobj(file.file, buffer)
+                    
+                    # Verify file was saved correctly
+                    if not file_path.exists() or file_path.stat().st_size == 0:
+                        raise OSError("File was not saved correctly")
+                    
+                    uploaded_files.append(filename)
+                    logger.debug(f"Successfully uploaded: {filename}")
+                    
+                except OSError as e:
+                    logger.error(f"Failed to save file {filename}: {e}")
+                    failed_files.append({"filename": file.filename, "error": str(e)})
+                    # Clean up partial file
+                    if file_path.exists():
+                        try:
+                            file_path.unlink()
+                        except OSError:
+                            pass
+                            
+            except HTTPException as e:
+                # File validation failed
+                failed_files.append({"filename": file.filename, "error": e.detail})
+                logger.warning(f"File validation failed for {file.filename}: {e.detail}")
+            except Exception as e:
+                # Unexpected error
+                failed_files.append({"filename": file.filename, "error": f"Unexpected error: {str(e)}"})
+                logger.error(f"Unexpected error processing {file.filename}: {e}")
+        
+        # Prepare response with detailed results
+        total_files = len(uploaded_files) + len(failed_files)
+        success_count = len(uploaded_files)
+        
+        if success_count == 0 and failed_files:
+            # All files failed
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to upload any files. Errors: {failed_files}"
+            )
+        
+        response_data = {
+            "uploaded_files": uploaded_files,
+            "total_files": total_files,
+            "successful_uploads": success_count,
+            "failed_uploads": len(failed_files)
+        }
+        
+        if failed_files:
+            response_data["failed_files"] = failed_files
+        
+        message = f"Uploaded {success_count}/{total_files} images successfully"
+        if failed_files:
+            message += f" ({len(failed_files)} files failed)"
+        
+        logger.info(f"✅ {message} for item {item_id}")
         return ApiResponse(
-            success=True, 
-            message=f"Uploaded {len(uploaded_files)} images successfully",
-            data={"uploaded_files": uploaded_files}
+            success=True,
+            message=message,
+            data=response_data
         )
         
     except HTTPException:
@@ -324,27 +583,80 @@ async def delete_item(item_id: str):
 # Recognition endpoints
 @app.post("/api/recognize")
 async def recognize_image(request: RecognitionRequest):
-    """Recognize an image and return the prediction"""
+    """Recognize an image and return the prediction result.
+    
+    This endpoint accepts a base64-encoded image and performs recognition
+    using the trained model pipeline. Returns detailed recognition results
+    including confidence scores and processing metrics.
+    
+    Args:
+        request: RecognitionRequest containing image data and parameters
+        
+    Returns:
+        ApiResponse: Recognition results with item ID, confidence, and metrics
+        
+    Raises:
+        HTTPException: If recognition pipeline is not ready or request is invalid
+    """
     try:
         if not recognition_pipeline:
             raise HTTPException(status_code=503, detail="Recognition pipeline not ready")
         
-        # Decode base64 image
+        # Validate and decode base64 image
         try:
-            image_data = base64.b64decode(request.image_data)
-        except Exception:
-            raise HTTPException(status_code=400, detail="Invalid base64 image data")
+            if not request.image_data:
+                raise HTTPException(status_code=400, detail="No image data provided")
+            
+            # Remove data URL prefix if present
+            image_data_clean = request.image_data
+            if 'data:image' in image_data_clean:
+                image_data_clean = image_data_clean.split(',')[1]
+            
+            image_data = base64.b64decode(image_data_clean)
+            
+            if len(image_data) == 0:
+                raise HTTPException(status_code=400, detail="Empty image data")
+                
+        except base64.binascii.Error as e:
+            logger.error(f"Base64 decode error: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid base64 image data: {str(e)}")
+        except Exception as e:
+            logger.error(f"Image data processing error: {e}")
+            raise HTTPException(status_code=400, detail=f"Failed to process image data: {str(e)}")
         
-        # Save to temporary file
-        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as temp_file:
-            temp_file.write(image_data)
-            temp_path = temp_file.name
+        # Save to temporary file with proper error handling
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as temp_file:
+                temp_file.write(image_data)
+                temp_path = temp_file.name
+                
+            # Validate the saved file
+            if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
+                raise HTTPException(status_code=400, detail="Failed to save image data")
+                
+        except OSError as e:
+            logger.error(f"File system error: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to save image: {str(e)}")
         
         try:
-            # Run recognition
+            # Run recognition with timeout and error handling
             start_time = time.time()
-            result = recognition_pipeline.recognize(temp_path)
-            processing_time = time.time() - start_time
+            
+            try:
+                result = recognition_pipeline.recognize(temp_path)
+                processing_time = time.time() - start_time
+                
+                if not result:
+                    raise HTTPException(status_code=500, detail="Recognition pipeline returned no result")
+                    
+            except Exception as recognition_error:
+                processing_time = time.time() - start_time
+                logger.error(f"Recognition pipeline error: {recognition_error}")
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Recognition failed: {str(recognition_error)}"
+                )
             
             # Convert result to dict
             result_data = {
@@ -364,9 +676,13 @@ async def recognize_image(request: RecognitionRequest):
             )
             
         finally:
-            # Clean up temp file
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
+            # Clean up temp file with error handling
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                    logger.debug(f"Cleaned up temporary file: {temp_path}")
+                except OSError as e:
+                    logger.warning(f"Failed to clean up temporary file {temp_path}: {e}")
         
     except HTTPException:
         raise

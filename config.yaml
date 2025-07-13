@@ -18,7 +18,7 @@ model:
 training:
   # Model configuration
   clip_model: "ViT-B/32"
-  embedding_dim: 256
+  embedding_dim: 512
   num_classes: 100  # Reduced for small dataset
   
   # Training parameters
@@ -45,7 +45,7 @@ features:
   feature_image_size: 512
   batch_size: 32
   # Mobile mode toggle (set to true for Surface/edge devices)
-  mobile_mode: true  # Enabled for faster index building
+  mobile_mode: false  # Disabled for maximum accuracy on new items
   # When mobile_mode=true:
   #   - Only CLIP features extracted (skip ResNet/EfficientNet)
   #   - Smaller image size (224x224)
@@ -58,9 +58,9 @@ recognition:
   index_path: "data/models/faiss_index.bin"
   metadata_path: "data/models/metadata.pkl"
   cache_size: 1000
-  confidence_threshold: 0.85
-  high_confidence_threshold: 0.95
-  batch_confidence_threshold: 0.90
+  confidence_threshold: 0.70
+  high_confidence_threshold: 0.85
+  batch_confidence_threshold: 0.75
   batch_size: 16
 
 # Performance targets

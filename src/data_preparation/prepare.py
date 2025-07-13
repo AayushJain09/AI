@@ -404,6 +404,27 @@ class AdvancedAugmentationPipeline:
         output_dir = output_base_dir / item_id
         output_dir.mkdir(parents=True, exist_ok=True)
         
+        # Check if this item has already been processed
+        metadata_file = output_dir / 'augmentation_metadata.json'
+        if metadata_file.exists():
+            try:
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+                logger.info(f"Item {item_id} already processed - skipping (found {metadata.get('augmented_images', 0)} augmented images)")
+                
+                # Update statistics for skipped items (don't count as newly processed)
+                self.stats['total_augmentations_created'] += metadata.get('augmented_images', 0)
+                
+                return {
+                    'status': 'skipped',
+                    'item_id': item_id,
+                    'reason': 'already_processed',
+                    'original_count': metadata.get('original_images', 0),
+                    'augmented_count': metadata.get('augmented_images', 0)
+                }
+            except Exception as e:
+                logger.warning(f"Error reading metadata for {item_id}: {e}, reprocessing...")
+        
         # Find all images
         image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
         image_files = []
@@ -468,17 +489,18 @@ class AdvancedAugmentationPipeline:
         for item_dir in tqdm(item_dirs, desc="Processing items"):
             result = self.process_item(item_dir, output_path)
             results.append(result)
-        
+
         # Save overall statistics
-        self.stats['timestamp'] = datetime.now().isoformat()
+        self.stats['timestamp'] = int(datetime.now().timestamp())
         self.stats['success_count'] = sum(1 for r in results if r['status'] == 'success')
         self.stats['failure_count'] = sum(1 for r in results if r['status'] == 'failed')
-        
+        self.stats['skipped_count'] = sum(1 for r in results if r['status'] == 'skipped')
         with open(output_path / 'dataset_statistics.json', 'w') as f:
             json.dump(self.stats, f, indent=2)
         
         logger.info(f"Processing complete!")
         logger.info(f"Total items processed: {self.stats['items_processed']}")
+        logger.info(f"Items skipped (already processed): {self.stats.get('skipped_count', 0)}")
         logger.info(f"Total images processed: {self.stats['total_images_processed']}")
         logger.info(f"Total augmentations created: {self.stats['total_augmentations_created']}")
         
