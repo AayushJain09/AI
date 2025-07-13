@@ -12,17 +12,17 @@ data:
 features:
   batch_size: 32
   feature_image_size: 512
-  mobile_mode: true
+  mobile_mode: false
 model:
   clip_variant: ViT-B/32
   embedding_dim: 512
   num_classes: 1000
 recognition:
-  batch_confidence_threshold: 0.9
+  batch_confidence_threshold: 0.75
   batch_size: 16
   cache_size: 1000
-  confidence_threshold: 0.85
-  high_confidence_threshold: 0.95
+  confidence_threshold: 0.7
+  high_confidence_threshold: 0.85
   index_path: data/models/faiss_index.bin
   metadata_path: data/models/metadata.pkl
   model_path: checkpoints/best_model.pth
@@ -35,11 +35,11 @@ training:
   batch_size: 16
   checkpoint_dir: checkpoints
   clip_model: ViT-B/32
-  embedding_dim: 256
-  epochs: 10
+  embedding_dim: 512
+  epochs: 20
   learning_rate: 0.0001
   num_classes: 100
   save_every: 5
   triplet_margin: 0.5
   use_wandb: false
-  weight_decay: 1.0e-05
+  weight_decay: 0.0001
