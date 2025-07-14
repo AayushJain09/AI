@@ -2770,3 +2770,307 @@
 2025-07-13 23:56:09,333 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51993 - "GET /api/items HTTP/1.1" 200 OK
 2025-07-13 23:56:09,334 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51993 - "GET /api/evaluate/results HTTP/1.1" 200 OK
 2025-07-13 23:56:09,335 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51993 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:12:09,542 - __main__ - INFO - 🚀 AI Recognition System - Starting up...
+2025-07-14 13:12:09,542 - __main__ - INFO - Checking system dependencies...
+2025-07-14 13:12:11,466 - faiss.loader - INFO - Loading faiss.
+2025-07-14 13:12:11,488 - faiss.loader - INFO - Successfully loaded faiss.
+2025-07-14 13:12:11,491 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-07-14 13:12:12,126 - __main__ - INFO - ✓ All dependencies are available
+2025-07-14 13:12:12,126 - __main__ - INFO - Checking configuration files...
+2025-07-14 13:12:12,126 - __main__ - INFO - ✓ All configuration files are available
+2025-07-14 13:12:12,126 - __main__ - INFO - Starting backend API server...
+2025-07-14 13:12:12,134 - __main__ - INFO - Waiting for backend to start on http://127.0.0.1:8000...
+2025-07-14 13:12:12,202 - __main__ - INFO - [Backend] INFO:     Will watch for changes in these directories: ['/Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system']
+2025-07-14 13:12:12,202 - __main__ - INFO - [Backend] INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-07-14 13:12:12,202 - __main__ - INFO - [Backend] INFO:     Started reloader process [4310] using StatReload
+2025-07-14 13:12:13,992 - __main__ - INFO - [Backend] /Users/ayushjain/Documents/offline-inventory-system/ai-recognition-system/env2/lib/python3.13/site-packages/albumentations/check_version.py:147: UserWarning: Error fetching version info <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)>
+2025-07-14 13:12:13,992 - __main__ - INFO - [Backend] data = fetch_version_info()
+2025-07-14 13:12:15,732 - __main__ - INFO - [Backend] INFO:     Started server process [4312]
+2025-07-14 13:12:15,733 - __main__ - INFO - [Backend] INFO:     Waiting for application startup.
+2025-07-14 13:12:15,733 - __main__ - INFO - [Backend] INFO:backend.main:🚀 Starting AI Recognition System Backend...
+2025-07-14 13:12:15,734 - __main__ - INFO - [Backend] INFO:backend.main:✅ AI System initialized successfully
+2025-07-14 13:12:15,755 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition models...
+2025-07-14 13:12:15,811 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded trained model with 896-dim input
+2025-07-14 13:12:15,811 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Using device: mps
+2025-07-14 13:12:15,811 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading CLIP model (core vision-language features)...
+2025-07-14 13:12:18,294 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ CLIP model loaded successfully
+2025-07-14 13:12:18,294 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading DINOv2 model (self-supervised vision features)...
+2025-07-14 13:12:19,026 - __main__ - INFO - [Backend] Using cache found in /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main
+2025-07-14 13:12:19,033 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+2025-07-14 13:12:19,033 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (SwiGLU)")
+2025-07-14 13:12:19,034 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+2025-07-14 13:12:19,034 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Attention)")
+2025-07-14 13:12:19,034 - __main__ - INFO - [Backend] /Users/ayushjain/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+2025-07-14 13:12:19,034 - __main__ - INFO - [Backend] warnings.warn("xFormers is not available (Block)")
+2025-07-14 13:12:19,036 - __main__ - INFO - [Backend] INFO:dinov2:using MLP layer as FFN
+2025-07-14 13:12:19,521 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ DINOv2-small loaded successfully
+2025-07-14 13:12:19,521 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:Loading EfficientNet model (full mode - enhanced CNN features)...
+2025-07-14 13:12:19,949 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:✓ EfficientNet-B4 loaded successfully
+2025-07-14 13:12:19,950 - __main__ - INFO - [Backend] INFO:src.feature_extraction.feature_extractor:ResNet skipped (optimized architecture: CLIP + DINOv2 + EfficientNet)
+2025-07-14 13:12:19,950 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Models loaded successfully
+2025-07-14 13:12:19,950 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loading recognition index...
+2025-07-14 13:12:19,951 - __main__ - INFO - [Backend] INFO:src.inference.recognize:Loaded index with 19 vectors
+2025-07-14 13:12:19,951 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🍎 Apple MPS detected - optimizing FAISS for Apple Silicon
+2025-07-14 13:12:19,955 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✅ Using existing FAISS index with MPS optimization (19 vectors)
+2025-07-14 13:12:19,955 - __main__ - INFO - [Backend] INFO:backend.main:✅ Recognition pipeline loaded successfully
+2025-07-14 13:12:19,955 - __main__ - INFO - [Backend] INFO:     Application startup complete.
+2025-07-14 13:12:20,247 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50767 - "GET /health HTTP/1.1" 200 OK
+2025-07-14 13:12:20,248 - __main__ - INFO - ✓ Backend is healthy and ready
+2025-07-14 13:12:20,248 - __main__ - INFO - ✓ Backend started successfully
+2025-07-14 13:12:20,248 - __main__ - INFO - Starting frontend GUI application...
+2025-07-14 13:12:20,253 - __main__ - INFO - ✓ Frontend started successfully
+2025-07-14 13:12:20,253 - __main__ - INFO - ✅ AI Recognition System started successfully!
+2025-07-14 13:12:20,253 - __main__ - INFO - Backend API: http://127.0.0.1:8000
+2025-07-14 13:12:20,253 - __main__ - INFO - Frontend GUI: Running
+2025-07-14 13:12:20,749 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50769 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:12:20,751 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50769 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:12:20,752 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50769 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:12:21,189 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50769 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:12:21,337 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50769 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:12:21,340 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50769 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:12:21,341 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50769 - "GET /health HTTP/1.1" 200 OK
+2025-07-14 13:12:21,342 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50769 - "GET /api/config HTTP/1.1" 200 OK
+2025-07-14 13:12:23,369 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50769 - "GET /health HTTP/1.1" 200 OK
+2025-07-14 13:12:23,370 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50771 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:12:28,377 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50810 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:12:30,254 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50810 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:12:30,255 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50810 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:12:30,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50810 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:12:33,383 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50810 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:12:35,713 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmpgg103uvo.jpg
+2025-07-14 13:12:55,418 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-14 13:12:55,419 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-14 13:12:55,422 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✨ Stage 3: Geometric verification applied
+2025-07-14 13:12:55,422 - __main__ - INFO - [Backend] WARNING:src.inference.recognize:❌ RECOGNITION FAILED: confidence 0.773 < 0.85
+2025-07-14 13:12:55,422 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 19.710s
+2025-07-14 13:12:55,423 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: unknown (confidence: 0.773)
+2025-07-14 13:12:55,423 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: unknown (confidence: 0.773)
+2025-07-14 13:12:55,423 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50810 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-14 13:12:55,424 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50890 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:12:55,444 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50890 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:12:55,446 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50890 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:12:55,447 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50890 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:13:00,433 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50890 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:13:05,254 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50890 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:13:05,255 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50890 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:13:05,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50890 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:13:05,435 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50890 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:13:10,442 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50910 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:13:10,794 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmp06jrkdwg.jpg
+2025-07-14 13:13:29,830 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-14 13:13:29,831 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-14 13:13:29,832 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✨ Stage 3: Geometric verification applied
+2025-07-14 13:13:29,832 - __main__ - INFO - [Backend] WARNING:src.inference.recognize:❌ RECOGNITION FAILED: confidence 0.773 < 0.85
+2025-07-14 13:13:29,832 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 19.038s
+2025-07-14 13:13:29,832 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: unknown (confidence: 0.773)
+2025-07-14 13:13:29,832 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: unknown (confidence: 0.773)
+2025-07-14 13:13:29,832 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50910 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-14 13:13:29,833 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50912 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:13:29,840 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50912 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:13:29,842 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50912 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:13:29,843 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50912 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:13:29,847 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmpvrikkeqd.jpg
+2025-07-14 13:13:48,908 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-14 13:13:48,909 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-14 13:13:48,910 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✨ Stage 3: Geometric verification applied
+2025-07-14 13:13:48,910 - __main__ - INFO - [Backend] WARNING:src.inference.recognize:❌ RECOGNITION FAILED: confidence 0.773 < 0.85
+2025-07-14 13:13:48,910 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 19.063s
+2025-07-14 13:13:48,910 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: unknown (confidence: 0.773)
+2025-07-14 13:13:48,910 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: unknown (confidence: 0.773)
+2025-07-14 13:13:48,910 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50912 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-14 13:13:48,911 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50910 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:13:49,041 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50910 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:13:49,043 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50910 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:13:49,044 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50910 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:13:50,254 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50910 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:13:50,255 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50910 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:13:50,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50910 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:13:53,919 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50910 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:13:56,698 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmpophl2vqc.jpg
+2025-07-14 13:14:15,883 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-14 13:14:15,884 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-14 13:14:15,889 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✨ Stage 3: Geometric verification applied
+2025-07-14 13:14:15,889 - __main__ - INFO - [Backend] WARNING:src.inference.recognize:❌ RECOGNITION FAILED: confidence 0.434 < 0.85
+2025-07-14 13:14:15,889 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 19.190s
+2025-07-14 13:14:15,889 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: unknown (confidence: 0.434)
+2025-07-14 13:14:15,889 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: unknown (confidence: 0.434)
+2025-07-14 13:14:15,890 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50910 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-14 13:14:15,891 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50941 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:14:15,899 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50941 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:14:15,900 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50941 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:14:15,901 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50941 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:14:20,903 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50941 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:14:23,971 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmpyhdba6ub.jpg
+2025-07-14 13:14:43,002 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-14 13:14:43,003 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-14 13:14:43,012 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✨ Stage 3: Geometric verification applied
+2025-07-14 13:14:43,012 - __main__ - INFO - [Backend] WARNING:src.inference.recognize:❌ RECOGNITION FAILED: confidence 0.459 < 0.85
+2025-07-14 13:14:43,012 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 19.042s
+2025-07-14 13:14:43,012 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: unknown (confidence: 0.459)
+2025-07-14 13:14:43,013 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: unknown (confidence: 0.459)
+2025-07-14 13:14:43,014 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50941 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-14 13:14:43,014 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50951 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:14:43,029 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50951 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:14:43,031 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50951 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:14:43,031 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50951 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:14:48,022 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50951 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:14:53,029 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50981 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:14:53,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50981 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:14:53,258 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50981 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:14:53,259 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50981 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:14:53,884 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmpuem6vl4s.jpg
+2025-07-14 13:15:13,616 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-14 13:15:13,616 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-14 13:15:13,616 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⚡ Skipping Stage 3: High confidence (1.000 >= 0.95)
+2025-07-14 13:15:13,616 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✅ RECOGNIZED: item_002 (confidence: 1.000)
+2025-07-14 13:15:13,616 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 19.733s
+2025-07-14 13:15:13,616 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: item_002 (confidence: 1.000)
+2025-07-14 13:15:13,616 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: item_002 (confidence: 1.000)
+2025-07-14 13:15:13,617 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50981 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-14 13:15:13,619 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50987 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:15:13,637 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50987 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:15:13,638 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50987 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:15:13,639 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50987 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:15:18,625 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50987 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:15:23,253 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50987 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:15:23,255 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50987 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:15:23,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50987 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:15:23,631 - __main__ - INFO - [Backend] INFO:     127.0.0.1:50987 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:15:28,638 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51003 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:15:32,066 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmprts07b4j.jpg
+2025-07-14 13:15:51,647 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-14 13:15:51,648 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-14 13:15:51,648 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✨ Stage 3: Geometric verification applied
+2025-07-14 13:15:51,648 - __main__ - INFO - [Backend] WARNING:src.inference.recognize:❌ RECOGNITION FAILED: confidence 0.734 < 0.85
+2025-07-14 13:15:51,648 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 19.582s
+2025-07-14 13:15:51,648 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: unknown (confidence: 0.734)
+2025-07-14 13:15:51,648 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: unknown (confidence: 0.734)
+2025-07-14 13:15:51,648 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51003 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-14 13:15:51,649 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51020 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:15:51,666 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51020 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:15:51,667 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51020 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:15:51,668 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51020 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:15:56,652 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51020 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:01,254 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51020 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:16:01,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51020 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:16:01,257 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51020 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:01,658 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51020 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:06,660 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51060 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:11,254 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51060 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:16:11,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51060 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:16:11,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51060 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:11,665 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51060 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:16,672 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51096 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:19,859 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmpkr80mgpx.jpg
+2025-07-14 13:16:39,568 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-14 13:16:39,568 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-14 13:16:39,569 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✨ Stage 3: Geometric verification applied
+2025-07-14 13:16:39,569 - __main__ - INFO - [Backend] WARNING:src.inference.recognize:❌ RECOGNITION FAILED: confidence 0.699 < 0.85
+2025-07-14 13:16:39,569 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 19.710s
+2025-07-14 13:16:39,569 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: unknown (confidence: 0.699)
+2025-07-14 13:16:39,569 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: unknown (confidence: 0.699)
+2025-07-14 13:16:39,569 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51096 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-14 13:16:39,570 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51101 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:39,580 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51101 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:16:39,582 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51101 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:16:39,582 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51101 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:44,576 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51101 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:49,255 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51101 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:16:49,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51101 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:16:49,257 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51101 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:49,583 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51101 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:54,589 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51143 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:59,255 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51143 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:16:59,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51143 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:16:59,257 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51143 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:16:59,592 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51143 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:04,599 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51151 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:09,255 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51151 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:17:09,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51151 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:17:09,257 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51151 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:09,605 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51151 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:14,615 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51157 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:16,800 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmpz6i0b75f.jpg
+2025-07-14 13:17:36,631 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-14 13:17:36,631 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-14 13:17:36,659 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✨ Stage 3: Geometric verification applied
+2025-07-14 13:17:36,660 - __main__ - INFO - [Backend] WARNING:src.inference.recognize:❌ RECOGNITION FAILED: confidence 0.649 < 0.85
+2025-07-14 13:17:36,660 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 19.860s
+2025-07-14 13:17:36,660 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: unknown (confidence: 0.649)
+2025-07-14 13:17:36,660 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: unknown (confidence: 0.649)
+2025-07-14 13:17:36,661 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51157 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-14 13:17:36,663 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51160 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:36,672 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51160 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:17:36,674 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51160 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:17:36,674 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51160 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:41,666 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51160 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:46,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51160 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:17:46,260 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51160 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:17:46,261 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51160 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:46,671 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51160 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:51,676 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51312 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:56,254 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51312 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:17:56,257 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51312 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:17:56,257 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51312 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:17:56,683 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51312 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:01,691 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51316 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:06,254 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51316 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:18:06,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51316 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:18:06,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51316 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:06,697 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51316 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:11,699 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51320 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:16,255 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51320 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:18:16,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51320 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:18:16,257 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51320 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:16,705 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51320 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:21,712 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51325 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:26,254 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51325 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:18:26,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51325 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:18:26,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51325 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:26,715 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51325 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:31,717 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51333 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:36,255 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51333 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:18:36,257 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51333 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:18:36,258 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51333 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:36,724 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51333 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:41,731 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51341 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:46,255 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51341 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:18:46,256 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51341 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:18:46,257 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51341 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:46,737 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51341 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:18:48,219 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🖼️  Processing image: /var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmpphs989qt.jpg
+2025-07-14 13:19:08,382 - __main__ - INFO - [Backend] INFO:src.inference.recognize:📋 Stage 1: Found 3 candidates
+2025-07-14 13:19:08,383 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🔍 Stage 2: Refined to 3 candidates
+2025-07-14 13:19:08,383 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⚡ Skipping Stage 3: High confidence (1.000 >= 0.95)
+2025-07-14 13:19:08,383 - __main__ - INFO - [Backend] INFO:src.inference.recognize:✅ RECOGNIZED: item_003 (confidence: 1.000)
+2025-07-14 13:19:08,383 - __main__ - INFO - [Backend] INFO:src.inference.recognize:⏱️  Recognition completed in 20.163s
+2025-07-14 13:19:08,383 - __main__ - INFO - [Backend] INFO:src.inference.recognize:🎯 Final result: item_003 (confidence: 1.000)
+2025-07-14 13:19:08,383 - __main__ - INFO - [Backend] INFO:backend.main:🔍 Recognition result: item_003 (confidence: 1.000)
+2025-07-14 13:19:08,384 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51341 - "POST /api/recognize HTTP/1.1" 200 OK
+2025-07-14 13:19:08,387 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51346 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:19:08,396 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51346 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:19:08,397 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51346 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:19:08,398 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51346 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:19:13,394 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51346 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:19:18,279 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51346 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:19:18,282 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51346 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:19:18,283 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51346 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:19:18,400 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51346 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:19:23,404 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51372 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:19:28,279 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51372 - "GET /api/items HTTP/1.1" 200 OK
+2025-07-14 13:19:28,282 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51372 - "GET /api/evaluate/results HTTP/1.1" 200 OK
+2025-07-14 13:19:28,283 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51372 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:19:28,407 - __main__ - INFO - [Backend] INFO:     127.0.0.1:51372 - "GET /api/status HTTP/1.1" 200 OK
+2025-07-14 13:19:33,460 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-14 13:19:33,460 - __main__ - INFO - Stopping frontend...
+2025-07-14 13:19:33,460 - __main__ - INFO - ✓ Frontend stopped gracefully
+2025-07-14 13:19:33,461 - __main__ - INFO - Stopping backend...
+2025-07-14 13:19:33,826 - __main__ - INFO - [Backend] INFO:     Shutting down
+2025-07-14 13:19:33,927 - __main__ - INFO - [Backend] INFO:     Waiting for application shutdown.
+2025-07-14 13:19:33,928 - __main__ - INFO - [Backend] INFO:     Application shutdown complete.
+2025-07-14 13:19:33,928 - __main__ - INFO - [Backend] INFO:     Finished server process [4312]
+2025-07-14 13:19:34,032 - __main__ - INFO - [Backend] INFO:     Stopping reloader process [4310]
+2025-07-14 13:19:34,070 - __main__ - INFO - ✓ Backend stopped gracefully
+2025-07-14 13:19:34,071 - __main__ - INFO - ✓ System shutdown complete
+2025-07-14 13:19:34,071 - __main__ - INFO - Shutting down AI Recognition System...
+2025-07-14 13:19:34,071 - __main__ - INFO - ✓ System shutdown complete

@@ -25,8 +25,8 @@ from typing import Dict, List
 # Fix imports (correct paths):
 from src.data_preparation.prepare import AdvancedAugmentationPipeline
 from src.feature_extraction.feature_extractor import MultiModalFeatureExtractor
-from src.training.modletraining import ModelTrainer, FewShotDataset
-from src.inference.recognize import RecognitionPipeline, PerformanceMonitor
+from src.training.modletraining import AdvancedModelTrainer, FewShotDataset
+from src.inference.recognize import RecognitionPipeline, PerformanceMonitor, create_pipeline
 
 # Setup logging
 logging.basicConfig(
@@ -146,9 +146,9 @@ class AIRecognitionSystem:
             pin_memory=True
         )
         
-        # Train model
-        trainer = ModelTrainer(self.config['training'], self.config['data']['features_file'])
-        best_model_path = trainer.train(train_loader, val_loader)
+        # Train model using advanced trainer
+        trainer = AdvancedModelTrainer(self.config['training'], self.config['data']['features_file'])
+        best_model_path = trainer.train(self.config['data']['features_file'])
         
         logger.info(f"Training complete! Best model: {best_model_path}")
         

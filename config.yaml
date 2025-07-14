@@ -23,7 +23,7 @@ training:
   
   # Training parameters
   batch_size: 16  # Reduced for faster training
-  epochs: 20     # Increased for better generalization
+  epochs: 25     # Increased for better generalization
   learning_rate: 0.0001
   weight_decay: 0.0001
   triplet_margin: 0.5
@@ -58,9 +58,9 @@ recognition:
   index_path: "data/models/faiss_index.bin"
   metadata_path: "data/models/metadata.pkl"
   cache_size: 1000
-  confidence_threshold: 0.70
-  high_confidence_threshold: 0.85
-  batch_confidence_threshold: 0.75
+  confidence_threshold: 0.85
+  high_confidence_threshold: 0.95
+  batch_confidence_threshold: 0.90
   batch_size: 16
 
 # Performance targets

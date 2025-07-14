@@ -1,6 +1,6 @@
 """
-Core Data Augmentation Pipeline
-Generates 400+ training images from 8 source images per item
+GPU-Accelerated Data Augmentation Pipeline
+Generates 400+ training images from 8 source images per item with GPU acceleration
 """
 
 import os
@@ -8,12 +8,17 @@ import cv2
 import numpy as np
 from pathlib import Path
 from typing import List, Dict, Tuple
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
+import torch
+import torchvision.transforms as transforms
+import torchvision.transforms.functional as TF
 from tqdm import tqdm
 import json
 from datetime import datetime
 import logging
+from PIL import Image
+import random
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class AdvancedAugmentationPipeline:
-    """Generate diverse augmented dataset from limited images"""
+    """GPU-accelerated diverse augmented dataset generator from limited images"""
     
     def __init__(self, config: Dict):
         self.config = config
@@ -29,13 +34,89 @@ class AdvancedAugmentationPipeline:
         self.target_size = config.get('image_size', (1024, 1024))
         self.quality = config.get('quality', 95)
         
+        # GPU acceleration setup
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            logger.info("🚀 Using CUDA GPU for augmentation acceleration")
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            self.device = torch.device('mps')
+            logger.info("🚀 Using Apple MPS GPU for augmentation acceleration")
+        else:
+            self.device = torch.device('cpu')
+            logger.info("⚠️ Using CPU for augmentation (consider GPU for 5x speedup)")
+        
+        # Enhanced anti-overfitting strategies
+        self.use_advanced_augmentation = config.get('advanced_augmentation', True)
+        self.preserve_aspect_ratio = config.get('preserve_aspect_ratio', True)
+        
         # Statistics tracking
         self.stats = {
             'total_images_processed': 0,
             'total_augmentations_created': 0,
-            'items_processed': 0
+            'items_processed': 0,
+            'gpu_accelerated': self.device.type != 'cpu'
         }
         
+        # Setup GPU-accelerated transforms
+        self._setup_gpu_transforms()
+        
+    def _setup_gpu_transforms(self):
+        """Setup GPU-accelerated PyTorch transforms for maximum speed"""
+        self.gpu_transforms = {
+            'geometric': transforms.Compose([
+                transforms.RandomRotation(degrees=45, fill=0),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomVerticalFlip(p=0.3),
+                transforms.RandomAffine(
+                    degrees=0, translate=(0.1, 0.1), scale=(0.8, 1.2), 
+                    shear=10, fill=0
+                ),
+                transforms.RandomPerspective(distortion_scale=0.3, p=0.7),
+            ]),
+            'color': transforms.Compose([
+                transforms.ColorJitter(
+                    brightness=0.4, contrast=0.4, saturation=0.4, hue=0.2
+                ),
+                transforms.RandomGrayscale(p=0.1),
+                transforms.RandomAdjustSharpness(sharpness_factor=2, p=0.5),
+                transforms.RandomAutocontrast(p=0.3),
+                transforms.RandomEqualize(p=0.3),
+            ]),
+            'advanced': transforms.Compose([
+                transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
+                transforms.RandomErasing(p=0.3, scale=(0.02, 0.15), ratio=(0.3, 3.3)),
+            ])
+        }
+        
+    def gpu_augment_batch(self, images: List[torch.Tensor]) -> List[torch.Tensor]:
+        """Apply GPU-accelerated augmentations to a batch of images"""
+        if not images:
+            return []
+            
+        # Stack images into batch tensor
+        batch = torch.stack(images).to(self.device)
+        augmented_batch = []
+        
+        # Apply different transform strategies
+        strategies = ['geometric', 'color', 'advanced']
+        
+        for img in batch:
+            strategy = random.choice(strategies)
+            
+            if self.use_advanced_augmentation:
+                # Apply multiple strategies with random mixing
+                if random.random() < 0.3:  # 30% chance for multi-strategy
+                    for s in random.sample(strategies, 2):
+                        img = self.gpu_transforms[s](img.unsqueeze(0)).squeeze(0)
+                else:
+                    img = self.gpu_transforms[strategy](img.unsqueeze(0)).squeeze(0)
+            else:
+                img = self.gpu_transforms[strategy](img.unsqueeze(0)).squeeze(0)
+            
+            augmented_batch.append(img)
+        
+        return augmented_batch
+    
     def create_augmentation_strategies(self) -> List[A.Compose]:
         """Create diverse augmentation strategies for maximum variation"""
         
