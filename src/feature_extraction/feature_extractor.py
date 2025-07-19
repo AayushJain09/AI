@@ -45,18 +45,16 @@ class MultiModalFeatureExtractor:
         
     def _load_models(self):
         """
-        Load feature extraction models with optimized architecture:
-        - CLIP: Multi-modal vision-language features (always loaded)
-        - DINOv2: Self-supervised vision features (always loaded) 
-        - EfficientNet: CNN features (full mode only)
-        - ResNet: Removed for redundancy and performance optimization
+        Load optimized feature extraction models:
+        - CLIP: Multi-modal vision-language features (768 dimensions)
+        - DINOv2: Self-supervised vision features (768 dimensions)
+        - ResNet: REMOVED for performance optimization
+        - EfficientNet: REMOVED for performance optimization
+        Total: 1536 dimensions for maximum accuracy and speed
         """
-        # Check for mobile mode configuration
-        self.mobile_mode = self.config.get('mobile_mode', False)
         
         # === CLIP Model (Core Model #1 - Always Loaded) ===
-        # CLIP provides excellent multi-modal features combining vision and language understanding
-        logger.info("Loading CLIP model (core vision-language features)...")
+        logger.info("🚀 Loading CLIP model (optimized 768-dim vision-language features)...")
         import ssl
         import urllib.request
         
@@ -67,48 +65,59 @@ class MultiModalFeatureExtractor:
         urllib.request.install_opener(urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_context)))
         
         try:
-            self.clip_model, self.clip_preprocess = clip.load(
-                self.config.get('clip_variant', 'ViT-B/32'), 
-                device=self.device
-            )
+            # Load larger CLIP variant for 768 dimensions (native ViT-L/14 dimensions)
+            clip_variant = self.config.get('clip_variant', 'ViT-L/14')  # ViT-L/14 outputs 768 dims natively
+            self.clip_model, self.clip_preprocess = clip.load(clip_variant, device=self.device)
             self.clip_model.eval()
-            logger.info("✓ CLIP model loaded successfully")
+            
+            # Get actual output dimensions
+            with torch.no_grad():
+                dummy_input = torch.randn(1, 3, 224, 224).to(self.device)
+                dummy_output = self.clip_model.encode_image(dummy_input)
+                actual_clip_dims = dummy_output.shape[1]
+                logger.info(f"✓ CLIP {clip_variant} loaded: {actual_clip_dims} native dims (using full 768)")
         except Exception as e:
             logger.error(f"Failed to load CLIP model: {e}")
             raise
         
         # === DINOv2 Model (Core Model #2 - Always Loaded) ===
-        # DINOv2 provides complementary self-supervised features that work well with CLIP
-        # Uses small variant for mobile efficiency while maintaining strong performance
-        logger.info("Loading DINOv2 model (self-supervised vision features)...")
+        logger.info("🔥 Loading DINOv2 model (optimized 768-dim self-supervised features)...")
         try:
-            # DINOv2-small: 384-dim features, excellent for fine-grained object recognition
-            self.dinov2 = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14', trust_repo=True)
+            # Use DINOv2-base for 768 dimensional features (native dimensions)
+            dinov2_variant = self.config.get('dinov2_variant', 'dinov2_vitb14')  # dinov2_vitb14 outputs 768 dims natively
+            self.dinov2 = torch.hub.load('facebookresearch/dinov2', dinov2_variant, trust_repo=True)
             self.dinov2 = self.dinov2.to(self.device)
             self.dinov2.eval()
-            logger.info("✓ DINOv2-small loaded successfully")
+            
+            # Get actual output dimensions
+            with torch.no_grad():
+                dummy_input = torch.randn(1, 3, 224, 224).to(self.device)
+                dummy_output = self.dinov2(dummy_input)
+                actual_dino_dims = dummy_output.shape[1]
+                logger.info(f"✓ DINOv2 {dinov2_variant} loaded: {actual_dino_dims} native dims (using full 768)")
         except Exception as e:
             logger.warning(f"Failed to load DINOv2: {e}. Proceeding with CLIP-only mode")
             self.dinov2 = None
         
-        # === Additional Models Based on Mode ===
-        if not self.mobile_mode:
-            # Full mode: Add EfficientNet for comprehensive feature coverage
-            logger.info("Loading EfficientNet model (full mode - enhanced CNN features)...")
-            from torchvision.models import EfficientNet_B4_Weights
-            self.efficientnet = models.efficientnet_b4(weights=EfficientNet_B4_Weights.IMAGENET1K_V1)
-            self.efficientnet.classifier = nn.Identity()  # Remove classifier layer
-            self.efficientnet = self.efficientnet.to(self.device)
-            self.efficientnet.eval()
-            logger.info("✓ EfficientNet-B4 loaded successfully")
-        else:
-            # Mobile mode: Skip heavy models for performance
-            logger.info("Mobile mode: Skipping EfficientNet for optimal performance")
-            self.efficientnet = None
-        
-        # ResNet removed from both modes (redundant with DINOv2 + CLIP combination)
+        # === REMOVED MODELS FOR OPTIMIZATION ===
         self.resnet = None
-        logger.info("ResNet skipped (optimized architecture: CLIP + DINOv2 + EfficientNet)")
+        self.efficientnet = None
+        logger.info("🗑️  ResNet and EfficientNet REMOVED for maximum performance")
+        logger.info("🎯 Optimized Architecture: CLIP (768) + DINOv2 (768) = 1536 total dimensions")
+        
+        # Initialize feature compression layers for dimension optimization
+        self._setup_feature_compression()
+        
+    def _setup_feature_compression(self):
+        """Setup feature dimensions (no compression needed - using native 768)"""
+        self.target_clip_dims = 768      # Use native CLIP ViT-L/14 dimensions
+        self.target_dinov2_dims = 768    # Use native DINOv2-base dimensions
+        
+        # No compression layers needed - using native model outputs at 768 dimensions
+        self.clip_compressor = None
+        self.dinov2_compressor = None
+        
+        logger.info(f"🔧 Feature dimensions set: CLIP={self.target_clip_dims}, DINOv2={self.target_dinov2_dims} (native, no compression)")
         
     def _setup_preprocessing(self):
         """Setup preprocessing pipelines for different models"""
@@ -122,25 +131,30 @@ class MultiModalFeatureExtractor:
         ])
         
     def extract_clip_features(self, image: Image.Image) -> np.ndarray:
-        """Extract CLIP features"""
+        """Extract optimized CLIP features (768 dimensions - native ViT-L/14)"""
         with torch.no_grad():
             image_input = self.clip_preprocess(image).unsqueeze(0).to(self.device)
             features = self.clip_model.encode_image(image_input)
-            features = features / features.norm(dim=-1, keepdim=True)  # Normalize
+            
+            # Use native 768 dimensions (no compression needed)
+            # ViT-L/14 naturally outputs 768-dimensional features
+            
+            # Normalize for optimal similarity computation
+            features = features / features.norm(dim=-1, keepdim=True)
             return features.cpu().numpy().flatten()
     
     def extract_dinov2_features(self, image: Image.Image) -> np.ndarray:
         """
-        Extract DINOv2 self-supervised features.
+        Extract optimized DINOv2 self-supervised features (768 dimensions - native DINOv2-base).
         
         DINOv2 provides complementary features to CLIP:
-        - CLIP: Multi-modal (vision + language) understanding
+        - CLIP: Multi-modal (vision + language) understanding  
         - DINOv2: Pure visual self-supervised features with excellent fine-grained recognition
         
-        Returns 384-dimensional feature vector from DINOv2-small
+        Returns 768-dimensional feature vector from DINOv2-base (native dimensions)
         """
         if self.dinov2 is None:
-            return np.zeros(384)  # Return zeros if DINOv2 failed to load
+            return np.zeros(768)  # Return zeros if DINOv2 failed to load
         
         with torch.no_grad():
             # DINOv2 expects normalized RGB images of size 224x224
@@ -153,26 +167,21 @@ class MultiModalFeatureExtractor:
             
             image_input = dinov2_transform(image).unsqueeze(0).to(self.device)
             features = self.dinov2(image_input)
-            features = features.flatten()
-            return features.cpu().numpy()
+            
+            # Use native 768 dimensions (no compression needed)
+            # DINOv2-base naturally outputs 768-dimensional features
+            
+            # Normalize for optimal similarity computation
+            features = features / features.norm(dim=-1, keepdim=True)
+            return features.cpu().numpy().flatten()
     
     def extract_resnet_features(self, image: Image.Image) -> np.ndarray:
-        """
-        ResNet features (DEPRECATED - removed from architecture).
-        Returns zeros to maintain compatibility with existing code.
-        """
-        # ResNet removed from architecture for performance optimization
-        return np.zeros(2048)
+        """ResNet features REMOVED - not used in optimized architecture"""
+        return np.array([])  # Return empty array for removed model
     
     def extract_efficientnet_features(self, image: Image.Image) -> np.ndarray:
-        """Extract EfficientNet features (mobile mode aware)"""
-        if self.efficientnet is None:
-            return np.zeros(1792)  # Return zeros in mobile mode
-        
-        with torch.no_grad():
-            image_input = self.cnn_preprocess(image).unsqueeze(0).to(self.device)
-            features = self.efficientnet(image_input)
-            return features.cpu().numpy().flatten()
+        """EfficientNet features REMOVED - not used in optimized architecture"""
+        return np.array([])  # Return empty array for removed model
     
     def extract_color_features(self, image: np.ndarray) -> np.ndarray:
         """Extract color histogram features"""
@@ -371,59 +380,48 @@ class MultiModalFeatureExtractor:
     
     def extract_all_features(self, image_path: str) -> Dict[str, np.ndarray]:
         """
-        Extract comprehensive features from an image with optimized dual-mode architecture.
+        Extract optimized features from an image using CLIP + DINOv2 architecture.
         
-        Mobile Mode: CLIP + DINOv2 (fast, high accuracy)
-        Full Mode: CLIP + DINOv2 + EfficientNet + Traditional CV features (maximum accuracy)
+        Optimized Architecture: 
+        - CLIP: 768-dimensional multi-modal vision-language features (native ViT-L/14)
+        - DINOv2: 768-dimensional self-supervised visual features (native DINOv2-base)
+        - Total: 1536 dimensions for maximum accuracy and speed
+        - ResNet/EfficientNet: REMOVED for performance optimization
         
         Args:
             image_path: Path to the input image
             
         Returns:
-            Dictionary of feature vectors with keys indicating feature type
+            Dictionary with 'clip' and 'dinov2' feature vectors (768 dims each)
         """
         # Load and preprocess image
         pil_image = Image.open(image_path).convert('RGB')
-        cv_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-        cv_image_rgb = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         
-        # Determine target size based on mode
-        if self.mobile_mode:
-            target_size = (512, 512)  # Mobile optimized resolution
-        else:
-            target_size = (self.config.get('feature_image_size', 512),) * 2
-        
+        # Use high-resolution processing for maximum accuracy
+        target_size = (self.config.get('feature_image_size', 768), self.config.get('feature_image_size', 768))
         pil_image_resized = pil_image.resize(target_size, Image.Resampling.LANCZOS)
-        cv_image_resized = cv2.resize(cv_image_rgb, target_size)
         
         features = {}
         
         try:
-            # === Core Features (Both Modes) ===
-            # Extract CLIP features (multi-modal vision-language understanding)
+            # === OPTIMIZED DUAL-MODEL ARCHITECTURE ===
+            
+            # Extract CLIP features (768 dimensions)
+            logger.debug(f"Extracting CLIP features (768D) from {image_path}")
             features['clip'] = self.extract_clip_features(pil_image_resized)
             
-            # Extract DINOv2 features (self-supervised visual features)
+            # Extract DINOv2 features (768 dimensions)
+            logger.debug(f"Extracting DINOv2 features (768D) from {image_path}")
             features['dinov2'] = self.extract_dinov2_features(pil_image_resized)
             
-            if self.mobile_mode:
-                # === Mobile Mode: Optimized for Speed ===
-                logger.debug(f"Mobile mode: Using CLIP + DINOv2 features for {image_path}")
-                # Skip heavy computations for mobile deployment
-                
-            else:
-                # === Full Mode: Maximum Feature Coverage ===
-                logger.debug(f"Full mode: Extracting comprehensive features for {image_path}")
-                
-                # Deep learning features
-                features['efficientnet'] = self.extract_efficientnet_features(pil_image_resized)
-                
-                # Traditional computer vision features
-                features['color'] = self.extract_color_features(cv_image_resized)
-                features['texture'] = self.extract_texture_features(cv_image_resized)
-                features['shape'] = self.extract_shape_features(cv_image_resized)
+            # Verify dimensions
+            clip_dims = len(features['clip']) if features['clip'] is not None else 0
+            dino_dims = len(features['dinov2']) if features['dinov2'] is not None else 0
+            total_dims = clip_dims + dino_dims
             
-            # Normalize all feature vectors for consistent similarity computation
+            logger.debug(f"Feature extraction complete: CLIP({clip_dims}D) + DINOv2({dino_dims}D) = {total_dims}D total")
+            
+            # Normalize all feature vectors for optimal similarity computation
             for key in features:
                 if features[key] is not None and len(features[key]) > 0:
                     features[key] = normalize(features[key].reshape(1, -1))[0]
@@ -480,7 +478,7 @@ def main():
     parser = argparse.ArgumentParser(description='Extract features from augmented dataset')
     parser.add_argument('--input', type=str, required=True, help='Input directory with augmented images')
     parser.add_argument('--output', type=str, required=True, help='Output HDF5 file for features')
-    parser.add_argument('--clip-model', type=str, default='ViT-B/32', help='CLIP model variant')
+    parser.add_argument('--clip-model', type=str, default='ViT-L/14', help='CLIP model variant (optimized for 768 dimensions)')
     parser.add_argument('--batch-size', type=int, default=32, help='Batch size for processing')
     
     args = parser.parse_args()
@@ -488,8 +486,9 @@ def main():
     # Configuration
     config = {
         'clip_variant': args.clip_model,
+        'dinov2_variant': 'dinov2_vitb14',  # Ensure DINOv2-base for 768 dims
         'batch_size': args.batch_size,
-        'feature_image_size': 512
+        'feature_image_size': 768  # Higher resolution for better features
     }
     
     # Create feature extractor
