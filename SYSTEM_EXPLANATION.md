@@ -559,3 +559,33 @@ def verify_and_repair_indices():
 ```
 
 This technical deep dive demonstrates the sophisticated engineering behind the AI Recognition System, showcasing how multiple advanced techniques combine to achieve high-accuracy recognition with minimal training data.
+
+
+
+🚀 Quick Presets:
+  # Fast training (25 augs)
+  python prepare.py --input data/raw --output data/augmented --preset
+  minimal
+
+  # Recommended balance (50 augs)
+  python prepare.py --input data/raw --output data/augmented --preset
+  balanced
+
+  # Maximum generalization (100 augs)
+  python prepare.py --input data/raw --output data/augmented --preset
+  aggressive
+
+  # Production optimized (75 augs)
+  python prepare.py --input data/raw --output data/augmented --preset
+  production
+
+  🔧 Fine-tuning Example:
+  python prepare.py --input data/raw --output data/augmented \
+    --augmentations 75 \
+    --intensity 0.7 \
+    --diversity 0.9 \
+    --geometric-weight 0.35 \
+    --lighting-weight 0.30 \
+    --backgrounds 30 \
+    --workers 8
+

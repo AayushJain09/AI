@@ -12,6 +12,8 @@ requests
 # Core ML
 torch
 torchvision
+torchaudio
+rembg
 numpy
 scikit-learn
 
@@ -38,8 +40,9 @@ pydantic
 matplotlib
 seaborn
 
+xformers
+
 # Experiment Tracking
 # mlflow
 # tensorboard
 # wandb
-

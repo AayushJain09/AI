@@ -1,6 +1,7 @@
 data:
   raw_images_per_item: 8
-  augmentations_per_image: 50
+  # augmentations_per_image: 50
+  augmentations_per_image: 25
   image_size: [1024, 1024]
   
 model:

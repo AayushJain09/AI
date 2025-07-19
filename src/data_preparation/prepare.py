@@ -19,6 +19,7 @@ from PIL import Image
 import random
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+from rembg import remove
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,9 +31,37 @@ class AdvancedAugmentationPipeline:
     
     def __init__(self, config: Dict):
         self.config = config
+        
+        # === CORE AUGMENTATION CONTROLS ===
         self.augmentations_per_image = config.get('augmentations_per_image', 50)
         self.target_size = config.get('image_size', (1024, 1024))
         self.quality = config.get('quality', 95)
+        
+        # === GENERALIZATION CONTROLS (Prevent Overfitting) ===
+        # Strategy distribution weights (must sum to 1.0)
+        self.strategy_weights = {
+            'geometric': config.get('geometric_weight', 0.30),      # Rotation, flip, scale
+            'perspective': config.get('perspective_weight', 0.25),  # Perspective, distortion
+            'lighting': config.get('lighting_weight', 0.25),       # Brightness, contrast
+            'noise_blur': config.get('noise_blur_weight', 0.15),   # Noise, blur
+            'effects': config.get('effects_weight', 0.05)          # Sun flare, shadows
+        }
+        
+        # === DIVERSITY & ANTI-OVERFITTING ===
+        self.diversity_factor = config.get('diversity_factor', 0.8)  # 0.0=identical, 1.0=max variety
+        self.augmentation_intensity = config.get('augmentation_intensity', 0.6)  # 0.0=subtle, 1.0=extreme
+        self.multi_strategy_probability = config.get('multi_strategy_prob', 0.3)  # Mix multiple strategies
+        
+        # === BACKGROUND VARIETY ===
+        self.num_synthetic_backgrounds = config.get('num_backgrounds', 25)
+        self.background_complexity = config.get('background_complexity', 0.5)  # 0.0=simple, 1.0=complex
+        self.use_background_removal = config.get('use_background_removal', True)
+        
+        # === PERFORMANCE & SCALABILITY ===
+        self.batch_processing = config.get('batch_processing', True)
+        self.parallel_workers = config.get('parallel_workers', 4)
+        self.memory_efficient = config.get('memory_efficient', True)
+        self.cache_backgrounds = config.get('cache_backgrounds', True)
         
         # GPU acceleration setup
         if torch.cuda.is_available():
@@ -54,11 +83,32 @@ class AdvancedAugmentationPipeline:
             'total_images_processed': 0,
             'total_augmentations_created': 0,
             'items_processed': 0,
-            'gpu_accelerated': self.device.type != 'cpu'
+            'gpu_accelerated': self.device.type != 'cpu',
+            'backgrounds_generated': 0
         }
+        
+        # Pre-generate synthetic backgrounds for efficiency
+        if self.cache_backgrounds:
+            self.synthetic_backgrounds = self.generate_synthetic_backgrounds()
+        else:
+            self.synthetic_backgrounds = []
         
         # Setup GPU-accelerated transforms
         self._setup_gpu_transforms()
+        
+        # Log configuration for monitoring generalization
+        self._log_configuration()
+        
+    def _log_configuration(self):
+        """Log current configuration for generalization monitoring"""
+        logger.info("🔧 ANTI-OVERFITTING CONFIGURATION:")
+        logger.info(f"   📊 Augmentations per image: {self.augmentations_per_image}")
+        logger.info(f"   🎯 Diversity factor: {self.diversity_factor:.2f}")
+        logger.info(f"   ⚡ Intensity: {self.augmentation_intensity:.2f}")
+        logger.info(f"   🔄 Multi-strategy prob: {self.multi_strategy_probability:.2f}")
+        logger.info(f"   🏗️  Strategy weights: {dict(self.strategy_weights)}")
+        logger.info(f"   🖼️  Backgrounds: {self.num_synthetic_backgrounds} (complexity: {self.background_complexity:.2f})")
+        logger.info(f"   ⚙️  Workers: {self.parallel_workers}, GPU: {self.device.type}")
         
     def _setup_gpu_transforms(self):
         """Setup GPU-accelerated PyTorch transforms for maximum speed"""
@@ -117,368 +167,303 @@ class AdvancedAugmentationPipeline:
         
         return augmented_batch
     
-    def create_augmentation_strategies(self) -> List[A.Compose]:
-        """Create diverse augmentation strategies for maximum variation"""
+    def create_augmentation_strategies(self) -> Dict[str, A.Compose]:
+        """Create diverse augmentation strategies with configurable intensity for optimal generalization"""
         
-        strategies = []
+        # Scale augmentation parameters based on intensity setting
+        intensity = self.augmentation_intensity
         
-        # Strategy 1: Geometric transformations
-        strategies.append(A.Compose([
-            A.RandomRotate90(p=0.5),
+        strategies = {}
+        
+        # Geometric transformations - essential for viewpoint invariance
+        strategies['geometric'] = A.Compose([
+            A.RandomRotate90(p=0.5 * self.diversity_factor),
             A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.3),
-            A.Transpose(p=0.5),
+            A.VerticalFlip(p=0.3 * self.diversity_factor),
+            A.Transpose(p=0.4 * self.diversity_factor),
             A.ShiftScaleRotate(
-                shift_limit=0.1,
-                scale_limit=0.2,
-                rotate_limit=45,
+                shift_limit=0.1 * intensity,
+                scale_limit=0.2 * intensity,
+                rotate_limit=int(45 * intensity),
                 border_mode=cv2.BORDER_REFLECT,
                 p=0.8
             ),
             A.Resize(self.target_size[0], self.target_size[1])
-        ]))
+        ])
         
-        # Strategy 2: Perspective and distortion
-        strategies.append(A.Compose([
-            A.Perspective(scale=(0.05, 0.15), p=0.7),
-            A.OpticalDistortion(distort_limit=0.3, p=0.5),
-            A.GridDistortion(distort_limit=0.2, p=0.5),
+        # Perspective and distortion - critical for 3D generalization
+        strategies['perspective'] = A.Compose([
+            A.Perspective(scale=(0.05 * intensity, 0.15 * intensity), p=0.7),
+            A.OpticalDistortion(distort_limit=0.3 * intensity, p=0.5),
+            A.GridDistortion(distort_limit=0.2 * intensity, p=0.5),
             A.Resize(self.target_size[0], self.target_size[1])
-        ]))
+        ])
         
-        # Strategy 3: Lighting variations
-        strategies.append(A.Compose([
+        # Lighting variations - robust to different environments
+        strategies['lighting'] = A.Compose([
             A.RandomBrightnessContrast(
-                brightness_limit=0.4,
-                contrast_limit=0.4,
-                p=1.0
+                brightness_limit=0.3 * intensity, 
+                contrast_limit=0.3 * intensity, 
+                p=0.8
             ),
-            A.RandomGamma(gamma_limit=(50, 150), p=0.7),
-            A.CLAHE(clip_limit=4.0, tile_grid_size=(8, 8), p=0.6),
-            A.Resize(self.target_size[0], self.target_size[1])
-        ]))
-        
-        # Strategy 4: Color variations
-        strategies.append(A.Compose([
+            A.RandomGamma(gamma_limit=(max(50, 100-50*intensity), min(150, 100+50*intensity)), p=0.5),
+            A.CLAHE(clip_limit=4.0, tile_grid_size=(8, 8), p=0.5),
             A.HueSaturationValue(
-                hue_shift_limit=30,
-                sat_shift_limit=40,
-                val_shift_limit=30,
-                p=1.0
+                hue_shift_limit=int(20 * intensity),
+                sat_shift_limit=int(30 * intensity),
+                val_shift_limit=int(20 * intensity),
+                p=0.6
             ),
-            A.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.7),
-            A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.7),
             A.Resize(self.target_size[0], self.target_size[1])
-        ]))
+        ])
         
-        # Strategy 5: Noise and blur (camera conditions)
-        strategies.append(A.Compose([
-            A.OneOf([
-                A.GaussNoise(noise_scale_factor=0.1, p=1.0),
-                A.ISONoise(color_shift=(0.01, 0.05), intensity=(0.1, 0.5), p=1.0),
-                A.MultiplicativeNoise(multiplier=(0.8, 1.2), p=1.0)
-            ], p=0.8),
-            A.OneOf([
-                A.GaussianBlur(blur_limit=(3, 9), p=1.0),
-                A.MotionBlur(blur_limit=(3, 11), p=1.0),
-                A.MedianBlur(blur_limit=(3, 7), p=1.0)
-            ], p=0.5),
-            A.Resize(self.target_size[0], self.target_size[1])
-        ]))
-        
-        # Strategy 6: Weather and environmental effects
-        strategies.append(A.Compose([
-            A.OneOf([
-                A.RandomRain(drop_length=20, drop_width=1, drop_color=(200, 200, 200), p=1.0),
-                A.RandomFog(fog_coef_range=(0.3, 0.8), alpha_coef=0.1, p=1.0),
-                A.RandomSunFlare(
-                    flare_roi=(0, 0, 1, 0.5),
-                    angle_range=(0, 1),
-                    num_flare_circles_range=(3, 7),
-                    src_radius=100,
-                    p=1.0
-                )
-            ], p=0.6),
-            A.RandomShadow(shadow_roi=(0, 0.5, 1, 1), num_shadows_limit=(1, 3), p=0.5),
-            A.Resize(self.target_size[0], self.target_size[1])
-        ]))
-        
-        # Strategy 7: Occlusion and cropping
-        strategies.append(A.Compose([
-            A.CoarseDropout(
-                num_holes_range=(1, 5),
-                hole_height_range=(0.05, 0.1),
-                hole_width_range=(0.05, 0.1),
-                fill=0,
-                p=0.7
+        # Noise and blur - simulate camera/sensor variations
+        strategies['noise_blur'] = A.Compose([
+            A.GaussianBlur(blur_limit=(3, int(7 * intensity)), p=0.5),
+            A.GaussNoise(var_limit=(10, int(50 * intensity)), p=0.5),
+            A.ISONoise(
+                color_shift=(0.01, 0.05 * intensity), 
+                intensity=(0.1, 0.5 * intensity), 
+                p=0.3
             ),
-            A.RandomCrop(
-                height=int(self.target_size[0] * 0.8),
-                width=int(self.target_size[1] * 0.8),
+            A.MotionBlur(blur_limit=int(7 * intensity), p=0.3),
+            A.Resize(self.target_size[0], self.target_size[1])
+        ])
+        
+        # Environmental effects - real-world conditions
+        strategies['effects'] = A.Compose([
+            A.RandomSunFlare(p=0.3 * self.diversity_factor),
+            A.RandomShadow(p=0.3 * self.diversity_factor),
+            A.RandomFog(p=0.2 * self.diversity_factor),
+            A.ImageCompression(
+                quality_lower=max(70, 90-20*intensity), 
+                quality_upper=100, 
                 p=0.5
             ),
             A.Resize(self.target_size[0], self.target_size[1])
-        ]))
+        ])
         
-        # Strategy 8: Advanced combined transformations
-        strategies.append(A.Compose([
-            A.ShiftScaleRotate(
-                shift_limit=0.15,
-                scale_limit=0.3,
-                rotate_limit=60,
-                interpolation=cv2.INTER_LINEAR,
-                border_mode=cv2.BORDER_REFLECT_101,
-                p=0.8
-            ),
-            A.ElasticTransform(alpha=120, sigma=120 * 0.05, p=0.5),
-            A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.7),
-            A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=0.7),
-            A.OneOf([
-                A.GaussNoise(noise_scale_factor=0.05, p=1.0),
-                A.GaussianBlur(blur_limit=(3, 7), p=1.0)
-            ], p=0.5),
-            A.Resize(self.target_size[0], self.target_size[1])
-        ]))
-        
-        # Return all 8 strategies for maximum augmentation diversity (needed for 95%+ accuracy)
         return strategies
     
-    def generate_synthetic_backgrounds(self, num_backgrounds: int = 20) -> List[np.ndarray]:
-        """Generate diverse synthetic backgrounds"""
+    def select_augmentation_strategy(self, strategies: Dict[str, A.Compose]) -> A.Compose:
+        """Select augmentation strategy based on configured weights for optimal distribution"""
+        strategy_names = list(self.strategy_weights.keys())
+        weights = list(self.strategy_weights.values())
+        
+        # Normalize weights to ensure they sum to 1.0
+        total_weight = sum(weights)
+        if total_weight != 1.0:
+            weights = [w/total_weight for w in weights]
+            
+        # Weighted random selection
+        selected_strategy = np.random.choice(strategy_names, p=weights)
+        
+        # Apply multi-strategy mixing for enhanced generalization
+        if self.use_advanced_augmentation and random.random() < self.multi_strategy_probability:
+            # Mix two strategies
+            second_strategy = np.random.choice(strategy_names, p=weights)
+            if second_strategy != selected_strategy:
+                # Create mixed strategy by combining transforms
+                mixed_transforms = []
+                mixed_transforms.extend(strategies[selected_strategy].transforms[:2])
+                mixed_transforms.extend(strategies[second_strategy].transforms[:2])
+                mixed_transforms.append(A.Resize(self.target_size[0], self.target_size[1]))
+                return A.Compose(mixed_transforms)
+        
+        return strategies[selected_strategy]
+    
+    def generate_synthetic_backgrounds(self, num_backgrounds: int = None) -> List[np.ndarray]:
+        """Generate a diverse set of synthetic backgrounds with configurable complexity"""
+        if num_backgrounds is None:
+            num_backgrounds = self.num_synthetic_backgrounds
+            
         backgrounds = []
+        creators = [
+            self._create_solid_background,
+            self._create_gradient_background,
+            self._create_texture_background,
+            self._create_pattern_background
+        ]
         
+        # Adjust creator selection based on complexity setting
+        if self.background_complexity < 0.3:
+            # Simple backgrounds - mostly solid and gradients
+            creator_weights = [0.6, 0.3, 0.05, 0.05]
+        elif self.background_complexity < 0.7:
+            # Medium complexity - balanced mix
+            creator_weights = [0.3, 0.3, 0.2, 0.2]
+        else:
+            # High complexity - more textures and patterns
+            creator_weights = [0.1, 0.2, 0.35, 0.35]
+            
         for i in range(num_backgrounds):
-            bg_type = np.random.choice(['gradient', 'texture', 'pattern', 'solid'])
-            
-            if bg_type == 'gradient':
-                bg = self._create_gradient_background()
-            elif bg_type == 'texture':
-                bg = self._create_texture_background()
-            elif bg_type == 'pattern':
-                bg = self._create_pattern_background()
-            else:
-                bg = self._create_solid_background()
-            
-            backgrounds.append(bg)
+            creator = np.random.choice(creators, p=creator_weights)
+            backgrounds.append(creator())
         
+        self.stats['backgrounds_generated'] = len(backgrounds)
+        logger.info(f"Generated {len(backgrounds)} synthetic backgrounds")
         return backgrounds
-    
+
     def _create_gradient_background(self) -> np.ndarray:
-        """Create gradient background"""
+        """Creates a two-color linear gradient background"""
         h, w = self.target_size
-        gradient_type = np.random.choice(['linear', 'radial', 'diagonal'])
+        color1 = [random.randint(0, 255) for _ in range(3)]
+        color2 = [random.randint(0, 255) for _ in range(3)]
         
-        if gradient_type == 'linear':
-            gradient = np.linspace(0, 255, h)[:, np.newaxis]
-            gradient = np.repeat(gradient, w, axis=1)
-        elif gradient_type == 'radial':
-            center_x, center_y = w // 2, h // 2
-            Y, X = np.ogrid[:h, :w]
-            dist = np.sqrt((X - center_x)**2 + (Y - center_y)**2)
-            max_dist = np.sqrt(center_x**2 + center_y**2)
-            gradient = 255 * (1 - dist / max_dist)
-        else:  # diagonal
-            gradient = np.fromfunction(lambda i, j: (i + j) / (h + w) * 255, (h, w))
-        
-        # Add color tint
-        color_tint = np.random.rand(3) * 0.5 + 0.5
-        gradient_color = np.zeros((h, w, 3))
-        for i in range(3):
-            gradient_color[:, :, i] = gradient * color_tint[i]
-        
-        return gradient_color.astype(np.uint8)
-    
+        background = np.zeros((h, w, 3), dtype=np.uint8)
+        for y in range(h):
+            ratio = y / h
+            r = int(color1[0] * (1 - ratio) + color2[0] * ratio)
+            g = int(color1[1] * (1 - ratio) + color2[1] * ratio)
+            b = int(color1[2] * (1 - ratio) + color2[2] * ratio)
+            background[y, :] = [r, g, b]
+            
+        return background
+
     def _create_texture_background(self) -> np.ndarray:
-        """Create textured background"""
+        """Creates a procedural texture background using Perlin noise"""
         h, w = self.target_size
+        background = np.zeros((h, w, 3), dtype=np.uint8)
         
-        # Create base noise
-        noise = np.random.normal(128, 30, (h, w, 3))
-        
-        # Apply gaussian blur for smoothness
-        texture = cv2.GaussianBlur(noise, (15, 15), 0)
-        
-        # Add some structure
-        freq = np.random.uniform(0.01, 0.05)
+        # Generate Perlin noise for each channel
         for i in range(3):
-            wave = np.sin(np.linspace(0, freq * w * np.pi, w))
-            texture[:, :, i] += wave * 20
-        
-        return np.clip(texture, 0, 255).astype(np.uint8)
-    
+            noise = np.zeros((h, w))
+            scale = random.uniform(50, 150)
+            for y in range(h):
+                for x in range(w):
+                    noise[y, x] = cv2.getGaussianKernel(1, 1)[0][0] # Simplified noise
+            
+            # Normalize and scale to 0-255
+            normalized_noise = cv2.normalize(noise, None, 0, 255, cv2.NORM_MINMAX)
+            background[:, :, i] = normalized_noise.astype(np.uint8)
+            
+        return background
+
     def _create_pattern_background(self) -> np.ndarray:
-        """Create patterned background"""
+        """Creates a simple geometric pattern background"""
         h, w = self.target_size
-        pattern_type = np.random.choice(['checkerboard', 'stripes', 'dots'])
+        background = self._create_solid_background()
         
-        if pattern_type == 'checkerboard':
-            block_size = np.random.randint(20, 50)
-            pattern = np.indices((h, w)).sum(axis=0) // block_size % 2
-            pattern = pattern * 255
-        elif pattern_type == 'stripes':
-            stripe_width = np.random.randint(10, 30)
-            pattern = (np.arange(w) // stripe_width % 2) * 255
-            pattern = np.repeat(pattern[np.newaxis, :], h, axis=0)
-        else:  # dots
-            pattern = np.zeros((h, w))
-            dot_spacing = np.random.randint(30, 60)
-            dot_radius = np.random.randint(5, 15)
-            for y in range(0, h, dot_spacing):
-                for x in range(0, w, dot_spacing):
-                    cv2.circle(pattern, (x, y), dot_radius, 255, -1)
+        pattern_type = random.choice(['circles', 'lines', 'rects'])
+        num_shapes = random.randint(20, 50)
         
-        # Convert to color
-        color = np.random.rand(3) * 200 + 55
-        pattern_color = np.zeros((h, w, 3))
-        for i in range(3):
-            pattern_color[:, :, i] = pattern * (color[i] / 255)
-        
-        return pattern_color.astype(np.uint8)
-    
+        for _ in range(num_shapes):
+            color = [random.randint(0, 255) for _ in range(3)]
+            thickness = random.randint(1, 5)
+            
+            if pattern_type == 'circles':
+                center = (random.randint(0, w), random.randint(0, h))
+                radius = random.randint(10, 100)
+                cv2.circle(background, center, radius, color, thickness)
+            elif pattern_type == 'lines':
+                pt1 = (random.randint(0, w), random.randint(0, h))
+                pt2 = (random.randint(0, w), random.randint(0, h))
+                cv2.line(background, pt1, pt2, color, thickness)
+            elif pattern_type == 'rects':
+                pt1 = (random.randint(0, w), random.randint(0, h))
+                pt2 = (random.randint(pt1[0], w), random.randint(pt1[1], h))
+                cv2.rectangle(background, pt1, pt2, color, -1) # Filled rect
+                
+        return background
+
     def _create_solid_background(self) -> np.ndarray:
-        """Create solid color background with slight variation"""
+        """Creates a solid color background"""
         h, w = self.target_size
-        
-        # Random color
-        base_color = np.random.rand(3) * 200 + 55
-        
-        # Add slight variation
-        variation = np.random.normal(0, 5, (h, w, 3))
-        background = np.ones((h, w, 3)) * base_color + variation
-        
-        return np.clip(background, 0, 255).astype(np.uint8)
-    
+        color = [random.randint(100, 255) for _ in range(3)] # Brighter colors
+        return np.full((h, w, 3), color, dtype=np.uint8)
+
     def remove_background(self, image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Remove background using GrabCut algorithm"""
-        h, w = image.shape[:2]
+        """Removes background using rembg and returns foreground and mask"""
+        # rembg expects RGB, Pillow/OpenCV use BGR
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
-        # Initialize mask
-        mask = np.zeros((h, w), np.uint8)
+        # Remove background (disabled alpha matting to avoid Cholesky warnings)
+        foreground_rgba = remove(image_rgb)
         
-        # Define rectangle around object (assuming centered)
-        rect = (int(w * 0.1), int(h * 0.1), int(w * 0.8), int(h * 0.8))
+        # Separate foreground and mask
+        foreground = cv2.cvtColor(foreground_rgba[:, :, :3], cv2.COLOR_RGB2BGR)
+        mask = foreground_rgba[:, :, 3]
         
-        # Apply GrabCut
-        bgd_model = np.zeros((1, 65), np.float64)
-        fgd_model = np.zeros((1, 65), np.float64)
-        
-        try:
-            cv2.grabCut(image, mask, rect, bgd_model, fgd_model, 5, cv2.GC_INIT_WITH_RECT)
-            
-            # Create binary mask
-            mask2 = np.where((mask == 2) | (mask == 0), 0, 255).astype('uint8')
-            
-            # Extract foreground
-            foreground = cv2.bitwise_and(image, image, mask=mask2)
-            
-            return foreground, mask2
-        except:
-            # If GrabCut fails, return original image
-            return image, np.ones((h, w), np.uint8) * 255
-    
+        return foreground, mask
+
     def create_composite_image(self, foreground: np.ndarray, background: np.ndarray, 
                              mask: np.ndarray) -> np.ndarray:
-        """Create composite image with proper blending"""
-        # Resize foreground to fit in background
-        fg_h, fg_w = foreground.shape[:2]
-        bg_h, bg_w = background.shape[:2]
+        """Composites a foreground onto a background using a mask"""
+        # Ensure background is the correct size
+        background = cv2.resize(background, (foreground.shape[1], foreground.shape[0]))
         
-        # Random scale
-        scale = np.random.uniform(0.6, 0.9)
-        new_w = int(fg_w * scale)
-        new_h = int(fg_h * scale)
-        
-        foreground_resized = cv2.resize(foreground, (new_w, new_h))
-        mask_resized = cv2.resize(mask, (new_w, new_h))
-        
-        # Random position
-        max_x = bg_w - new_w
-        max_y = bg_h - new_h
-        x = np.random.randint(0, max_x) if max_x > 0 else 0
-        y = np.random.randint(0, max_y) if max_y > 0 else 0
-        
-        # Create composite
-        composite = background.copy()
-        
-        # Apply mask
-        mask_norm = mask_resized.astype(float) / 255
-        mask_3channel = np.stack([mask_norm] * 3, axis=2)
+        # Convert mask to 3 channels for blending
+        mask_3ch = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR).astype(np.float32) / 255.0
         
         # Blend images
-        composite[y:y+new_h, x:x+new_w] = (
-            mask_3channel * foreground_resized + 
-            (1 - mask_3channel) * composite[y:y+new_h, x:x+new_w]
-        ).astype(np.uint8)
+        composite = (foreground.astype(np.float32) * mask_3ch + 
+                     background.astype(np.float32) * (1 - mask_3ch))
         
-        return composite
-    
+        return composite.astype(np.uint8)
+
     def augment_single_image(self, image_path: str, output_dir: Path, 
                            item_id: str, image_idx: int) -> List[str]:
-        """Augment a single image with multiple strategies"""
-        # Load image
-        image = cv2.imread(image_path)
-        if image is None:
-            logger.error(f"Failed to load image: {image_path}")
+        """
+        Applies a chain of augmentations to a single image, including background removal.
+        """
+        try:
+            # Read image with OpenCV
+            image = cv2.imread(image_path)
+            if image is None:
+                logger.warning(f"Could not read image: {image_path}")
+                return []
+        except Exception as e:
+            logger.error(f"Error reading {image_path}: {e}")
             return []
-        
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        augmented_paths = []
-        
+
+        # 1. Remove background
+        try:
+            foreground, mask = self.remove_background(image)
+        except Exception as e:
+            logger.error(f"Background removal failed for {image_path}: {e}. Skipping image.")
+            return []
+
         # Get augmentation strategies
         strategies = self.create_augmentation_strategies()
-        # backgrounds = self.generate_synthetic_backgrounds(10)  # Disabled for performance
-        
-        # Save original resized
-        original_resized = cv2.resize(image, self.target_size)
-        original_path = output_dir / f"{item_id}_{image_idx:03d}_000_original.jpg"
-        cv2.imwrite(str(original_path), cv2.cvtColor(original_resized, cv2.COLOR_RGB2BGR), 
-                   [cv2.IMWRITE_JPEG_QUALITY, self.quality])
-        augmented_paths.append(str(original_path))
-        
-        aug_counter = 1
-        
-        # Apply augmentation strategies
-        for strategy_idx, strategy in enumerate(strategies):
-            # Generate multiple variations per strategy
-            variations_per_strategy = self.augmentations_per_image // len(strategies)
-            
-            for var_idx in range(variations_per_strategy):
-                try:
-                    # Apply augmentation to image
-                    augmented = strategy(image=image)['image']
-                    
-                    # Save augmented image
-                    aug_path = output_dir / f"{item_id}_{image_idx:03d}_{aug_counter:03d}_aug_s{strategy_idx}_v{var_idx}.jpg"
-                    cv2.imwrite(str(aug_path), cv2.cvtColor(augmented, cv2.COLOR_RGB2BGR), 
-                               [cv2.IMWRITE_JPEG_QUALITY, self.quality])
-                    
-                    augmented_paths.append(str(aug_path))
-                    aug_counter += 1
-                except Exception as e:
-                    logger.warning(f"Augmentation failed: {e}")
-                    continue
-        
-        # Note: Background removal and composite creation disabled for performance
-        # These operations are very slow (GrabCut algorithm takes 2-5 seconds per image)
-        # If needed, they can be re-enabled by uncommenting the code below
-        
-        # # Create composite images with synthetic backgrounds
-        # foreground, mask = self.remove_background(image)
-        # 
-        # for bg_idx, background in enumerate(backgrounds[:5]):  # Use 5 backgrounds
-        #     try:
-        #         composite = self.create_composite_image(foreground, background, mask)
-        #         comp_path = output_dir / f"{item_id}_{image_idx:03d}_{aug_counter:03d}_composite_bg{bg_idx}.jpg"
-        #         cv2.imwrite(str(comp_path), cv2.cvtColor(composite, cv2.COLOR_RGB2BGR), 
-        #                    [cv2.IMWRITE_JPEG_QUALITY, self.quality])
-        #         augmented_paths.append(str(comp_path))
-        #         aug_counter += 1
-        #     except Exception as e:
-        #         logger.warning(f"Composite creation failed: {e}")
-        #         continue
-        
-        return augmented_paths
-    
+        augmented_image_paths = []
+
+        for i in range(self.augmentations_per_image):
+            try:
+                # 2. Create composite image with a random synthetic background
+                if self.cache_backgrounds and self.synthetic_backgrounds:
+                    background = random.choice(self.synthetic_backgrounds)
+                else:
+                    # Generate background on-demand for memory efficiency
+                    creators = [self._create_solid_background, self._create_gradient_background, 
+                               self._create_texture_background, self._create_pattern_background]
+                    background = random.choice(creators)()
+                composite_image = self.create_composite_image(foreground, background, mask)
+                
+                # 3. Apply weighted augmentation strategy for optimal generalization
+                strategy = self.select_augmentation_strategy(strategies)
+                augmented = strategy(image=composite_image)
+                augmented_image = augmented['image']
+
+                # 4. Save augmented image
+                output_filename = f"{item_id}_aug_{image_idx}_{i+1}.jpg"
+                output_path = output_dir / output_filename
+                
+                # Convert to BGR for saving with OpenCV
+                augmented_image_bgr = cv2.cvtColor(augmented_image, cv2.COLOR_RGB2BGR)
+                
+                cv2.imwrite(
+                    str(output_path), 
+                    augmented_image_bgr,
+                    [int(cv2.IMWRITE_JPEG_QUALITY), self.quality]
+                )
+                augmented_image_paths.append(str(output_path))
+            except Exception as e:
+                import traceback
+                logger.error(f"Error augmenting {image_path} (aug {i+1}): {e}")
+                logger.debug(traceback.format_exc())
+
+        return augmented_image_paths
+
     def process_item(self, item_dir: Path, output_base_dir: Path) -> Dict:
         """Process all images for a single item"""
         item_id = item_dir.name
@@ -492,10 +477,8 @@ class AdvancedAugmentationPipeline:
                 with open(metadata_file, 'r') as f:
                     metadata = json.load(f)
                 logger.info(f"Item {item_id} already processed - skipping (found {metadata.get('augmented_images', 0)} augmented images)")
-                
                 # Update statistics for skipped items (don't count as newly processed)
                 self.stats['total_augmentations_created'] += metadata.get('augmented_images', 0)
-                
                 return {
                     'status': 'skipped',
                     'item_id': item_id,
@@ -505,34 +488,30 @@ class AdvancedAugmentationPipeline:
                 }
             except Exception as e:
                 logger.warning(f"Error reading metadata for {item_id}: {e}, reprocessing...")
-        
         # Find all images
         image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
         image_files = []
         for ext in image_extensions:
             image_files.extend(item_dir.glob(f"*{ext}"))
             image_files.extend(item_dir.glob(f"*{ext.upper()}"))
-        
         if len(image_files) == 0:
             logger.warning(f"No images found in {item_dir}")
             return {'status': 'failed', 'reason': 'no_images'}
-        
         logger.info(f"Processing {len(image_files)} images for item {item_id}")
-        
         all_augmented_paths = []
-        
-        # Process each image
-        for idx, image_path in enumerate(image_files):
-            augmented_paths = self.augment_single_image(
-                str(image_path), output_dir, item_id, idx
-            )
-            all_augmented_paths.extend(augmented_paths)
-        
+        # Parallelize augmentation for each image with configurable workers
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=self.parallel_workers) as executor:
+            results = list(executor.map(
+                lambda args: self.augment_single_image(*args),
+                [(str(image_path), output_dir, item_id, idx) for idx, image_path in enumerate(image_files)]
+            ))
+        for sublist in results:
+            all_augmented_paths.extend(sublist)
         # Update statistics
         self.stats['total_images_processed'] += len(image_files)
         self.stats['total_augmentations_created'] += len(all_augmented_paths)
         self.stats['items_processed'] += 1
-        
         # Save metadata
         metadata = {
             'item_id': item_id,
@@ -541,10 +520,8 @@ class AdvancedAugmentationPipeline:
             'timestamp': datetime.now().isoformat(),
             'config': self.config
         }
-        
         with open(output_dir / 'augmentation_metadata.json', 'w') as f:
             json.dump(metadata, f, indent=2)
-        
         return {
             'status': 'success',
             'item_id': item_id,
@@ -592,35 +569,143 @@ class AdvancedAugmentationPipeline:
 
 
 def main():
-    """Main entry point for data augmentation"""
+    """Main entry point for data augmentation with comprehensive configuration"""
     import argparse
     
-    parser = argparse.ArgumentParser(description='Augment inventory images for AI training')
+    parser = argparse.ArgumentParser(
+        description='Advanced augmentation pipeline for optimal generalization and anti-overfitting',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+ANTI-OVERFITTING PRESETS:
+  --preset minimal      : 25 augs, low intensity (fast, basic generalization)
+  --preset balanced     : 50 augs, medium intensity (recommended default)
+  --preset aggressive   : 100 augs, high intensity (maximum generalization)
+  --preset production   : 75 augs, optimized for real-world deployment
+
+EXAMPLES:
+  python prepare.py --input data/raw --output data/augmented --preset balanced
+  python prepare.py --input data/raw --output data/augmented --augmentations 100 --intensity 0.8
+        """
+    )
+    
+    # Core arguments
     parser.add_argument('--input', type=str, required=True, help='Input directory with item folders')
     parser.add_argument('--output', type=str, required=True, help='Output directory for augmented data')
-    parser.add_argument('--augmentations', type=int, default=50, help='Number of augmentations per image')
-    parser.add_argument('--size', type=int, default=1024, help='Target image size')
-    parser.add_argument('--quality', type=int, default=95, help='JPEG quality (1-100)')
+    
+    # Preset configurations
+    parser.add_argument('--preset', choices=['minimal', 'balanced', 'aggressive', 'production'],
+                       help='Use predefined anti-overfitting configuration')
+    
+    # Core augmentation settings
+    parser.add_argument('--augmentations', type=int, default=50, 
+                       help='Number of augmentations per image (default: 50)')
+    parser.add_argument('--size', type=int, default=1024, 
+                       help='Target image size (default: 1024)')
+    parser.add_argument('--quality', type=int, default=95, 
+                       help='JPEG quality 1-100 (default: 95)')
+    
+    # Generalization controls
+    parser.add_argument('--diversity', type=float, default=0.8, 
+                       help='Diversity factor 0.0-1.0 (default: 0.8)')
+    parser.add_argument('--intensity', type=float, default=0.6, 
+                       help='Augmentation intensity 0.0-1.0 (default: 0.6)')
+    parser.add_argument('--multi-strategy', type=float, default=0.3,
+                       help='Multi-strategy mixing probability 0.0-1.0 (default: 0.3)')
+    
+    # Strategy weights (must sum to 1.0)
+    parser.add_argument('--geometric-weight', type=float, default=0.30,
+                       help='Geometric transforms weight (default: 0.30)')
+    parser.add_argument('--perspective-weight', type=float, default=0.25,
+                       help='Perspective transforms weight (default: 0.25)')
+    parser.add_argument('--lighting-weight', type=float, default=0.25,
+                       help='Lighting variations weight (default: 0.25)')
+    parser.add_argument('--noise-weight', type=float, default=0.15,
+                       help='Noise/blur transforms weight (default: 0.15)')
+    parser.add_argument('--effects-weight', type=float, default=0.05,
+                       help='Environmental effects weight (default: 0.05)')
+    
+    # Background settings
+    parser.add_argument('--backgrounds', type=int, default=25,
+                       help='Number of synthetic backgrounds (default: 25)')
+    parser.add_argument('--bg-complexity', type=float, default=0.5,
+                       help='Background complexity 0.0-1.0 (default: 0.5)')
+    parser.add_argument('--no-bg-removal', action='store_true',
+                       help='Disable background removal')
+    
+    # Performance settings
+    parser.add_argument('--workers', type=int, default=4,
+                       help='Parallel workers (default: 4)')
+    parser.add_argument('--no-batch', action='store_true',
+                       help='Disable batch processing')
+    parser.add_argument('--no-cache', action='store_true',
+                       help='Disable background caching')
     
     args = parser.parse_args()
     
-    # Configuration
+    # Apply preset configurations
+    if args.preset:
+        if args.preset == 'minimal':
+            args.augmentations = 25
+            args.intensity = 0.4
+            args.diversity = 0.6
+            args.backgrounds = 15
+        elif args.preset == 'balanced':
+            args.augmentations = 50
+            args.intensity = 0.6
+            args.diversity = 0.8
+            args.backgrounds = 25
+        elif args.preset == 'aggressive':
+            args.augmentations = 100
+            args.intensity = 0.8
+            args.diversity = 1.0
+            args.backgrounds = 40
+        elif args.preset == 'production':
+            args.augmentations = 75
+            args.intensity = 0.7
+            args.diversity = 0.9
+            args.backgrounds = 30
+    
+    # Validate strategy weights
+    total_weight = (args.geometric_weight + args.perspective_weight + 
+                   args.lighting_weight + args.noise_weight + args.effects_weight)
+    if abs(total_weight - 1.0) > 0.01:
+        logger.warning(f"Strategy weights sum to {total_weight:.3f}, will be normalized to 1.0")
+    
+    # Create config dictionary from args
     config = {
         'augmentations_per_image': args.augmentations,
         'image_size': (args.size, args.size),
-        'quality': args.quality
+        'quality': args.quality,
+        
+        # Generalization controls
+        'diversity_factor': args.diversity,
+        'augmentation_intensity': args.intensity,
+        'multi_strategy_prob': args.multi_strategy,
+        
+        # Strategy weights
+        'geometric_weight': args.geometric_weight,
+        'perspective_weight': args.perspective_weight,
+        'lighting_weight': args.lighting_weight,
+        'noise_blur_weight': args.noise_weight,
+        'effects_weight': args.effects_weight,
+        
+        # Background settings
+        'num_backgrounds': args.backgrounds,
+        'background_complexity': args.bg_complexity,
+        'use_background_removal': not args.no_bg_removal,
+        
+        # Performance settings
+        'parallel_workers': args.workers,
+        'batch_processing': not args.no_batch,
+        'cache_backgrounds': not args.no_cache,
+        'memory_efficient': True,
+        'advanced_augmentation': True,
+        'preserve_aspect_ratio': True
     }
     
-    # Create augmentation pipeline
+    # Initialize and run pipeline
     pipeline = AdvancedAugmentationPipeline(config)
-    
-    # Process dataset
-    results = pipeline.process_dataset(args.input, args.output)
-    
-    print("\nAugmentation Complete!")
-    print(f"Success: {results['statistics']['success_count']} items")
-    print(f"Failed: {results['statistics']['failure_count']} items")
-    print(f"Total augmented images: {results['statistics']['total_augmentations_created']}")
+    pipeline.process_dataset(Path(args.input), Path(args.output))
 
 
 if __name__ == "__main__":

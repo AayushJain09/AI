@@ -27,7 +27,8 @@ training:
 
 # Augmentation configuration
 augmentation:
-  augmentations_per_image: 50
+  # augmentations_per_image: 50
+  augmentations_per_image: 25
   image_size: [1024, 1024]
   quality: 95
 
@@ -42,7 +43,7 @@ recognition:
   index_path: "data/models/faiss_index.bin"
   metadata_path: "data/models/metadata.pkl"
   cache_size: 1000
-  confidence_threshold: 0.85
+  confidence_threshold: 0.75
   high_confidence_threshold: 0.95
   batch_confidence_threshold: 0.90
   batch_size: 16
