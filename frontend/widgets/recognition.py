@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QComboBox, QCheckBox, QSplitter, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QSize
-from PyQt6.QtGui import QPixmap, QFont, QIcon, QImage, QPainter, QPen
+from PyQt6.QtGui import QPixmap, QFont, QIcon, QImage, QPainter, QPen, QColor
 
 logger = logging.getLogger(__name__)
 

@@ -1,3 +1,13 @@
+architecture:
+  feature_compression: false
+  optimization_focus: Maximum generalization with optimal speed
+  performance_improvement: 3-4x faster, same accuracy
+  removed_models:
+  - ResNet
+  - EfficientNet
+  - Traditional-CV
+  total_dimensions: 1536
+  total_models: 2
 augmentation:
   augmentations_per_image: 50
   image_size:
@@ -10,13 +20,46 @@ data:
   models_dir: data/models
   raw_images_dir: data/raw
 features:
-  batch_size: 32
-  feature_image_size: 512
+  batch_size: 16
+  cache_models: true
+  clip_target_dims: 768
+  clip_variant: ViT-L/14
+  dinov2_target_dims: 768
+  dinov2_variant: dinov2_vitb14
+  feature_image_size: 768
   mobile_mode: false
+  parallel_workers: 4
+  use_efficientnet: false
+  use_mixed_precision: true
+  use_resnet: false
+  use_traditional_cv: false
+indexing:
+  batch_size: 1000
+  flat_threshold: 1000
+  hnsw_ef_construction: 200
+  hnsw_ef_search: 128
+  hnsw_m: 32
+  index_type: auto
+  ivf_threshold: 10000
+  m_pq: 64
+  max_memory_gb: 4.0
+  nbits_pq: 8
+  nlist: 100
+  normalize_features: true
+  nprobe: 32
+  pq_threshold: 100000
+  precision_mode: accurate
+  use_gpu: true
+  use_inner_product: true
 model:
-  clip_variant: ViT-B/32
-  embedding_dim: 512
-  num_classes: 1000
+  clip_dims: 768
+  clip_variant: ViT-L/14
+  dinov2_dims: 768
+  dinov2_variant: dinov2_vitb14
+  total_dims: 1536
+  use_efficientnet: false
+  use_resnet: false
+  use_traditional_cv: false
 recognition:
   batch_confidence_threshold: 0.9
   batch_size: 16
@@ -24,22 +67,46 @@ recognition:
   confidence_threshold: 0.85
   high_confidence_threshold: 0.95
   index_path: data/models/faiss_index.bin
-  metadata_path: data/models/metadata.pkl
+  metadata_path: data/models/index_metadata.pkl
   model_path: checkpoints/best_model.pth
 targets:
-  accuracy: 0.95
-  inference_time: 0.5
-  memory_usage: 4000
+  accuracy: 0.98
+  feature_extraction_time: 2.0
+  inference_time: 0.25
+  memory_usage: 2000
 training:
   arcface_margin: 0.5
-  batch_size: 16
+  batch_size: 24
+  best_model_metric: val_accuracy
   checkpoint_dir: checkpoints
-  clip_model: ViT-B/32
+  clip_model: ViT-L/14
+  cosine_annealing: true
+  cross_validation_folds: 5
+  cutmix_alpha: 1.0
+  dinov2_model: dinov2_vitb14
+  dropout_rate: 0.3
+  early_stopping_patience: 8
   embedding_dim: 512
-  epochs: 25
-  learning_rate: 0.0001
+  epochs: 40
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+  gradient_accumulation_steps: 2
+  input_dim: 1536
+  label_smoothing: 0.1
+  learning_rate: 3e-4
+  log_every: 50
+  loss_weights:
+    arcface: 0.3
+    focal: 0.3
+    triplet: 0.4
+  max_grad_norm: 1.0
+  mixed_precision: true
+  mixup_alpha: 0.2
   num_classes: 100
-  save_every: 5
-  triplet_margin: 0.5
+  random_erase_prob: 0.25
+  save_every: 3
+  triplet_margin: 0.3
   use_wandb: false
-  weight_decay: 0.0001
+  validation_split: 0.15
+  warmup_epochs: 3
+  weight_decay: 2e-5

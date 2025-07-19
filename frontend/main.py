@@ -336,16 +336,13 @@ class ModernButton(QPushButton):
             }}
             QPushButton:hover {{
                 background-color: {self._darken_color(self.color)};
-                transform: translateY(-1px);
             }}
             QPushButton:pressed {{
                 background-color: {self._darken_color(self.color, 0.3)};
-                transform: translateY(1px);
             }}
             QPushButton:disabled {{
                 background-color: #6c757d;
                 color: #adb5bd;
-                cursor: not-allowed;
             }}
         """)
     
@@ -786,9 +783,8 @@ class DashboardWidget(QWidget):
                 max-height: 150px;
             }}
             QFrame:hover {{
-                border-color: {color};
-                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-                transform: translateY(-2px);
+                border: 2px solid {color};
+                background-color: #f8f9fa;
             }}
         """)
         

@@ -166,11 +166,13 @@ class ImageUploadDialog(QDialog):
             files = []
             for i, file_path in enumerate(self.selected_files):
                 with open(file_path, 'rb') as f:
-                    files.append(('files', (Path(file_path).name, f, 'image/jpeg')))
+                    file_content = f.read()
+                    files.append(('files', (Path(file_path).name, file_content, 'image/jpeg')))
                 
                 self.progress_bar.setValue(i + 1)
                 # Process events to update UI
-                self.parent().app.processEvents()
+                from PyQt6.QtWidgets import QApplication
+                QApplication.processEvents()
             
             # Upload to backend
             response = self.api_client.post(f"/api/items/{self.item_id}/images", files=dict(files))

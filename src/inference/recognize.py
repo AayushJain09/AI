@@ -182,10 +182,12 @@ class RecognitionPipeline:
                 self.index = faiss.read_index(str(index_path))
                 logger.info(f"✅ Loaded FAISS index: {self.index.ntotal} vectors, {self.index.d} dimensions")
                 
-                # Validate index dimensions
+                # Validate index dimensions and rebuild if needed
                 expected_dim = 1536 if self.model is None else 512  # Raw features vs embeddings
                 if self.index.d != expected_dim:
                     logger.warning(f"⚠️  Index dimension mismatch: expected {expected_dim}, got {self.index.d}")
+                    logger.info(f"🔄 Rebuilding index with correct dimensions...")
+                    self._rebuild_index_with_correct_dimensions()
                     
             except Exception as e:
                 logger.error(f"❌ Failed to load index: {e}")
@@ -221,11 +223,23 @@ class RecognitionPipeline:
                         
                         logger.info(f"✅ Loaded optimized metadata: {len(self.item_ids)} items")
                     else:
-                        # Legacy format
+                        # Legacy format - our corrected metadata
                         self.metadata = metadata
-                        self.item_ids = []
                         self.item_metadata = {}
-                        logger.info("✅ Loaded legacy metadata format")
+                        
+                        # Build item_ids list from index_to_item mapping
+                        if 'index_to_item' in metadata:
+                            max_idx = max(metadata['index_to_item'].keys()) if metadata['index_to_item'] else -1
+                            self.item_ids = [''] * (max_idx + 1)
+                            
+                            for idx, item_id in metadata['index_to_item'].items():
+                                if idx < len(self.item_ids):
+                                    self.item_ids[idx] = item_id
+                            
+                            logger.info(f"✅ Loaded legacy metadata format: {len(metadata['index_to_item'])} mappings")
+                        else:
+                            self.item_ids = []
+                            logger.warning("⚠️  No index_to_item mapping found in metadata")
                 else:
                     logger.warning("⚠️  Unexpected metadata format")
                     self._create_empty_metadata()
@@ -252,6 +266,67 @@ class RecognitionPipeline:
         # Use inner product for cosine similarity (with normalized features)
         self.index = faiss.IndexFlatIP(embedding_dim)
         logger.info(f"✅ Created new FAISS index: {embedding_dim} dimensions")
+    
+    def _rebuild_index_with_correct_dimensions(self):
+        """Rebuild FAISS index with correct dimensions (512D for Siamese model)"""
+        if self.model is None:
+            logger.error("❌ Cannot rebuild with Siamese embeddings - model not loaded")
+            return
+            
+        logger.info("🔄 Rebuilding index with 512D embeddings from Siamese model...")
+        
+        # Save current metadata
+        old_metadata = self.metadata if hasattr(self, 'metadata') else {}
+        
+        # Create new 512D index
+        embedding_dim = 512
+        self.index = faiss.IndexFlatIP(embedding_dim)
+        logger.info(f"✅ Created new 512D FAISS index")
+        
+        # Reset metadata
+        self.metadata = {
+            'index_to_item': {},
+            'item_embeddings': {},
+            'item_info': {}
+        }
+        self.item_ids = []
+        
+        # Find all items in raw directory to rebuild
+        try:
+            from pathlib import Path
+            # Try to get raw dir from config or use default
+            if hasattr(self, 'config') and 'raw_images_dir' in str(self.config):
+                # Extract from config if available
+                import yaml
+                with open('config.yaml', 'r') as f:
+                    config = yaml.safe_load(f)
+                raw_dir = Path(config['data']['raw_images_dir'])
+            else:
+                raw_dir = Path('data/raw')
+            
+            if raw_dir.exists():
+                total_rebuilt = 0
+                for item_dir in raw_dir.iterdir():
+                    if item_dir.is_dir():
+                        item_id = item_dir.name
+                        image_files = (list(item_dir.glob('*.jpg')) + list(item_dir.glob('*.JPG')) + 
+                                      list(item_dir.glob('*.png')) + list(item_dir.glob('*.PNG')) +
+                                      list(item_dir.glob('*.jpeg')) + list(item_dir.glob('*.JPEG')))
+                        
+                        if image_files:
+                            logger.info(f"🔄 Rebuilding embeddings for {item_id}...")
+                            self.add_item_to_index(item_id, [str(f) for f in image_files])
+                            total_rebuilt += 1
+                
+                logger.info(f"✅ Successfully rebuilt index with {total_rebuilt} items using 512D embeddings")
+            else:
+                logger.warning(f"⚠️  Raw directory not found: {raw_dir}")
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to rebuild index: {e}")
+            # Create empty index as fallback
+            self._create_new_index()
+            self._create_empty_metadata()
     
     def _create_empty_metadata(self):
         """Create empty metadata structure"""
@@ -336,23 +411,43 @@ class RecognitionPipeline:
                     continue
                 
                 if self.model is not None:
-                    # Use trained model to get embeddings
-                    # Combine CLIP + DINOv2 features for input
-                    if 'dinov2' in features:
+                    # Use trained model to get 512D embeddings
+                    # Combine CLIP + DINOv2 features for 1536D input
+                    if 'dinov2' in features and features['dinov2'] is not None:
                         combined_features = np.concatenate([features['clip'], features['dinov2']])
+                        logger.debug(f"Combined CLIP({len(features['clip'])}) + DINOv2({len(features['dinov2'])}) = {len(combined_features)}D")
                     else:
+                        # Pad CLIP to 1536D if DINOv2 not available
                         combined_features = features['clip']
+                        if len(combined_features) < 1536:
+                            padding = np.zeros(1536 - len(combined_features))
+                            combined_features = np.concatenate([combined_features, padding])
+                        logger.debug(f"Using CLIP features padded to {len(combined_features)}D")
+                    
+                    # Ensure exactly 1536D for Siamese model
+                    if len(combined_features) != 1536:
+                        if len(combined_features) > 1536:
+                            combined_features = combined_features[:1536]
+                        else:
+                            padding = np.zeros(1536 - len(combined_features))
+                            combined_features = np.concatenate([combined_features, padding])
                     
                     combined_tensor = torch.FloatTensor(combined_features).unsqueeze(0).to(self.device)
                     
                     with torch.no_grad():
                         embedding = self.model.forward_one(combined_tensor)
                         embeddings.append(embedding.cpu().numpy())
+                        logger.debug(f"Generated 512D embedding from {len(combined_features)}D features")
                 else:
-                    # Fallback: use raw CLIP features if no trained model
-                    logger.info("Using raw CLIP features (no trained model available)")
-                    clip_features = features['clip'].reshape(1, -1)
-                    embeddings.append(clip_features)
+                    # Fallback: use raw combined features if no trained model
+                    if 'dinov2' in features and features['dinov2'] is not None:
+                        combined_features = np.concatenate([features['clip'], features['dinov2']])
+                        embeddings.append(combined_features.reshape(1, -1))
+                        logger.debug("Using raw 1536D features (no trained model)")
+                    else:
+                        clip_features = features['clip'].reshape(1, -1)
+                        embeddings.append(clip_features)
+                        logger.debug("Using raw CLIP features (no trained model or DINOv2)")
                     
             except Exception as e:
                 logger.error(f"Error processing {img_path}: {e}")
@@ -418,13 +513,21 @@ class RecognitionPipeline:
         # Group results by item ID with advanced scoring
         item_scores = {}
         for similarity, idx in zip(similarities[0], indices[0]):
-            if idx < 0 or idx >= len(self.item_ids):
+            if idx < 0:
                 continue
             
-            # Get item ID from our optimized metadata
-            item_id = self.item_ids[idx] if hasattr(self, 'item_ids') and idx < len(self.item_ids) else self.metadata['index_to_item'].get(idx)
+            # Get item ID from our metadata
+            item_id = None
             
-            if item_id:
+            # Try to get from item_ids list first
+            if hasattr(self, 'item_ids') and self.item_ids and idx < len(self.item_ids):
+                item_id = self.item_ids[idx]
+            
+            # Fallback to metadata mapping
+            if not item_id and hasattr(self, 'metadata') and 'index_to_item' in self.metadata:
+                item_id = self.metadata['index_to_item'].get(idx)
+            
+            if item_id and item_id.strip():  # Make sure item_id is not empty
                 if item_id not in item_scores:
                     item_scores[item_id] = []
                 item_scores[item_id].append(float(similarity))
@@ -451,10 +554,18 @@ class RecognitionPipeline:
         candidates.sort(key=lambda x: x[1], reverse=True)
         
         # Return top candidates with confidence filtering
-        min_confidence = self.config.get('min_stage1_confidence', 0.1)
+        min_confidence = self.config.get('min_stage1_confidence', 0.85)  # Much stricter threshold
         filtered_candidates = [(item_id, score) for item_id, score in candidates if score >= min_confidence]
         
-        logger.debug(f"📊 Stage 1: {len(filtered_candidates)}/{len(candidates)} candidates above {min_confidence} threshold")
+        # Debug logging to understand what's happening
+        logger.info(f"📊 Stage 1: {len(item_scores)} unique items found from {len(similarities[0])} FAISS results")
+        logger.info(f"📊 Stage 1: {len(candidates)} total candidates, {len(filtered_candidates)} above {min_confidence} threshold")
+        
+        if len(candidates) > 0:
+            logger.info(f"📊 Top candidate: {candidates[0][0]} with score {candidates[0][1]:.6f}")
+        
+        if len(filtered_candidates) == 0 and len(candidates) > 0:
+            logger.warning(f"⚠️  All candidates below threshold. Best score: {candidates[0][1]:.6f}")
         
         return filtered_candidates[:20]  # Return top 20 candidates
     
@@ -754,9 +865,30 @@ class RecognitionPipeline:
         
         # === Final Result Preparation ===
         # Determine final prediction based on confidence threshold
-        confidence_threshold = self.config.get('confidence_threshold', 0.85)
+        confidence_threshold = self.config.get('confidence_threshold', 0.98)
         
-        if final_candidates and final_candidates[0][1] > confidence_threshold:
+        # Additional rejection mechanisms
+        max_candidate_score_gap = self.config.get('max_candidate_score_gap', 0.1)
+        min_top_score_margin = self.config.get('min_top_score_margin', 0.05)
+        
+        # Check if we should reject due to ambiguous matches
+        should_reject = False
+        rejection_reason = ""
+        
+        if len(final_candidates) >= 2:
+            top_score = final_candidates[0][1]
+            second_score = final_candidates[1][1]
+            score_gap = top_score - second_score
+            
+            if score_gap < max_candidate_score_gap:
+                should_reject = True
+                rejection_reason = f"Ambiguous match: top candidates too close ({score_gap:.3f} < {max_candidate_score_gap})"
+            
+            if top_score - second_score < min_top_score_margin:
+                should_reject = True
+                rejection_reason = f"Insufficient margin: {score_gap:.3f} < {min_top_score_margin}"
+        
+        if final_candidates and final_candidates[0][1] > confidence_threshold and not should_reject:
             # Successful recognition with sufficient confidence
             result = RecognitionResult(
                 item_id=final_candidates[0][0],                    # Best match item ID
@@ -779,16 +911,22 @@ class RecognitionPipeline:
             logger.info(f"✅ RECOGNIZED: {result.item_id} (confidence: {result.confidence:.3f})")
             
         else:
-            # Recognition failed - confidence too low or no candidates
+            # Recognition failed - confidence too low, no candidates, or rejected
             confidence = final_candidates[0][1] if final_candidates else 0.0
-            logger.warning(f"❌ RECOGNITION FAILED: confidence {confidence:.3f} < {confidence_threshold}")
+            
+            if should_reject:
+                logger.warning(f"❌ RECOGNITION REJECTED: {rejection_reason}")
+                reason = rejection_reason
+            else:
+                logger.warning(f"❌ RECOGNITION FAILED: confidence {confidence:.3f} < {confidence_threshold}")
+                reason = f'Confidence {confidence:.3f} below threshold {confidence_threshold}'
             
             result = RecognitionResult(
                 item_id="unknown",                                 # Failed recognition
                 confidence=confidence,                             # Low confidence score
                 match_scores={                                     # Still provide debug info
                     'stage1': dict(stage1_candidates[:5]),
-                    'reason': f'Confidence {confidence:.3f} below threshold {confidence_threshold}'
+                    'reason': reason
                 },
                 stage_results={                                    # Intermediate results for debugging
                     'stage1': stage1_candidates[:10],

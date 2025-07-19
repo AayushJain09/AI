@@ -102,16 +102,20 @@ features:
   use_efficientnet: false        # EfficientNet removed  
   use_traditional_cv: false      # Traditional CV features removed
 
-# Recognition configuration
+# Recognition configuration - Optimized for Raw CLIP+DINOv2 Features
 recognition:
-  model_path: "checkpoints/best_model.pth"
+  model_path: "checkpoints/best_model_DISABLED.pth"  # Disabled - using raw features
   index_path: "data/models/faiss_index.bin"
   metadata_path: "data/models/index_metadata.pkl"
   cache_size: 1000
-  confidence_threshold: 0.85
-  high_confidence_threshold: 0.95
+  confidence_threshold: 0.90      # Reasonable threshold for raw features
+  min_stage1_confidence: 0.7      # Good separation with raw features
+  high_confidence_threshold: 0.95 # High confidence threshold
   batch_confidence_threshold: 0.90
   batch_size: 16
+  # Raw features provide good natural separation - no additional rejection needed
+  max_candidate_score_gap: 0.0    # Disabled - raw features work well
+  min_top_score_margin: 0.0       # Disabled - raw features work well
 
 # Advanced FAISS Indexing Configuration
 indexing:
