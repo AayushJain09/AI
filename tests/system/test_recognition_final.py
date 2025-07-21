@@ -6,7 +6,10 @@ Tests the complete AI Recognition System with all items
 
 import sys
 import time
-sys.path.append('src')
+from pathlib import Path
+
+# Add src to path
+sys.path.append(str(Path(__file__).parent.parent.parent / 'src'))
 from inference.recognize import create_pipeline
 
 def test_recognition_system():
@@ -17,19 +20,22 @@ def test_recognition_system():
     # Initialize pipeline
     print("📊 Loading recognition pipeline...")
     start_time = time.time()
-    pipeline = create_pipeline('config.yaml')
+    # Change to relative path from project root
+    config_path = Path(__file__).parent.parent.parent / 'config.yaml'
+    pipeline = create_pipeline(str(config_path))
     load_time = time.time() - start_time
     print(f"✅ Pipeline loaded in {load_time:.2f}s")
     
     # System stats
     print(f"📈 Index: {pipeline.index.ntotal} vectors, {pipeline.index.d} dimensions")
     
-    # Test all known items
+    # Test all known items (with absolute paths from project root)
+    project_root = Path(__file__).parent.parent.parent
     test_items = {
-        'item_001': 'data/raw/item_001/Copy of IMG_8388.JPG',
-        'item_002': 'data/raw/item_002/Copy of IMG_8403.JPG', 
-        'item_003': 'data/raw/item_003/Copy of IMG_8428.JPG',
-        'item_004': 'data/raw/item_004/1752950980813_IMG_8416.JPG'
+        'item_001': str(project_root / 'data/raw/item_001/Copy of IMG_8388.JPG'),
+        'item_002': str(project_root / 'data/raw/item_002/Copy of IMG_8403.JPG'),
+        'item_003': str(project_root / 'data/raw/item_003/Copy of IMG_8428.JPG'),
+        'item_004': str(project_root / 'data/raw/item_004/1752950980813_IMG_8416.JPG')
     }
     
     print("\n🔍 Testing Known Items:")
@@ -53,7 +59,7 @@ def test_recognition_system():
     print("\n🔍 Testing Unknown Items:")
     print("-" * 30)
     unknown_tests = [
-        './environments/env2/lib/python3.13/site-packages/networkx/drawing/tests/baseline/test_display_empty_graph.png'
+        str(project_root / 'environments/env2/lib/python3.13/site-packages/networkx/drawing/tests/baseline/test_display_empty_graph.png')
     ]
     
     for unknown_image in unknown_tests:
