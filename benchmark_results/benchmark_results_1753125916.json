@@ -1,0 +1,160 @@
+{
+  "benchmark_summary": {
+    "total_test_cases": 12,
+    "correct_predictions": 12,
+    "overall_accuracy": 1.0,
+    "average_confidence": 1.3853518168131511,
+    "confidence_std": 0.06508615219392763,
+    "average_inference_time": 0.3709944486618042,
+    "hard_cases_count": 0,
+    "hard_case_rate": 0.0,
+    "refinement_usage_rate": 0.0,
+    "confidence_breakdown": {
+      "high_confidence": {
+        "count": 12,
+        "accuracy": 1.0,
+        "range": "> 0.9"
+      },
+      "medium_confidence": {
+        "count": 0,
+        "accuracy": 0,
+        "range": "0.7 - 0.9"
+      },
+      "low_confidence": {
+        "count": 0,
+        "accuracy": 0,
+        "range": "< 0.7"
+      }
+    },
+    "hybrid_stats": {
+      "total_queries": 0,
+      "raw_only": 0,
+      "refined": 0,
+      "raw_accuracy": [],
+      "refined_accuracy": []
+    }
+  },
+  "hard_cases_analysis": {},
+  "detailed_results": [
+    {
+      "image_path": "data/raw/item_001/Copy of IMG_8388.JPG",
+      "true_item_id": "item_001",
+      "predicted_item_id": "item_001",
+      "confidence": 1.4144387245178223,
+      "correct": true,
+      "inference_time": 0.402209997177124,
+      "used_refinement": false,
+      "hard_case": false
+    },
+    {
+      "image_path": "data/raw/item_001/Copy of IMG_8386.JPG",
+      "true_item_id": "item_001",
+      "predicted_item_id": "item_001",
+      "confidence": 1.4144023656845093,
+      "correct": true,
+      "inference_time": 0.3622899055480957,
+      "used_refinement": false,
+      "hard_case": false
+    },
+    {
+      "image_path": "data/raw/item_001/Copy of IMG_8387.JPG",
+      "true_item_id": "item_001",
+      "predicted_item_id": "item_001",
+      "confidence": 1.4145574569702148,
+      "correct": true,
+      "inference_time": 0.36809611320495605,
+      "used_refinement": false,
+      "hard_case": false
+    },
+    {
+      "image_path": "data/raw/item_002/Copy of IMG_8403.JPG",
+      "true_item_id": "item_002",
+      "predicted_item_id": "item_002",
+      "confidence": 1.4142248630523682,
+      "correct": true,
+      "inference_time": 0.37055087089538574,
+      "used_refinement": false,
+      "hard_case": false
+    },
+    {
+      "image_path": "data/raw/item_002/Copy of IMG_8404.JPG",
+      "true_item_id": "item_002",
+      "predicted_item_id": "item_002",
+      "confidence": 1.4143564701080322,
+      "correct": true,
+      "inference_time": 0.3664400577545166,
+      "used_refinement": false,
+      "hard_case": false
+    },
+    {
+      "image_path": "data/raw/item_002/Copy of IMG_8405.JPG",
+      "true_item_id": "item_002",
+      "predicted_item_id": "item_002",
+      "confidence": 1.4144115447998047,
+      "correct": true,
+      "inference_time": 0.3805229663848877,
+      "used_refinement": false,
+      "hard_case": false
+    },
+    {
+      "image_path": "data/raw/item_003/Copy of IMG_8428.JPG",
+      "true_item_id": "item_003",
+      "predicted_item_id": "item_003",
+      "confidence": 1.4144682884216309,
+      "correct": true,
+      "inference_time": 0.346189022064209,
+      "used_refinement": false,
+      "hard_case": false
+    },
+    {
+      "image_path": "data/raw/item_003/Copy of IMG_8423.JPG",
+      "true_item_id": "item_003",
+      "predicted_item_id": "item_003",
+      "confidence": 1.4144536256790161,
+      "correct": true,
+      "inference_time": 0.38509488105773926,
+      "used_refinement": false,
+      "hard_case": false
+    },
+    {
+      "image_path": "data/raw/item_003/Copy of IMG_8422.JPG",
+      "true_item_id": "item_003",
+      "predicted_item_id": "item_003",
+      "confidence": 1.414128065109253,
+      "correct": true,
+      "inference_time": 0.3525118827819824,
+      "used_refinement": false,
+      "hard_case": false
+    },
+    {
+      "image_path": "data/raw/item_004/1753095091355_IMG_8409.JPG",
+      "true_item_id": "item_004",
+      "predicted_item_id": "item_004",
+      "confidence": 1.2522547245025635,
+      "correct": true,
+      "inference_time": 0.3823249340057373,
+      "used_refinement": false,
+      "hard_case": false
+    },
+    {
+      "image_path": "data/raw/item_004/1753095091372_IMG_8414.JPG",
+      "true_item_id": "item_004",
+      "predicted_item_id": "item_004",
+      "confidence": 1.228204369544983,
+      "correct": true,
+      "inference_time": 0.36592888832092285,
+      "used_refinement": false,
+      "hard_case": false
+    },
+    {
+      "image_path": "data/raw/item_004/1752950980813_IMG_8416.JPG",
+      "true_item_id": "item_004",
+      "predicted_item_id": "item_004",
+      "confidence": 1.4143213033676147,
+      "correct": true,
+      "inference_time": 0.36977386474609375,
+      "used_refinement": false,
+      "hard_case": false
+    }
+  ]
+}

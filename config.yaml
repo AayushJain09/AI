@@ -102,20 +102,46 @@ features:
   use_efficientnet: false        # EfficientNet removed  
   use_traditional_cv: false      # Traditional CV features removed
 
-# Recognition configuration - Optimized for Raw CLIP+DINOv2 Features
+# Recognition configuration - Hybrid System (Raw + Learned)
 recognition:
+  # Raw feature baseline
   model_path: "checkpoints/best_model_DISABLED.pth"  # Disabled - using raw features
   index_path: "data/models/faiss_index.bin"
   metadata_path: "data/models/index_metadata.pkl"
+  
+  # Hybrid system configuration
+  hybrid_mode: true                    # Enable hybrid raw + learned system
+  lightweight_model_path: "checkpoints/lightweight_refiner.pth"
+  learned_index_path: "data/models/learned_faiss_index.bin"
+  learned_metadata_path: "data/models/learned_index_metadata.pkl"
+  
+  # Confidence thresholds for hybrid decisions
+  refinement_threshold: 0.82          # Use learned refinement below this
+  high_confidence_threshold: 0.95     # Skip all refinement above this
+  confidence_gap_threshold: 0.15      # Use refinement if top 2 scores are close
+  
+  # Performance settings
   cache_size: 1000
-  confidence_threshold: 0.90      # Reasonable threshold for raw features
-  min_stage1_confidence: 0.7      # Good separation with raw features
-  high_confidence_threshold: 0.95 # High confidence threshold
+  confidence_threshold: 0.90          # Final acceptance threshold
+  min_stage1_confidence: 0.7          # FAISS search threshold
   batch_confidence_threshold: 0.90
   batch_size: 16
-  # Raw features provide good natural separation - no additional rejection needed
-  max_candidate_score_gap: 0.0    # Disabled - raw features work well
-  min_top_score_margin: 0.0       # Disabled - raw features work well
+  
+  # Hard case detection
+  max_candidate_score_gap: 0.15       # Detect ambiguous cases
+  min_top_score_margin: 0.10          # Require clear winner
+  
+  # Ensemble weights for different confidence ranges
+  ensemble_weights:
+    high_raw_confidence:              # raw_conf > 0.9
+      raw: 0.85
+      learned: 0.15
+    medium_raw_confidence:            # 0.7 < raw_conf < 0.9  
+      raw: 0.60
+      learned: 0.40
+    low_raw_confidence:               # raw_conf < 0.7
+      raw: 0.30
+      learned: 0.70
 
 # Advanced FAISS Indexing Configuration
 indexing:

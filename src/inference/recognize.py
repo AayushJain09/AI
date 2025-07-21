@@ -57,15 +57,36 @@ class RecognitionPipeline:
         else:
             self.device = torch.device('cpu')
         
-        # Load models
+        # Hybrid mode configuration
+        self.hybrid_mode = config.get('hybrid_mode', False)
+        self.refinement_threshold = config.get('refinement_threshold', 0.82)
+        self.confidence_gap_threshold = config.get('confidence_gap_threshold', 0.15)
+        
+        # Load models (both raw and lightweight refiner)
         self._load_models()
         
-        # Load index and database
+        # Load indexes (both raw and learned)
         self._load_index()
         
         # Initialize cache
         self.cache = {}
         self.cache_size = config.get('cache_size', 1000)
+        
+        # Performance tracking for hybrid decisions
+        self.hybrid_stats = {
+            'total_queries': 0,
+            'raw_only': 0,
+            'refined': 0,
+            'raw_accuracy': [],
+            'refined_accuracy': []
+        }
+        
+        logger.info(f"🏁 RecognitionPipeline initialized:")
+        logger.info(f"  Device: {self.device}")
+        logger.info(f"  Hybrid mode: {'✅ Enabled' if self.hybrid_mode else '❌ Disabled'}")
+        if self.hybrid_mode:
+            logger.info(f"  Refinement threshold: {self.refinement_threshold}")
+            logger.info(f"  Confidence gap threshold: {self.confidence_gap_threshold}")
         
     def _load_models(self):
         """
@@ -85,7 +106,7 @@ class RecognitionPipeline:
                 checkpoint = torch.load(model_path, map_location=self.device)
                 
                 # Import optimized model architecture
-                from src.training.modletraining import SiameseNetwork
+# Siamese model disabled - using raw features
                 
                 # Get optimized input dimension (1536D for CLIP ViT-L/14 + DINOv2)
                 input_dim = checkpoint.get('input_dim', 1536)
@@ -115,7 +136,7 @@ class RecognitionPipeline:
                     logger.info("🔄 Falling back to feature-only mode...")
                     
                     # Fallback to standard SiameseNetwork
-                    from src.training.modletraining import SiameseNetwork
+    # Siamese model disabled - using raw features
                     
                     # Extract config from checkpoint or use defaults
                     config_data = checkpoint.get('config', {})
@@ -161,6 +182,26 @@ class RecognitionPipeline:
         logger.info("🔧 Loading optimized feature extractor (CLIP ViT-L/14 + DINOv2)...")
         self.feature_extractor = MultiModalFeatureExtractor(feature_config)
         
+        # Load lightweight refiner for hybrid mode
+        self.lightweight_model = None
+        if self.hybrid_mode:
+            lightweight_model_path = self.config.get('lightweight_model_path')
+            if lightweight_model_path and Path(lightweight_model_path).exists():
+                try:
+                    from src.training.lightweight_refiner import LightweightRefinerTrainer
+                    self.lightweight_model = LightweightRefinerTrainer.load_model(
+                        lightweight_model_path, 
+                        device=str(self.device)
+                    )
+                    logger.info("✅ Loaded LightweightRefiner for hybrid mode")
+                except Exception as e:
+                    logger.warning(f"⚠️  Failed to load lightweight refiner: {e}")
+                    logger.info("🔄 Hybrid mode disabled - using raw features only")
+                    self.hybrid_mode = False
+            else:
+                logger.warning("⚠️  Lightweight model not found - hybrid mode disabled")
+                self.hybrid_mode = False
+        
         logger.info("✅ All models loaded successfully")
         logger.info(f"📊 Architecture: CLIP(768) + DINOv2(768) = 1536D → Siamese({embedding_dim if self.model else 'N/A'}D)")
     
@@ -198,6 +239,45 @@ class RecognitionPipeline:
         
         # Optimize index for current hardware
         self._setup_gpu_index()
+        
+        # Load learned index for hybrid mode
+        self.learned_index = None
+        self.learned_item_ids = None
+        if self.hybrid_mode:
+            learned_index_path = self.config.get('learned_index_path')
+            learned_metadata_path = self.config.get('learned_metadata_path')
+            
+            if learned_index_path and Path(learned_index_path).exists():
+                try:
+                    self.learned_index = faiss.read_index(str(learned_index_path))
+                    logger.info(f"✅ Loaded learned FAISS index: {self.learned_index.ntotal} vectors, {self.learned_index.d} dimensions")
+                    
+                    # Load learned metadata
+                    if learned_metadata_path and Path(learned_metadata_path).exists():
+                        with open(learned_metadata_path, 'rb') as f:
+                            learned_metadata = pickle.load(f)
+                        
+                        if isinstance(learned_metadata, dict) and 'item_ids' in learned_metadata:
+                            self.learned_item_ids = learned_metadata['item_ids']
+                            logger.info(f"✅ Loaded learned metadata: {len(self.learned_item_ids)} items")
+                        else:
+                            logger.warning("⚠️  Invalid learned metadata format")
+                            self.learned_index = None
+                    else:
+                        logger.warning("⚠️  Learned metadata not found")
+                        self.learned_index = None
+                        
+                except Exception as e:
+                    logger.warning(f"⚠️  Failed to load learned index: {e}")
+                    self.learned_index = None
+            else:
+                logger.info("ℹ️  Learned index not found - will be created during training")
+        
+        logger.info("📋 Index loading summary:")
+        logger.info(f"  Raw index: {self.index.ntotal} vectors ({self.index.d}D)")
+        if self.learned_index:
+            logger.info(f"  Learned index: {self.learned_index.ntotal} vectors ({self.learned_index.d}D)")
+        logger.info(f"  Hybrid mode: {'✅ Enabled' if self.hybrid_mode else '❌ Disabled'}")
         
         # Load comprehensive metadata
         metadata_path = self.config.get('metadata_path', 'data/models/index_metadata.pkl')
@@ -684,6 +764,190 @@ class RecognitionPipeline:
         
         return score
     
+    def _should_use_refinement(self, raw_results: List[Tuple[str, float]]) -> bool:
+        """
+        Intelligent decision on whether to use learned refinement
+        
+        Args:
+            raw_results: Results from raw feature matching
+            
+        Returns:
+            True if refinement should be applied
+        """
+        if not self.hybrid_mode or not self.lightweight_model or not raw_results:
+            return False
+        
+        top_confidence = raw_results[0][1]
+        
+        # Use refinement for low confidence cases
+        if top_confidence < self.refinement_threshold:
+            logger.debug(f"🔄 Using refinement: low confidence ({top_confidence:.3f} < {self.refinement_threshold})")
+            return True
+        
+        # Use refinement when top candidates are close
+        if len(raw_results) >= 2:
+            confidence_gap = raw_results[0][1] - raw_results[1][1]
+            if confidence_gap < self.confidence_gap_threshold:
+                logger.debug(f"🔄 Using refinement: close scores (gap: {confidence_gap:.3f} < {self.confidence_gap_threshold})")
+                return True
+        
+        # High confidence - skip refinement
+        logger.debug(f"⚡ Skipping refinement: high confidence ({top_confidence:.3f})")
+        return False
+    
+    def _search_learned_index(self, refined_features: np.ndarray, k: int = 50) -> List[Tuple[str, float]]:
+        """
+        Search the learned FAISS index with refined features
+        
+        Args:
+            refined_features: 256D refined features from lightweight model
+            k: Number of top results to return
+            
+        Returns:
+            List of (item_id, confidence) tuples
+        """
+        if self.learned_index is None or self.learned_item_ids is None:
+            logger.warning("⚠️  Learned index not available")
+            return []
+        
+        try:
+            # Ensure correct shape
+            query_vector = refined_features.reshape(1, -1).astype(np.float32)
+            
+            # Search learned index
+            similarities, indices = self.learned_index.search(query_vector, k)
+            
+            # Convert to results with confidence scores
+            results = []
+            for similarity, idx in zip(similarities[0], indices[0]):
+                if 0 <= idx < len(self.learned_item_ids):
+                    item_id = self.learned_item_ids[idx]
+                    confidence = float(similarity)  # Cosine similarity for normalized vectors
+                    results.append((item_id, confidence))
+            
+            logger.debug(f"🧠 Learned search found {len(results)} results")
+            return results
+            
+        except Exception as e:
+            logger.error(f"❌ Learned index search failed: {e}")
+            return []
+    
+    def _ensemble_combine(self, raw_results: List[Tuple[str, float]], 
+                         learned_results: List[Tuple[str, float]]) -> List[Tuple[str, float]]:
+        """
+        Intelligently combine raw and learned results
+        
+        Args:
+            raw_results: Results from raw feature matching
+            learned_results: Results from learned model matching
+            
+        Returns:
+            Combined and ranked results
+        """
+        if not raw_results:
+            return learned_results
+        if not learned_results:
+            return raw_results
+        
+        # Determine ensemble weights based on raw confidence
+        raw_confidence = raw_results[0][1]
+        ensemble_weights = self.config.get('ensemble_weights', {})
+        
+        if raw_confidence > 0.9:
+            weights = ensemble_weights.get('high_raw_confidence', {'raw': 0.85, 'learned': 0.15})
+        elif raw_confidence > 0.7:
+            weights = ensemble_weights.get('medium_raw_confidence', {'raw': 0.60, 'learned': 0.40})
+        else:
+            weights = ensemble_weights.get('low_raw_confidence', {'raw': 0.30, 'learned': 0.70})
+        
+        # Create combined scores dictionary
+        combined_scores = {}
+        
+        # Add raw scores
+        for item_id, score in raw_results:
+            combined_scores[item_id] = combined_scores.get(item_id, 0) + weights['raw'] * score
+        
+        # Add learned scores
+        for item_id, score in learned_results:
+            combined_scores[item_id] = combined_scores.get(item_id, 0) + weights['learned'] * score
+        
+        # Sort by combined score
+        final_results = sorted(combined_scores.items(), key=lambda x: x[1], reverse=True)
+        
+        logger.debug(f"🔀 Ensemble: raw_weight={weights['raw']:.2f}, learned_weight={weights['learned']:.2f}")
+        logger.debug(f"🏆 Combined top result: {final_results[0][0]} ({final_results[0][1]:.3f})")
+        
+        return final_results
+    
+    def _hybrid_recognize(self, features: Dict[str, np.ndarray]) -> List[Tuple[str, float]]:
+        """
+        Core hybrid recognition logic
+        
+        Args:
+            features: Extracted features from image
+            
+        Returns:
+            Final ranked results
+        """
+        # Stage 1: Raw feature search (always performed)
+        if 'dinov2' in features and features['dinov2'] is not None:
+            raw_combined = np.concatenate([features['clip'], features['dinov2']])
+        else:
+            raw_combined = features['clip']
+            # Pad to 1536D if needed
+            if len(raw_combined) < 1536:
+                padding = np.zeros(1536 - len(raw_combined))
+                raw_combined = np.concatenate([raw_combined, padding])
+        
+        # Search raw index
+        raw_query = raw_combined.reshape(1, -1).astype(np.float32)
+        raw_similarities, raw_indices = self.index.search(raw_query, 50)
+        
+        raw_results = []
+        for similarity, idx in zip(raw_similarities[0], raw_indices[0]):
+            if 0 <= idx < len(self.item_ids) and self.item_ids[idx]:
+                item_id = self.item_ids[idx]
+                confidence = float(similarity)
+                raw_results.append((item_id, confidence))
+        
+        # Update stats
+        self.hybrid_stats['total_queries'] += 1
+        
+        # Decision: Should we use refinement?
+        if self._should_use_refinement(raw_results):
+            # Stage 2: Learned refinement
+            try:
+                refined_features = self.lightweight_model.extract_features(raw_combined)
+                learned_results = self._search_learned_index(refined_features, k=50)
+                
+                if learned_results:
+                    # Ensemble combination
+                    final_results = self._ensemble_combine(raw_results, learned_results)
+                    self.hybrid_stats['refined'] += 1
+                    logger.info(f"🔄 Used hybrid refinement: {final_results[0][0]} ({final_results[0][1]:.3f})")
+                    return final_results
+                else:
+                    logger.warning("⚠️  Learned search returned no results, falling back to raw")
+                    
+            except Exception as e:
+                logger.error(f"❌ Refinement failed: {e}, falling back to raw")
+        
+        # Use raw results only
+        self.hybrid_stats['raw_only'] += 1
+        logger.debug(f"⚡ Used raw features only: {raw_results[0][0]} ({raw_results[0][1]:.3f})")
+        return raw_results
+    
+    def get_hybrid_stats(self) -> Dict:
+        """Get hybrid system performance statistics"""
+        total = self.hybrid_stats['total_queries']
+        if total == 0:
+            return self.hybrid_stats
+        
+        stats = self.hybrid_stats.copy()
+        stats['raw_only_pct'] = (stats['raw_only'] / total) * 100
+        stats['refined_pct'] = (stats['refined'] / total) * 100
+        return stats
+    
     def _get_item_features(self, item_id: str) -> List[Dict]:
         """Get stored features for an item"""
         # This would load from the feature database
@@ -818,10 +1082,16 @@ class RecognitionPipeline:
                 query_embedding = features['clip'].reshape(1, -1)
                 logger.warning("⚠️  Using raw CLIP features only (768D, no DINOv2 or trained model)")
         
-        # === Stage 1: Fast Candidate Retrieval ===
-        # Use FAISS index for rapid similarity search across all stored embeddings
-        logger.debug("Stage 1: Fast candidate retrieval using FAISS...")
-        stage1_candidates = self._stage1_quick_filter(query_embedding)
+        # === Hybrid Recognition Pipeline ===
+        # Use intelligent hybrid approach (raw + learned as needed)
+        if self.hybrid_mode:
+            logger.debug("🔄 Running hybrid recognition pipeline...")
+            stage1_candidates = self._hybrid_recognize(features)
+        else:
+            # Legacy approach: Use raw features only
+            logger.debug("Stage 1: Fast candidate retrieval using FAISS...")
+            stage1_candidates = self._stage1_quick_filter(query_embedding)
+        
         logger.info(f"📋 Stage 1: Found {len(stage1_candidates)} candidates")
         
         # Early termination if no candidates found
@@ -836,11 +1106,16 @@ class RecognitionPipeline:
                 top_k_matches=[]
             )
         
-        # === Stage 2: Deep Multi-Modal Feature Matching ===
-        # Perform comprehensive similarity analysis using all available features
-        logger.debug("Stage 2: Deep multi-modal feature matching...")
-        stage2_candidates = self._stage2_deep_matching(features, stage1_candidates)
-        logger.info(f"🔍 Stage 2: Refined to {len(stage2_candidates)} candidates")
+        # === Stage 2: Multi-Modal Feature Matching (Optional Enhancement) ===
+        # Apply traditional multi-modal matching for additional verification if confidence is low
+        if stage1_candidates[0][1] < 0.85:  # Only for lower confidence cases
+            logger.debug("Stage 2: Additional multi-modal feature matching...")
+            stage2_candidates = self._stage2_deep_matching(features, stage1_candidates)
+            logger.info(f"🔍 Stage 2: Refined to {len(stage2_candidates)} candidates")
+        else:
+            # High confidence from hybrid - skip additional processing
+            stage2_candidates = stage1_candidates
+            logger.debug("⚡ Skipping Stage 2: High confidence from hybrid recognition")
         
         # === Stage 3: Geometric Verification (Conditional) ===
         # Apply geometric verification only when needed to save computation
