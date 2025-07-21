@@ -40,7 +40,7 @@ pydantic
 matplotlib
 seaborn
 
-xformers
+# xformers
 
 # Experiment Tracking
 # mlflow
