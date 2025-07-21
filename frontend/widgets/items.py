@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
     QListWidget, QListWidgetItem, QSplitter, QTabWidget,
     QComboBox, QSpinBox, QCheckBox, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QTimer
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QTimer, QEvent
 from PyQt6.QtGui import QPixmap, QFont, QIcon, QPalette, QColor
 
 logger = logging.getLogger(__name__)
@@ -175,7 +175,7 @@ class ImageUploadDialog(QDialog):
                 QApplication.processEvents()
             
             # Upload to backend
-            response = self.api_client.post(f"/api/items/{self.item_id}/images", files=dict(files))
+            response = self.api_client.post(f"/api/items/{self.item_id}/images", files=files)
             
             if response.get("success"):
                 QMessageBox.information(
@@ -377,7 +377,9 @@ class ItemCard(QFrame):
                 box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             }
         """)
-        self.setFixedSize(280, 200)
+        self.setMinimumSize(260, 180)
+        self.setMaximumSize(320, 220)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 15, 15, 15)
@@ -584,6 +586,9 @@ class ItemsWidget(QWidget):
         scroll_area.setWidget(self.items_container)
         layout.addWidget(scroll_area)
         
+        # Install event filter for responsive layout
+        self.items_container.installEventFilter(self)
+        
         # Status message
         self.status_label = QLabel("Loading items...")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -595,6 +600,19 @@ class ItemsWidget(QWidget):
             }
         """)
         layout.addWidget(self.status_label)
+    
+    def eventFilter(self, obj, event):
+        """Handle resize events for responsive layout"""
+        if obj == self.items_container and event.type() == QEvent.Type.Resize:
+            # Delay the layout update to avoid excessive calls during resize
+            if hasattr(self, 'resize_timer'):
+                self.resize_timer.stop()
+            else:
+                self.resize_timer = QTimer()
+                self.resize_timer.setSingleShot(True)
+                self.resize_timer.timeout.connect(self.update_items_display)
+            self.resize_timer.start(100)  # 100ms delay
+        return super().eventFilter(obj, event)
     
     def refresh_items(self):
         """Refresh items from backend"""
@@ -620,16 +638,20 @@ class ItemsWidget(QWidget):
             self.status_label.setText(f"Failed to connect to backend: {str(e)}")
     
     def update_items_display(self):
-        """Update the items grid display"""
+        """Update the items grid display with responsive layout"""
         # Clear existing items
         for i in reversed(range(self.items_layout.count())):
             child = self.items_layout.itemAt(i).widget()
             if child:
                 child.setParent(None)
         
+        # Calculate responsive columns based on container width
+        container_width = self.items_container.width() if self.items_container.width() > 0 else 1200
+        card_width = 300  # ItemCard width + margins
+        cols_per_row = max(2, min(4, container_width // card_width))
+        
         # Add item cards
         row, col = 0, 0
-        cols_per_row = 4
         
         for item_data in self.items_data:
             card = ItemCard(item_data)

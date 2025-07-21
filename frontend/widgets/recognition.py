@@ -612,7 +612,8 @@ class RecognitionWidget(QWidget):
         self.history_table.setColumnCount(4)
         self.history_table.setHorizontalHeaderLabels(["Time", "Result", "Confidence", "Processing Time"])
         self.history_table.horizontalHeader().setStretchLastSection(True)
-        self.history_table.setMaximumHeight(200)
+        self.history_table.setMinimumHeight(150)
+        self.history_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.history_table.setStyleSheet("""
             QTableWidget {
                 border: 1px solid #dee2e6;

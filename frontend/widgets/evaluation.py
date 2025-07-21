@@ -465,8 +465,9 @@ class EvaluationProgressWidget(QFrame):
         
         # Progress log
         self.log_text = QTextEdit()
-        self.log_text.setMaximumHeight(120)
+        self.log_text.setMinimumHeight(100)
         self.log_text.setReadOnly(True)
+        self.log_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.log_text.setStyleSheet("""
             QTextEdit {
                 border: 1px solid #ddd;
@@ -514,8 +515,33 @@ class EvaluationWidget(QWidget):
         self.load_existing_results()
     
     def setup_ui(self):
-        """Setup evaluation dashboard UI"""
-        layout = QVBoxLayout(self)
+        """Setup evaluation dashboard UI with scrollable content"""
+        # Main layout for the widget
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        
+        # Create scroll area for all content
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8f9fa;
+            }
+            QScrollArea > QWidget > QWidget {
+                background-color: #f8f9fa;
+            }
+        """)
+        
+        # Content widget inside scroll area
+        content_widget = QWidget()
+        content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # Content layout
+        layout = QVBoxLayout(content_widget)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(20)
         
@@ -664,6 +690,12 @@ class EvaluationWidget(QWidget):
         info_layout.addWidget(info_text)
         
         layout.addWidget(info_group)
+        
+        # Set the content widget in the scroll area
+        scroll_area.setWidget(content_widget)
+        
+        # Add scroll area to main layout
+        main_layout.addWidget(scroll_area)
     
     def setup_connections(self):
         """Setup signal connections"""

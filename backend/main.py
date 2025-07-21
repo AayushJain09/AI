@@ -80,8 +80,22 @@ system_status = {
     "system_ready": False
 }
 
+# Training control
+training_stop_flag = False
+
 # Background task tracking and utility functions
 background_tasks = {}
+
+# Auto-training configuration
+auto_training_config = {
+    "enabled": True,
+    "min_images_threshold": 5,  # Minimum images per item before auto-training
+    "batch_delay_minutes": 30,  # Wait 30 minutes before training to batch uploads
+    "last_training_trigger": None,
+    "pending_items": set(),  # Items that need retraining
+    "state_file": "backend/auto_training_state.json",  # Persistent state file
+    "training_in_progress_file": "backend/training_in_progress.lock"  # Training lock file
+}
 
 def validate_file_upload(file: UploadFile) -> None:
     """Validate uploaded file for security and format compliance.
@@ -115,6 +129,72 @@ def validate_file_upload(file: UploadFile) -> None:
     # Check filename
     if not file.filename or len(file.filename.strip()) == 0:
         raise HTTPException(status_code=400, detail="No filename provided")
+
+def check_auto_training_trigger(item_id: str) -> None:
+    """Check if auto-training should be triggered for an item"""
+    if not auto_training_config["enabled"]:
+        return
+    
+    try:
+        # Count images for this item
+        raw_dir = Path(ai_system.config['data']['raw_images_dir'])
+        item_dir = raw_dir / item_id
+        
+        if not item_dir.exists():
+            return
+            
+        # Count image files
+        image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
+        image_count = 0
+        for ext in image_extensions:
+            image_count += len(list(item_dir.glob(f"*{ext}")))
+            image_count += len(list(item_dir.glob(f"*{ext.upper()}")))
+        
+        logger.info(f"📊 Item {item_id} now has {image_count} images")
+        
+        # Check if item meets minimum threshold
+        if image_count >= auto_training_config["min_images_threshold"]:
+            auto_training_config["pending_items"].add(item_id)
+            logger.info(f"🎯 Item {item_id} marked for auto-training (has {image_count} images)")
+            
+            # Schedule auto-training
+            schedule_auto_training()
+        
+    except Exception as e:
+        logger.error(f"Auto-training check failed for {item_id}: {e}")
+
+def schedule_auto_training() -> None:
+    """Schedule auto-training with batch delay"""
+    if not auto_training_config["pending_items"]:
+        return
+    
+    import threading
+    import datetime
+    
+    # Cancel existing timer if any
+    if hasattr(schedule_auto_training, '_timer'):
+        schedule_auto_training._timer.cancel()
+    
+    delay_seconds = auto_training_config["batch_delay_minutes"] * 60
+    
+    def trigger_training():
+        if auto_training_config["pending_items"]:
+            pending_count = len(auto_training_config["pending_items"])
+            logger.info(f"🚀 Auto-triggering training for {pending_count} items: {list(auto_training_config['pending_items'])}")
+            
+            # Trigger training in background
+            task_id = f"auto_training_{int(time.time())}"
+            asyncio.create_task(run_auto_training_pipeline(task_id))
+            
+            # Clear pending items
+            auto_training_config["pending_items"].clear()
+            auto_training_config["last_training_trigger"] = datetime.datetime.now().isoformat()
+    
+    # Schedule training with delay
+    schedule_auto_training._timer = threading.Timer(delay_seconds, trigger_training)
+    schedule_auto_training._timer.start()
+    
+    logger.info(f"⏰ Auto-training scheduled for {len(auto_training_config['pending_items'])} items in {auto_training_config['batch_delay_minutes']} minutes")
 
 def sanitize_filename(filename: str) -> str:
     """Sanitize filename for safe storage.
@@ -291,6 +371,13 @@ async def startup_event():
                 system_status["last_error"] = f"Pipeline initialization failed: {str(e)}"
             
             system_status["initialized"] = True
+            
+            # Check for interrupted training
+            interrupted_state = check_interrupted_training()
+            if interrupted_state:
+                logger.warning(f"🚨 Training was interrupted. Manual intervention required.")
+                system_status["training_interrupted"] = True
+                system_status["training_required"] = True
             
         else:
             error_msg = f"Configuration file not found: {config_path}"
@@ -600,6 +687,11 @@ async def upload_item_images(item_id: str, files: List[UploadFile] = File(...)):
             message += f" ({len(failed_files)} files failed)"
         
         logger.info(f"✅ {message} for item {item_id}")
+        
+        # Trigger auto-training check if images were successfully uploaded
+        if success_count > 0:
+            check_auto_training_trigger(item_id)
+        
         return ApiResponse(
             success=True,
             message=message,
@@ -796,7 +888,7 @@ async def recognize_uploaded_file(file: UploadFile = File(...)):
 
 # Training endpoints
 @app.post("/api/train")
-async def start_training(background_tasks: BackgroundTasks, config: TrainingConfig = None):
+async def start_training(bg_tasks: BackgroundTasks, config: TrainingConfig = None):
     """Start model training in the background"""
     try:
         if not ai_system:
@@ -807,7 +899,7 @@ async def start_training(background_tasks: BackgroundTasks, config: TrainingConf
         
         # Start training in background
         task_id = f"training_{int(time.time())}"
-        background_tasks.add_task(run_training_pipeline, task_id, config)
+        bg_tasks.add_task(run_training_pipeline, task_id, config)
         background_tasks[task_id] = {"status": "started", "progress": 0}
         
         system_status["training_in_progress"] = True
@@ -826,6 +918,34 @@ async def start_training(background_tasks: BackgroundTasks, config: TrainingConf
         logger.error(f"❌ {error_msg}")
         raise HTTPException(status_code=500, detail=error_msg)
 
+@app.post("/api/train/stop")
+async def stop_training():
+    """Stop the current training process gracefully"""
+    global training_stop_flag
+    
+    try:
+        if not system_status["training_in_progress"]:
+            return ApiResponse(
+                success=False,
+                message="No training in progress",
+                data={"training_in_progress": False}
+            )
+        
+        # Set stop flag for graceful shutdown
+        training_stop_flag = True
+        logger.info("🛑 Training stop requested - setting stop flag")
+        
+        return ApiResponse(
+            success=True,
+            message="Training stop requested - will stop gracefully at next checkpoint",
+            data={"stop_requested": True}
+        )
+        
+    except Exception as e:
+        error_msg = f"Failed to stop training: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        raise HTTPException(status_code=500, detail=error_msg)
+
 @app.get("/api/train/status")
 async def get_training_status():
     """Get current training status"""
@@ -834,13 +954,14 @@ async def get_training_status():
         message="Training status retrieved",
         data={
             "training_in_progress": system_status["training_in_progress"],
+            "stop_requested": training_stop_flag,
             "tasks": background_tasks
         }
     )
 
 # Evaluation endpoints
 @app.post("/api/evaluate")
-async def start_evaluation(background_tasks: BackgroundTasks):
+async def start_evaluation(bg_tasks: BackgroundTasks):
     """Start system evaluation in the background"""
     try:
         if not ai_system:
@@ -850,7 +971,7 @@ async def start_evaluation(background_tasks: BackgroundTasks):
             raise HTTPException(status_code=400, detail="Evaluation already in progress")
         
         task_id = f"evaluation_{int(time.time())}"
-        background_tasks.add_task(run_evaluation_pipeline, task_id)
+        bg_tasks.add_task(run_evaluation_pipeline, task_id)
         background_tasks[task_id] = {"status": "started", "progress": 0}
         
         system_status["evaluation_in_progress"] = True
@@ -894,6 +1015,142 @@ async def get_evaluation_results():
         raise HTTPException(status_code=500, detail=error_msg)
 
 # Configuration endpoints
+# Auto-training control endpoints
+@app.get("/api/auto-training/status")
+async def get_auto_training_status():
+    """Get auto-training configuration and status"""
+    return ApiResponse(
+        success=True,
+        message="Auto-training status retrieved",
+        data={
+            "config": auto_training_config,
+            "pending_items": list(auto_training_config["pending_items"]),
+            "active_training": system_status["training_in_progress"]
+        }
+    )
+
+@app.post("/api/auto-training/config")
+async def update_auto_training_config(
+    enabled: bool = None,
+    min_images_threshold: int = None,
+    batch_delay_minutes: int = None
+):
+    """Update auto-training configuration"""
+    if enabled is not None:
+        auto_training_config["enabled"] = enabled
+    if min_images_threshold is not None:
+        auto_training_config["min_images_threshold"] = min_images_threshold
+    if batch_delay_minutes is not None:
+        auto_training_config["batch_delay_minutes"] = batch_delay_minutes
+    
+    logger.info(f"🔧 Auto-training config updated: {auto_training_config}")
+    
+    return ApiResponse(
+        success=True,
+        message="Auto-training configuration updated",
+        data=auto_training_config
+    )
+
+@app.post("/api/auto-training/trigger")
+async def force_auto_training():
+    """Manually trigger auto-training for all pending items"""
+    if not auto_training_config["pending_items"]:
+        return ApiResponse(
+            success=False,
+            message="No items pending for training",
+            data={"pending_count": 0}
+        )
+    
+    # Cancel scheduled training
+    if hasattr(schedule_auto_training, '_timer'):
+        schedule_auto_training._timer.cancel()
+    
+    # Trigger immediately
+    task_id = f"manual_auto_training_{int(time.time())}"
+    asyncio.create_task(run_auto_training_pipeline(task_id))
+    
+    pending_count = len(auto_training_config["pending_items"])
+    auto_training_config["pending_items"].clear()
+    
+    return ApiResponse(
+        success=True,
+        message=f"Auto-training triggered for {pending_count} items",
+        data={"task_id": task_id, "items_count": pending_count}
+    )
+
+@app.post("/api/training/manual")
+async def manual_training(manual_config: dict):
+    """Manually trigger training for specific items or all items"""
+    try:
+        if system_status["training_in_progress"]:
+            return ApiResponse(
+                success=False,
+                message="Training already in progress. Please wait for completion.",
+                data={"training_in_progress": True}
+            )
+        
+        # Save training state for persistence
+        training_state_file = Path("backend/training_state.json")
+        training_state = {
+            "in_progress": True,
+            "started_at": datetime.now().isoformat(),
+            "config": manual_config,
+            "type": "manual",
+            "task_id": None
+        }
+        
+        if manual_config.get("batch", False):
+            # Train all items
+            task_id = f"manual_batch_training_{int(time.time())}"
+            training_state["task_id"] = task_id
+            
+            # Save state to disk
+            with open(training_state_file, 'w') as f:
+                json.dump(training_state, f, indent=2)
+            
+            asyncio.create_task(run_manual_training_pipeline(task_id, manual_config))
+            
+            # Count available items
+            items_dir = Path("data/raw")
+            items_count = len([d for d in items_dir.iterdir() if d.is_dir() and any(d.glob("*.jpg"))])
+            
+            return ApiResponse(
+                success=True,
+                message=f"Manual batch training started for all items",
+                data={"task_id": task_id, "items_count": items_count, "type": "batch"}
+            )
+        else:
+            # Train specific item
+            item_id = manual_config.get("item_id")
+            if not item_id:
+                return ApiResponse(
+                    success=False,
+                    message="item_id is required for single item training"
+                )
+            
+            task_id = f"manual_item_training_{item_id}_{int(time.time())}"
+            training_state["task_id"] = task_id
+            training_state["item_id"] = item_id
+            
+            # Save state to disk
+            with open(training_state_file, 'w') as f:
+                json.dump(training_state, f, indent=2)
+            
+            asyncio.create_task(run_manual_training_pipeline(task_id, manual_config))
+            
+            return ApiResponse(
+                success=True,
+                message=f"Manual training started for item {item_id}",
+                data={"task_id": task_id, "item_id": item_id, "type": "single"}
+            )
+        
+    except Exception as e:
+        logger.error(f"Failed to start manual training: {e}")
+        return ApiResponse(
+            success=False,
+            message=f"Failed to start manual training: {str(e)}"
+        )
+
 @app.get("/api/config")
 async def get_configuration():
     """Get current system configuration"""
@@ -915,26 +1172,45 @@ async def get_configuration():
 # Background task functions
 async def run_training_pipeline(task_id: str, config: Optional[TrainingConfig]):
     """Run the complete training pipeline"""
+    global training_stop_flag
+    
     try:
         logger.info(f"🏃 Running training pipeline for task {task_id}")
+        training_stop_flag = False  # Reset stop flag
         
         # Update task status
         background_tasks[task_id] = {"status": "preparing", "progress": 10}
+        
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
         
         # Run data preparation
         if not ai_system.run_data_preparation():
             raise Exception("Data preparation failed")
         background_tasks[task_id] = {"status": "data_prepared", "progress": 30}
         
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
+        
         # Run feature extraction
         if not ai_system.run_feature_extraction():
             raise Exception("Feature extraction failed")
         background_tasks[task_id] = {"status": "features_extracted", "progress": 50}
         
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
+        
         # Run training
         if not ai_system.run_training():
             raise Exception("Model training failed")
         background_tasks[task_id] = {"status": "training_complete", "progress": 80}
+        
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
         
         # Build recognition index
         if not ai_system.build_recognition_index():
@@ -972,6 +1248,7 @@ async def run_training_pipeline(task_id: str, config: Optional[TrainingConfig]):
         background_tasks[task_id] = {"status": "failed", "error": str(e), "progress": 0}
     finally:
         system_status["training_in_progress"] = False
+        training_stop_flag = False  # Reset stop flag
 
 async def run_evaluation_pipeline(task_id: str):
     """Run the evaluation pipeline"""
@@ -994,6 +1271,265 @@ async def run_evaluation_pipeline(task_id: str):
         background_tasks[task_id] = {"status": "failed", "error": str(e), "progress": 0}
     finally:
         system_status["evaluation_in_progress"] = False
+
+async def run_auto_training_pipeline(task_id: str):
+    """Run automatic training pipeline triggered by image uploads"""
+    global training_stop_flag
+    
+    try:
+        logger.info(f"🤖 Running auto-training pipeline for task {task_id}")
+        
+        # Check if training is already in progress
+        if system_status["training_in_progress"]:
+            logger.info("⏸️  Training already in progress, skipping auto-training")
+            background_tasks[task_id] = {"status": "skipped", "reason": "training_in_progress", "progress": 0}
+            return
+        
+        # Update task status
+        background_tasks[task_id] = {"status": "preparing", "progress": 10}
+        system_status["training_in_progress"] = True
+        
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
+        
+        # Run data preparation (includes augmentation)
+        if not ai_system.run_data_preparation():
+            raise Exception("Data preparation failed")
+        background_tasks[task_id] = {"status": "data_prepared", "progress": 30}
+        
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
+        
+        # Run feature extraction
+        if not ai_system.run_feature_extraction():
+            raise Exception("Feature extraction failed")
+        background_tasks[task_id] = {"status": "features_extracted", "progress": 50}
+        
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
+        
+        # Run training
+        if not ai_system.run_training():
+            raise Exception("Model training failed")
+        background_tasks[task_id] = {"status": "training_complete", "progress": 80}
+        
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
+        
+        # Build recognition index
+        if not ai_system.build_recognition_index():
+            raise Exception("Index building failed")
+        background_tasks[task_id] = {"status": "completed", "progress": 100}
+        
+        # Reload recognition pipeline
+        global recognition_pipeline
+        if create_pipeline:
+            with open("config.yaml", 'r') as f:
+                config = yaml.safe_load(f)
+            
+            pipeline_config = {
+                'model_path': 'checkpoints/best_model_DISABLED.pth',
+                'index_path': 'data/models/faiss_index.bin',
+                'metadata_path': 'data/models/index_metadata.pkl',
+                'threshold': 0.85,
+                'clip_model': config.get('model', {}).get('clip_variant', 'ViT-L/14'),
+                'embedding_dim': config.get('model', {}).get('embedding_dim', 512),
+                'cache_size': 1000,
+                'confidence_threshold': 0.85,
+                'high_confidence_threshold': 0.95,
+                'batch_confidence_threshold': 0.9,
+                'mobile_mode': False
+            }
+            
+            from src.inference.recognize import RecognitionPipeline
+            recognition_pipeline = RecognitionPipeline(pipeline_config)
+            system_status["system_ready"] = True
+        
+        logger.info(f"✅ Auto-training pipeline completed for task {task_id}")
+        
+    except Exception as e:
+        logger.error(f"❌ Auto-training pipeline failed for task {task_id}: {e}")
+        background_tasks[task_id] = {"status": "failed", "error": str(e), "progress": 0}
+    finally:
+        system_status["training_in_progress"] = False
+        training_stop_flag = False  # Reset stop flag
+
+async def run_manual_training_pipeline(task_id: str, manual_config: dict):
+    """Run manual training pipeline for specific items"""
+    global training_stop_flag
+    training_state_file = Path("backend/training_state.json")
+    
+    try:
+        logger.info(f"🎯 Running manual training pipeline for task {task_id}")
+        
+        # Update task status
+        background_tasks[task_id] = {"status": "preparing", "progress": 10}
+        system_status["training_in_progress"] = True
+        
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
+        
+        # Run data preparation
+        if not ai_system.run_data_preparation():
+            raise Exception("Data preparation failed")
+        background_tasks[task_id] = {"status": "data_prepared", "progress": 30}
+        
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
+        
+        # Run feature extraction
+        if not ai_system.run_feature_extraction():
+            raise Exception("Feature extraction failed")
+        background_tasks[task_id] = {"status": "features_extracted", "progress": 50}
+        
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
+        
+        # Run training
+        if not ai_system.run_training():
+            raise Exception("Model training failed")
+        background_tasks[task_id] = {"status": "training_complete", "progress": 80}
+        
+        # Check for stop request
+        if training_stop_flag:
+            raise Exception("Training stopped by user request")
+        
+        # Build recognition index
+        if not ai_system.build_recognition_index():
+            raise Exception("Index building failed")
+        background_tasks[task_id] = {"status": "completed", "progress": 100}
+        
+        # Reload recognition pipeline
+        global recognition_pipeline
+        if create_pipeline:
+            with open("config.yaml", 'r') as f:
+                config = yaml.safe_load(f)
+            
+            pipeline_config = {
+                'model_path': 'checkpoints/best_model_DISABLED.pth',
+                'index_path': 'data/models/faiss_index.bin',
+                'metadata_path': 'data/models/index_metadata.pkl',
+                'threshold': 0.85,
+                'clip_model': config.get('model', {}).get('clip_variant', 'ViT-L/14'),
+                'embedding_dim': config.get('model', {}).get('embedding_dim', 512),
+                'cache_size': 1000,
+                'confidence_threshold': 0.85,
+                'high_confidence_threshold': 0.95,
+                'batch_confidence_threshold': 0.9,
+                'mobile_mode': False
+            }
+            
+            from src.inference.recognize import RecognitionPipeline
+            recognition_pipeline = RecognitionPipeline(pipeline_config)
+            system_status["system_ready"] = True
+        
+        # Clear training state on successful completion
+        if training_state_file.exists():
+            training_state_file.unlink()
+        
+        logger.info(f"✅ Manual training pipeline completed for task {task_id}")
+        
+    except Exception as e:
+        logger.error(f"❌ Manual training pipeline failed for task {task_id}: {e}")
+        background_tasks[task_id] = {"status": "failed", "error": str(e), "progress": 0}
+        
+        # Mark training as requiring restart
+        if training_state_file.exists():
+            try:
+                with open(training_state_file, 'r') as f:
+                    state = json.load(f)
+                state["in_progress"] = False
+                state["failed"] = True
+                state["failed_at"] = datetime.now().isoformat()
+                state["error"] = str(e)
+                with open(training_state_file, 'w') as f:
+                    json.dump(state, f, indent=2)
+            except Exception as state_error:
+                logger.error(f"Failed to update training state: {state_error}")
+    finally:
+        system_status["training_in_progress"] = False
+        training_stop_flag = False  # Reset stop flag
+
+def check_interrupted_training():
+    """Check for interrupted training on startup"""
+    training_state_file = Path("backend/training_state.json")
+    
+    if not training_state_file.exists():
+        return None
+    
+    try:
+        with open(training_state_file, 'r') as f:
+            state = json.load(f)
+        
+        # If training was in progress but we're starting fresh, it was interrupted
+        if state.get("in_progress", False) and not state.get("failed", False):
+            logger.warning(f"🚨 Detected interrupted training from {state.get('started_at')}")
+            
+            # Mark as needing restart
+            state["in_progress"] = False
+            state["interrupted"] = True
+            state["interrupted_at"] = datetime.now().isoformat()
+            
+            with open(training_state_file, 'w') as f:
+                json.dump(state, f, indent=2)
+            
+            return state
+        
+        # If training failed or was completed, remove the state file
+        elif not state.get("in_progress", False):
+            training_state_file.unlink()
+            return None
+    
+    except Exception as e:
+        logger.error(f"Failed to check interrupted training state: {e}")
+        # Remove corrupted state file
+        try:
+            training_state_file.unlink()
+        except:
+            pass
+        return None
+
+@app.get("/api/training/status")
+async def get_training_status():
+    """Get training status including interrupted training detection"""
+    try:
+        training_state_file = Path("backend/training_state.json")
+        
+        status = {
+            "training_in_progress": system_status.get("training_in_progress", False),
+            "interrupted_training": False,
+            "training_required": False,
+            "background_tasks": background_tasks
+        }
+        
+        if training_state_file.exists():
+            with open(training_state_file, 'r') as f:
+                state = json.load(f)
+            
+            if state.get("interrupted", False) or state.get("failed", False):
+                status["interrupted_training"] = True
+                status["training_required"] = True
+                status["last_attempt"] = state
+        
+        return ApiResponse(
+            success=True,
+            message="Training status retrieved",
+            data=status
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to get training status: {e}")
+        return ApiResponse(
+            success=False,
+            message=f"Failed to get training status: {str(e)}"
+        )
 
 # Run the server
 if __name__ == "__main__":

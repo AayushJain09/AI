@@ -292,8 +292,9 @@ class TrainingProgressWidget(QFrame):
         log_layout = QVBoxLayout(log_group)
         
         self.log_text = QTextEdit()
-        self.log_text.setMaximumHeight(150)
+        self.log_text.setMinimumHeight(120)
         self.log_text.setReadOnly(True)
+        self.log_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.log_text.setStyleSheet("""
             QTextEdit {
                 border: 1px solid #ddd;
@@ -383,8 +384,33 @@ class TrainingWidget(QWidget):
         self.setup_connections()
     
     def setup_ui(self):
-        """Setup training dashboard UI"""
-        layout = QVBoxLayout(self)
+        """Setup training dashboard UI with scrollable content"""
+        # Main layout for the widget
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        
+        # Create scroll area for all content
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8f9fa;
+            }
+            QScrollArea > QWidget > QWidget {
+                background-color: #f8f9fa;
+            }
+        """)
+        
+        # Content widget inside scroll area
+        content_widget = QWidget()
+        content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # Content layout
+        layout = QVBoxLayout(content_widget)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(20)
         
@@ -499,6 +525,12 @@ class TrainingWidget(QWidget):
         info_layout.addWidget(info_text)
         
         layout.addWidget(info_group)
+        
+        # Set the content widget in the scroll area
+        scroll_area.setWidget(content_widget)
+        
+        # Add scroll area to main layout
+        main_layout.addWidget(scroll_area)
     
     def setup_connections(self):
         """Setup signal connections"""
@@ -564,24 +596,43 @@ class TrainingWidget(QWidget):
         reply = QMessageBox.question(
             self,
             "Stop Training",
-            "Are you sure you want to stop training?\n\nProgress will be lost and you'll need to restart from the beginning.",
+            "Are you sure you want to stop training?\n\nTraining will stop gracefully at the next checkpoint.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            # Stop monitoring
-            self.monitor_thread.stop_monitoring()
-            
-            # Update UI state
-            self.start_btn.setEnabled(True)
-            self.stop_btn.setEnabled(False)
-            
-            QMessageBox.information(
-                self,
-                "Training Stopped",
-                "Training has been stopped. You can start a new training session anytime."
-            )
+            try:
+                # Send stop request to backend
+                response = self.api_client.post("/api/train/stop", {})
+                
+                if response.get("success"):
+                    # Stop monitoring
+                    self.monitor_thread.stop_monitoring()
+                    
+                    # Update UI state
+                    self.start_btn.setEnabled(True)
+                    self.stop_btn.setEnabled(False)
+                    
+                    QMessageBox.information(
+                        self,
+                        "Stop Requested",
+                        "Training stop has been requested. The process will stop gracefully at the next checkpoint."
+                    )
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Stop Failed",
+                        f"Failed to stop training: {response.get('error', 'Unknown error')}"
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Failed to stop training: {e}")
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    f"An error occurred while stopping training: {str(e)}"
+                )
     
     def update_training_status(self, status_data: Dict[str, Any]):
         """Update training status from monitoring thread"""

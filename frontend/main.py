@@ -546,6 +546,23 @@ class NavigationSidebar(QWidget):
             btn = self.create_nav_button(icon, label, page_id)
             layout.addWidget(btn)
         
+        # Training indicator in sidebar
+        self.sidebar_training_indicator = QLabel("⚠️ Training Required")
+        self.sidebar_training_indicator.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.sidebar_training_indicator.setStyleSheet("""
+            QLabel {
+                background-color: #ffc107;
+                color: #212529;
+                padding: 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: bold;
+                margin: 10px;
+            }
+        """)
+        self.sidebar_training_indicator.hide()  # Initially hidden
+        layout.addWidget(self.sidebar_training_indicator)
+        
         layout.addStretch()
         
         # System info at bottom
@@ -603,6 +620,39 @@ class NavigationSidebar(QWidget):
         
         self.current_page = page_id
         self.page_changed.emit(page_id)
+    
+    def update_training_indicator(self, training_required: bool, interrupted: bool = False):
+        """Update the sidebar training indicator"""
+        if training_required or interrupted:
+            self.sidebar_training_indicator.show()
+            if interrupted:
+                self.sidebar_training_indicator.setText("🚨 Training Interrupted")
+                self.sidebar_training_indicator.setStyleSheet("""
+                    QLabel {
+                        background-color: #dc3545;
+                        color: white;
+                        padding: 8px;
+                        border-radius: 4px;
+                        font-size: 11px;
+                        font-weight: bold;
+                        margin: 10px;
+                    }
+                """)
+            else:
+                self.sidebar_training_indicator.setText("⚠️ Training Required")
+                self.sidebar_training_indicator.setStyleSheet("""
+                    QLabel {
+                        background-color: #ffc107;
+                        color: #212529;
+                        padding: 8px;
+                        border-radius: 4px;
+                        font-size: 11px;
+                        font-weight: bold;
+                        margin: 10px;
+                    }
+                """)
+        else:
+            self.sidebar_training_indicator.hide()
 
 class DashboardWidget(QWidget):
     """Main dashboard widget with real-time metrics and functional controls."""
@@ -642,7 +692,9 @@ class DashboardWidget(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(scroll_area)
         
-        # Page title
+        # Page title with training indicator
+        title_layout = QHBoxLayout()
+        
         title = QLabel("Dashboard")
         title.setStyleSheet("""
             QLabel {
@@ -652,7 +704,29 @@ class DashboardWidget(QWidget):
                 margin-bottom: 10px;
             }
         """)
-        layout.addWidget(title)
+        title_layout.addWidget(title)
+        
+        # Training required indicator
+        self.training_indicator = QLabel("🚨 Training Required")
+        self.training_indicator.setStyleSheet("""
+            QLabel {
+                background-color: #dc3545;
+                color: white;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: bold;
+                border: 2px solid #c82333;
+            }
+        """)
+        self.training_indicator.hide()  # Initially hidden
+        title_layout.addWidget(self.training_indicator)
+        
+        title_layout.addStretch()
+        
+        title_widget = QWidget()
+        title_widget.setLayout(title_layout)
+        layout.addWidget(title_widget)
         
         # Statistics cards with responsive grid
         stats_widget = QWidget()
@@ -839,6 +913,7 @@ class DashboardWidget(QWidget):
         """Load initial dashboard data."""
         self.refresh_metrics()
         self.load_recent_activity()
+        self.check_training_status()
     
     def refresh_metrics(self) -> None:
         """Refresh dashboard metrics from API."""
@@ -877,6 +952,9 @@ class DashboardWidget(QWidget):
             self.update_stat_card(self.speed_card, avg_speed)
             self.update_stat_card(self.status_card, system_status)
             
+            # Check training status periodically
+            self.check_training_status()
+            
         except Exception as e:
             logger.error(f"Failed to refresh metrics: {e}")
             # Show error state
@@ -889,6 +967,52 @@ class DashboardWidget(QWidget):
         """Update a statistics card with new value."""
         if hasattr(card, 'value_label'):
             card.value_label.setText(value)
+    
+    def check_training_status(self) -> None:
+        """Check if training is required and update indicator."""
+        try:
+            response = self.api_client.get("/api/training/status")
+            if response.get("success"):
+                data = response.get("data", {})
+                training_required = data.get("training_required", False)
+                interrupted_training = data.get("interrupted_training", False)
+                
+                if training_required or interrupted_training:
+                    self.training_indicator.show()
+                    if interrupted_training:
+                        self.training_indicator.setText("🚨 Training Interrupted - Action Required")
+                        self.training_indicator.setStyleSheet("""
+                            QLabel {
+                                background-color: #dc3545;
+                                color: white;
+                                padding: 8px 12px;
+                                border-radius: 6px;
+                                font-size: 12px;
+                                font-weight: bold;
+                                border: 2px solid #c82333;
+                                animation: blink 1s infinite;
+                            }
+                        """)
+                    else:
+                        self.training_indicator.setText("⚠️ Training Required")
+                        self.training_indicator.setStyleSheet("""
+                            QLabel {
+                                background-color: #ffc107;
+                                color: #212529;
+                                padding: 8px 12px;
+                                border-radius: 6px;
+                                font-size: 12px;
+                                font-weight: bold;
+                                border: 2px solid #e0a800;
+                            }
+                        """)
+                else:
+                    self.training_indicator.hide()
+                    
+        except Exception as e:
+            logger.error(f"Failed to check training status: {e}")
+            # Hide indicator on error
+            self.training_indicator.hide()
     
     def load_recent_activity(self) -> None:
         """Load recent system activity."""
@@ -1099,8 +1223,32 @@ class MainWindow(QMainWindow):
             else:
                 # This is direct status response
                 self.status_bar.update_status(status_response)
+            
+            # Update training indicators
+            self.update_training_indicators()
+            
         except Exception as e:
             logger.error(f"Error updating status: {e}")
+    
+    def update_training_indicators(self):
+        """Update training indicators in sidebar and dashboard"""
+        try:
+            response = self.api_client.get("/api/training/status")
+            if response.get("success"):
+                data = response.get("data", {})
+                training_required = data.get("training_required", False)
+                interrupted_training = data.get("interrupted_training", False)
+                
+                # Update sidebar indicator
+                self.sidebar.update_training_indicator(training_required, interrupted_training)
+                
+                # Update dashboard indicator if dashboard is available
+                if hasattr(self.dashboard, 'check_training_status'):
+                    # Dashboard will update its own indicator through check_training_status
+                    pass
+                    
+        except Exception as e:
+            logger.error(f"Failed to update training indicators: {e}")
     
     def check_backend_connection(self):
         """Check if backend is running"""
