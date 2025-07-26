@@ -169,7 +169,7 @@ class RecognitionPipeline:
             self.model = None
         
         # Load optimized feature extractor with 1536D architecture
-        from src.feature_extraction.feature_extractor import MultiModalFeatureExtractor
+        from feature_extraction.feature_extractor import MultiModalFeatureExtractor
         
         # Use optimized configuration for maximum accuracy
         feature_config = {
@@ -188,12 +188,10 @@ class RecognitionPipeline:
             lightweight_model_path = self.config.get('lightweight_model_path')
             if lightweight_model_path and Path(lightweight_model_path).exists():
                 try:
-                    from src.training.lightweight_refiner import LightweightRefinerTrainer
-                    self.lightweight_model = LightweightRefinerTrainer.load_model(
-                        lightweight_model_path, 
-                        device=str(self.device)
-                    )
-                    logger.info("✅ Loaded LightweightRefiner for hybrid mode")
+                    # Lightweight refiner functionality removed - using raw features only
+                    logger.warning("⚠️  Lightweight refiner not available")
+                    logger.info("🔄 Hybrid mode disabled - using raw features only")
+                    self.hybrid_mode = False
                 except Exception as e:
                     logger.warning(f"⚠️  Failed to load lightweight refiner: {e}")
                     logger.info("🔄 Hybrid mode disabled - using raw features only")

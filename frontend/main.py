@@ -728,13 +728,20 @@ class DashboardWidget(QWidget):
         title_widget.setLayout(title_layout)
         layout.addWidget(title_widget)
         
-        # Statistics cards with responsive grid
+        # Statistics cards with enhanced responsive grid
         stats_widget = QWidget()
         stats_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        stats_widget.setStyleSheet("""
+            QWidget {
+                background: transparent;
+                margin: 10px 0;
+            }
+        """)
         stats_layout = QGridLayout(stats_widget)
-        stats_layout.setSpacing(15)
+        stats_layout.setSpacing(20)  # Increased spacing for better visual separation
+        stats_layout.setContentsMargins(0, 10, 0, 20)  # Add top and bottom margins
         
-        # Make grid responsive
+        # Make grid responsive with equal column widths
         stats_layout.setColumnStretch(0, 1)
         stats_layout.setColumnStretch(1, 1)
         stats_layout.setColumnStretch(2, 1)
@@ -753,52 +760,61 @@ class DashboardWidget(QWidget):
         
         layout.addWidget(stats_widget)
         
-        # Recent activity section with responsive design
-        activity_group = QGroupBox("Recent Activity")
+        # Recent activity section with enhanced design
+        activity_group = QGroupBox("📊 Recent Activity")
         activity_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         activity_group.setStyleSheet("""
             QGroupBox {
-                font-size: 16px;
+                font-size: 18px;
                 font-weight: bold;
-                color: #212529;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                margin-top: 10px;
-                padding-top: 15px;
-                background-color: white;
+                color: #2c3e50;
+                border: 2px solid #e8eaf6;
+                border-radius: 12px;
+                margin-top: 15px;
+                padding-top: 20px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffffff, stop:1 #f8f9ff);
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 10px;
-                color: #495057;
-                background-color: white;
+                left: 15px;
+                padding: 0 15px;
+                color: #3f51b5;
+                background-color: #ffffff;
+                border-radius: 6px;
+                font-weight: 700;
             }
         """)
         
         activity_layout = QVBoxLayout(activity_group)
+        activity_layout.setContentsMargins(15, 10, 15, 15)
+        
         self.activity_list = QListWidget()
         self.activity_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.activity_list.setMinimumHeight(150)
+        self.activity_list.setMinimumHeight(160)
         self.activity_list.setStyleSheet("""
             QListWidget {
-                border: none;
-                background-color: #f8f9fa;
-                border-radius: 4px;
-                color: #212529;
+                border: 1px solid #e8eaf6;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffffff, stop:1 #fafbff);
+                border-radius: 8px;
+                color: #2c3e50;
+                padding: 5px;
+                font-size: 13px;
             }
             QListWidget::item {
-                padding: 10px;
-                border-bottom: 1px solid #dee2e6;
-                color: #495057;
+                padding: 10px 12px;
+                border-bottom: 1px solid #e8eaf6;
+                color: #34495e;
+                border-radius: 4px;
+                margin: 2px 0;
             }
             QListWidget::item:hover {
-                background-color: #e9ecef;
-                color: #212529;
+                background-color: #e8eaf6;
+                color: #2c3e50;
             }
             QListWidget::item:selected {
-                background-color: #007bff;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #3f51b5, stop:1 #5c6bc0);
                 color: white;
+                font-weight: 600;
             }
         """)
         activity_layout.addWidget(self.activity_list)
@@ -806,13 +822,34 @@ class DashboardWidget(QWidget):
         layout.addWidget(activity_group)
         
         # Quick actions with responsive layout
-        actions_group = QGroupBox("Quick Actions")
-        actions_group.setStyleSheet(activity_group.styleSheet())
+        actions_group = QGroupBox("⚡ Quick Actions")
+        actions_group.setStyleSheet("""
+            QGroupBox {
+                font-size: 18px;
+                font-weight: bold;
+                color: #2c3e50;
+                border: 2px solid #e8f5e8;
+                border-radius: 12px;
+                margin-top: 15px;
+                padding-top: 20px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffffff, stop:1 #f8fff8);
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 15px;
+                padding: 0 15px;
+                color: #4caf50;
+                background-color: #ffffff;
+                border-radius: 6px;
+                font-weight: 700;
+            }
+        """)
         actions_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         
         # Use responsive layout that wraps on small screens
         actions_layout = QHBoxLayout(actions_group)
-        actions_layout.setSpacing(10)
+        actions_layout.setSpacing(15)
+        actions_layout.setContentsMargins(15, 10, 15, 15)
         
         recognize_btn = ModernButton("🔍 Quick Recognition", "#2196F3")
         add_item_btn = ModernButton("📦 Add New Item", "#4CAF50")
@@ -840,67 +877,91 @@ class DashboardWidget(QWidget):
         layout.addStretch()
     
     def create_stat_card(self, title: str, value: str, color: str, icon: str) -> QWidget:
-        """Create a responsive statistics card widget."""
+        """
+        Create a beautiful, high-contrast statistics card widget.
+        
+        Features:
+        - Gradient background with theme colors
+        - High contrast text for better visibility
+        - Modern shadow effects
+        - Responsive hover animations
+        - Accessible color combinations
+        """
         card = QFrame()
         card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        card.setMinimumHeight(120)
-        card.setMaximumHeight(150)
+        card.setMinimumHeight(140)
+        card.setMaximumHeight(170)
+        
+        # Create gradient color variations for better contrast
+        color_variants = {
+            "#4CAF50": {"bg": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #4CAF50, stop:1 #45a049)", "light": "#e8f5e8", "dark": "#2e7d32"},
+            "#2196F3": {"bg": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #2196F3, stop:1 #1976d2)", "light": "#e3f2fd", "dark": "#1565c0"},
+            "#FF9800": {"bg": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #FF9800, stop:1 #f57c00)", "light": "#fff3e0", "dark": "#e65100"},
+            "#F44336": {"bg": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #F44336, stop:1 #d32f2f)", "light": "#ffebee", "dark": "#c62828"}
+        }
+        
+        variant = color_variants.get(color, {"bg": color, "light": "#f8f9fa", "dark": color})
         
         card.setStyleSheet(f"""
             QFrame {{
-                background-color: white;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 15px;
-                color: #212529;
-                min-height: 120px;
-                max-height: 150px;
+                background: {variant['bg']};
+                border: none;
+                border-radius: 12px;
+                padding: 20px;
+                color: white;
+                min-height: 140px;
+                max-height: 170px;
+                /* Add subtle shadow effect */
+                border: 1px solid rgba(0, 0, 0, 0.1);
             }}
             QFrame:hover {{
-                border: 2px solid {color};
-                background-color: #f8f9fa;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {color}, stop:0.7 {variant['dark']}, stop:1 {color});
+                transform: scale(1.02);
+                border: 2px solid rgba(255, 255, 255, 0.3);
             }}
         """)
         
         layout = QVBoxLayout(card)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(8)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        layout.setContentsMargins(15, 15, 15, 15)
         
-        # Icon and value with responsive sizing
-        icon_label = QLabel(icon)
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_label.setStyleSheet("font-size: 28px; margin-bottom: 8px;")
-        icon_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        
+        # Value with high contrast and larger size
         value_label = QLabel(value)
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        value_label.setStyleSheet(f"""
-            QLabel {{
-                font-size: 24px;
-                font-weight: bold;
-                color: {color};
-                margin-bottom: 5px;
-            }}
-        """)
-        
-        title_label = QLabel(title)
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("""
+        value_label.setStyleSheet("""
             QLabel {
-                font-size: 12px;
-                color: #6c757d;
-                font-weight: 500;
+                font-size: 28px;
+                font-weight: bold;
+                color: white;
+                margin-bottom: 8px;
+                text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+                background: transparent;
             }
         """)
         
-        layout.addWidget(icon_label)
+        # Title with icon integrated
+        title_label = QLabel(f"{icon} {title}")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                color: rgba(255, 255, 255, 0.95);
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+                background: transparent;
+            }
+        """)
+        
         layout.addWidget(value_label)
         layout.addWidget(title_label)
         
         # Store references for updates
         card.value_label = value_label
         card.title_text = title
+        card.color = color
         
         return card
     

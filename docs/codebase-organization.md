@@ -14,7 +14,7 @@ ai-recognition-system/
 │   ├── setup-guide.md          # Installation and setup
 │   ├── user-guide.md           # GUI usage guide
 │   ├── technical-architecture.md # Deep technical details
-│   ├── troubleshooting.md      # Problem solving
+│   ├── TROUBLESHOOTING_GUIDE.md # Problem solving
 │   ├── configuration.md        # Config reference
 │   ├── api-reference.md        # REST API docs
 │   ├── testing.md              # Testing guide

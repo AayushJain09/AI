@@ -24,15 +24,17 @@ python3 test_recognition_final.py
 ## Documentation Structure
 
 ### Core Documentation
-- **[System Overview](system-overview.md)** - Complete system architecture and current implementation
+- **[System Overview](system-overview.md)** - Complete system architecture and implementation
+- **[Technical Architecture](technical-architecture.md)** - Deep technical details and design decisions
 - **[Setup Guide](setup-guide.md)** - Installation and initial configuration
-- **[User Guide](user-guide.md)** - How to use the GUI and train models
-- **[Technical Architecture](technical-architecture.md)** - Deep technical details
+- **[User Guide](user-guide.md)** - How to use the GUI and manage items
 
-### Reference
-- **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
+### Reference & Maintenance
 - **[API Reference](api-reference.md)** - Backend API documentation
 - **[Configuration](configuration.md)** - System configuration options
+- **[Troubleshooting Guide](TROUBLESHOOTING_GUIDE.md)** - Common issues and solutions
+- **[Validation Procedures](VALIDATION_PROCEDURES.md)** - Testing and quality assurance
+- **[Codebase Organization](codebase-organization.md)** - Project structure guide
 
 ## System Performance
 
@@ -41,7 +43,7 @@ Current system metrics (as of latest tests):
 - **Unknown Item Rejection**: 100% (false positives eliminated)
 - **Average Recognition Time**: ~300ms per image
 - **Feature Dimensions**: 1536D (CLIP 768D + DINOv2 768D)
-- **Index Size**: 11 vectors for 4 items
+- **Index Size**: Scalable FAISS index (currently 26 items)
 
 ## Key Features
 
@@ -52,15 +54,32 @@ Current system metrics (as of latest tests):
 - **RESTful API**: FastAPI backend for integration
 - **Unknown Item Detection**: Proper rejection of items not in the system
 
-## Recent Fixes
+## System Architecture
 
-The system was recently overhauled to fix false positive issues:
+The current system uses an optimized architecture:
 
-1. **Disabled Siamese Network**: Was generating overly similar embeddings
-2. **Raw Feature Architecture**: Now uses direct CLIP+DINOv2 features (1536D)
-3. **Increased Thresholds**: Proper confidence thresholds for unknown item rejection
-4. **Fixed Integration Issues**: Resolved all PyQt6 and backend communication problems
+1. **Dual-Model Features**: CLIP ViT-L/14 + DINOv2 for 1536D feature vectors
+2. **Direct FAISS Search**: Raw features without compression for maximum accuracy
+3. **Professional Interface**: PyQt6 GUI with FastAPI backend
+4. **Category Management**: Hierarchical item organization
+5. **Real-time Recognition**: Sub-second response times
 
 ## Support
 
 For detailed information, see the individual documentation files in this directory.
+
+
+
+## Image Guidelines for Best Results
+
+### Quality Standards:
+- **Resolution**: 768×768 or higher
+- **Format**: JPG/JPEG (quality 90+)
+- **Lighting**: Natural, even lighting (avoid harsh shadows)
+- **Focus**: Sharp, clear object details
+
+### Diversity Requirements:
+- **6-9 images per item** from different angles
+- **Multiple lighting conditions**: Natural daylight, indoor lighting
+- **Various distances**: Close-up, medium range, full view
+- **Different orientations**: Front, back, sides, top, angled views

@@ -30,8 +30,8 @@ The system provides a professional desktop interface with the following tabs:
 3. **Upload Images**:
    - **Drag and drop** images onto the upload area
    - Or **click "Browse"** to select files
-   - **Minimum**: 8 high-quality images per item
-   - **Recommended**: 10-15 images for best accuracy
+   - **Minimum**: 6 high-quality images per item
+   - **Recommended**: 6-9 images for best accuracy
 4. **Save Item** to add to database
 
 #### Image Requirements
@@ -65,33 +65,24 @@ The system provides a professional desktop interface with the following tabs:
 - **Processing Time**: Recognition speed in milliseconds
 - **Status**: Success, unknown item, or error
 
-### 4. Training Tab - Model Training
+### 4. Training Tab - Model Training (Legacy)
 
-#### Training Process
-1. **Review Configuration**:
-   - Training epochs (default: 40)
-   - Batch size (default: 24)
-   - Learning rate (default: 3e-4)
-2. **Start Training**: Click "Start Training" button
-3. **Monitor Progress**:
-   - Real-time loss curves
-   - Accuracy metrics
-   - Estimated completion time
-4. **Training Completion**: System automatically saves best model
+#### Current System
+The current system uses **direct feature extraction** without neural network training:
+- CLIP + DINOv2 models are pre-trained
+- No additional training required
+- Items are automatically indexed when added
 
-#### When to Retrain
-- **After adding new items** (always required)
-- **When accuracy drops** below acceptable levels
-- **After deleting items** to optimize performance
+#### Legacy Training (Optional)
+For experimental purposes, the training tab allows:
+1. **Monitor System**: View feature extraction progress
+2. **Index Management**: Rebuild FAISS index if needed
+3. **Performance Metrics**: Track system performance
 
-#### Training Configuration
-```python
-# Default training settings (can be modified in GUI)
-epochs: 40           # Number of training iterations
-batch_size: 24       # Images per batch
-learning_rate: 3e-4  # Optimization speed
-augmentations: 50    # Synthetic data per original image
-```
+#### When to Rebuild Index
+- **After adding many new items** (automatic)
+- **When experiencing slow search** (rare)
+- **After system updates** (as needed)
 
 ### 5. Evaluation Tab - Performance Analysis
 
@@ -142,7 +133,7 @@ augmentations: 50    # Synthetic data per original image
 
 1. **Prepare Images**:
    ```
-   - Take 8-15 high-quality photos of the item
+   - Take 6-9 high-quality photos of the item
    - Ensure variety in angles and lighting
    - Save in easily accessible folder
    ```
@@ -152,9 +143,9 @@ augmentations: 50    # Synthetic data per original image
    Items Tab → Add New Item → Fill details → Upload images → Save
    ```
 
-3. **Trigger Training**:
+3. **System Processing**:
    ```
-   Training Tab → Review settings → Start Training → Monitor progress
+   System automatically processes images and adds to index
    ```
 
 4. **Evaluate Performance**:
@@ -192,10 +183,10 @@ augmentations: 50    # Synthetic data per original image
 - **Real Conditions**: Match actual usage environment
 - **Background Variety**: Different backgrounds prevent overfitting
 
-### Training Optimization
-- **Regular Retraining**: After adding 5+ new items
-- **Monitor Accuracy**: Retrain if accuracy drops below 95%
-- **Backup Models**: Keep copies of well-performing models
+### System Optimization
+- **Index Management**: System automatically updates index
+- **Monitor Accuracy**: Check evaluation metrics regularly
+- **Backup Data**: Keep copies of training images and configurations
 
 ### System Maintenance
 - **Regular Evaluation**: Weekly performance checks
@@ -211,7 +202,7 @@ augmentations: 50    # Synthetic data per original image
 
 ### Speed Targets
 - **Recognition Time**: <500ms per image
-- **Training Time**: 1-4 hours depending on dataset size
+- **Index Update Time**: 1-5 minutes depending on dataset size
 - **System Startup**: <30 seconds to ready state
 
 ### Capacity Limits
@@ -230,12 +221,12 @@ augmentations: 50    # Synthetic data per original image
 ### GUI Issues
 - **Frozen Interface**: Restart application, check system resources
 - **Image Upload Fails**: Check file format, size limits
-- **Training Doesn't Start**: Verify sufficient training data
+- **Index Update Fails**: Verify sufficient training data
 
 ### Performance Issues
 - **Slow Recognition**: Enable GPU acceleration, reduce image resolution
 - **High Memory Usage**: Reduce batch sizes in settings
-- **Training Too Slow**: Use GPU, reduce augmentation count
+- **Index Updates Slow**: Use GPU acceleration, check system resources
 
 ## Advanced Features
 

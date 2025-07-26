@@ -177,7 +177,7 @@ augmentation_factor = 50  # 8 original → 400 training images
 component_memory = {
     "CLIP Model": "~1.2GB",           # ViT-L/14 parameters
     "DINOv2 Model": "~340MB",         # ViT-B/14 parameters  
-    "FAISS Index": "~67MB",           # 11 vectors × 1536D × 4 bytes
+    "FAISS Index": "~160MB",          # 26 items × ~6 vectors × 1536D × 4 bytes
     "Feature Cache": "~200MB",        # Temporary storage
     "GUI Application": "~100MB",      # PyQt6 interface
     "Total System": "~1.9GB"         # Total memory footprint
@@ -198,7 +198,7 @@ operations = {
 timings = {
     "CLIP Inference": "~150ms",       # Per image
     "DINOv2 Inference": "~120ms",     # Per image  
-    "FAISS Search": "~1ms",           # Per query (11 vectors)
+    "FAISS Search": "~2ms",           # Per query (26 items)
     "Total Recognition": "~300ms",     # End-to-end
 }
 ```

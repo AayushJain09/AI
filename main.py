@@ -16,16 +16,9 @@ import json
 import numpy as np
 from typing import Dict, List
 
-# Import our modules
-# from data_augmentation_core import AdvancedAugmentationPipeline
-# from feature_extraction_system import MultiModalFeatureExtractor
-# from training_system import ModelTrainer, FewShotDataset
-# from inference_pipeline import RecognitionPipeline, PerformanceMonitor, create_pipeline
-
-# Fix imports (correct paths):
+# Import core modules
 from src.data_preparation.prepare import AdvancedAugmentationPipeline
 from src.feature_extraction.feature_extractor import MultiModalFeatureExtractor
-# Training functionality available via separate scripts
 from src.inference.recognize import RecognitionPipeline, PerformanceMonitor, create_pipeline
 
 # Setup logging
@@ -357,7 +350,11 @@ class AIRecognitionSystem:
                 logger.warning("   • Use GPU acceleration if available")
         
         # === Identify Problematic Items ===
-        problematic_items = monitor.identify_problematic_items(threshold=0.8)
+        problematic_items = []
+        for item_id, stats in report['per_item_metrics'].items():
+            if stats['accuracy'] < 0.8:
+                problematic_items.append(item_id)
+        
         if problematic_items:
             logger.info(f"\n⚠️  ITEMS NEEDING ATTENTION:")
             logger.info("─" * 40)
