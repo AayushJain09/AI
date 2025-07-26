@@ -8,6 +8,7 @@ PyQt6
 
 # HTTP Client
 requests
+urllib3
 
 # Core ML
 torch
@@ -23,11 +24,15 @@ Pillow
 pillow
 albumentations
 
+imageio
+scikit-image
+
 # CLIP and Vision Models
 clip @ git+https://github.com/openai/CLIP.git
 timm
 # Similarity Search
 faiss-cpu
+# faiss-gpu
 
 # Data Management
 pandas
@@ -39,10 +44,34 @@ tqdm
 pydantic
 matplotlib
 seaborn
+loguru           # Enhanced logging
 
-# xformers
 
-# Experiment Tracking
-# mlflow
-# tensorboard
-# wandb
+# Recommended for new DB architecture:
+sqlite-utils
+duckdb
+pyarrow
+# Optional: psutil for monitoring memory usage  
+
+
+#Core dependencies
+scipy
+
+# Compression & Performance (NEW)                 
+lz4 # Fast compression for vectors
+numba          # JIT compilation acceleration         
+psutil          # System monitoring  
+
+
+# Data Management & Analytics       
+pandas
+python-dateutil 
+
+omegaconf   # Advanced configuration  
+pytest
+pytest-benchmark
+pytest-cov
+memory-profiler
+
+# Performance Profiling (NEW)  
+py-spy
