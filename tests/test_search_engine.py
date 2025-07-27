@@ -506,12 +506,138 @@ def run_unit_tests():
     return result.wasSuccessful()
 
 
+def run_tier_validation_test(dataset_size: int):
+    """Run tier validation test with specific dataset size."""
+    print(f"🎯 Tier Validation Test - Dataset Size: {dataset_size}")
+    print("=" * 60)
+    
+    # Expected tier based on dataset size
+    if dataset_size <= 100:
+        expected_tier = 'linear'
+    elif dataset_size <= 10000:
+        expected_tier = 'faiss_flat'
+    else:
+        expected_tier = 'faiss_ivf'
+    
+    print(f"   Expected tier for {dataset_size} vectors: {expected_tier}")
+    
+    try:
+        # Create search engine
+        config_manager = ConfigManager()
+        vector_store = create_high_performance_vector_store(config_manager)
+        search_engine = create_adaptive_search_engine(vector_store, config_manager)
+        
+        # Add vectors progressively and monitor tier transitions
+        print(f"   Adding {dataset_size} vectors...")
+        
+        tier_transitions = []
+        batch_size = min(50, dataset_size // 10) if dataset_size > 100 else dataset_size
+        
+        for i in range(0, dataset_size, batch_size):
+            # Add batch of vectors
+            for j in range(batch_size):
+                if i + j >= dataset_size:
+                    break
+                    
+                vector_id = f"test_vector_{i + j:06d}"
+                test_vector = np.random.random(1536).astype(np.float32)
+                metadata = {'batch': i // batch_size, 'index': i + j}
+                
+                success = search_engine.add_vector_incremental(vector_id, test_vector, metadata)
+                if not success:
+                    print(f"   ⚠️  Failed to add vector {i + j}")
+            
+            # Check current tier
+            current_tier = search_engine.current_tier_type
+            vector_count = search_engine.vector_count
+            
+            if not tier_transitions or tier_transitions[-1]['tier'] != current_tier:
+                tier_transitions.append({
+                    'vector_count': vector_count,
+                    'tier': current_tier,
+                    'batch': i // batch_size
+                })
+                print(f"   📊 Vectors: {vector_count:>5} → Tier: {current_tier}")
+        
+        # Final validation
+        final_tier = search_engine.current_tier_type
+        final_count = search_engine.vector_count
+        
+        print(f"\n   🎯 Final Results:")
+        print(f"      Added vectors: {final_count}/{dataset_size}")
+        print(f"      Final tier: {final_tier}")
+        print(f"      Expected tier: {expected_tier}")
+        
+        # Tier transition summary
+        print(f"\n   🔀 Tier Transitions:")
+        for i, transition in enumerate(tier_transitions):
+            print(f"      {i+1}. {transition['vector_count']:>5} vectors → {transition['tier']}")
+        
+        # Performance test
+        print(f"\n   ⚡ Performance Test:")
+        test_query = np.random.random(1536).astype(np.float32)
+        
+        start_time = time.time()
+        results = search_engine.search_adaptive(test_query, k=min(10, final_count))
+        search_time_ms = (time.time() - start_time) * 1000
+        
+        print(f"      Search time: {search_time_ms:.2f}ms")
+        print(f"      Results returned: {len(results)}")
+        
+        # Validate tier correctness
+        tier_correct = final_tier == expected_tier
+        
+        # Index integrity validation
+        integrity_results = search_engine.validate_index_integrity()
+        
+        print(f"\n   ✅ Validation Results:")
+        print(f"      Tier correct: {'✅' if tier_correct else '❌'} ({final_tier} vs {expected_tier})")
+        print(f"      Index integrity: {'✅' if integrity_results['status'] == 'healthy' else '⚠️'} ({integrity_results['status']})")
+        print(f"      Search functional: {'✅' if len(results) > 0 or final_count == 0 else '❌'}")
+        
+        # Performance targets
+        performance_targets = {
+            'linear': 1.0,      # <1ms for linear search
+            'faiss_flat': 5.0,  # <5ms for FAISS flat
+            'faiss_ivf': 10.0   # <10ms for FAISS IVF
+        }
+        
+        target_time = performance_targets.get(final_tier, 10.0)
+        performance_ok = search_time_ms < target_time
+        
+        print(f"      Performance: {'✅' if performance_ok else '⚠️'} ({search_time_ms:.2f}ms < {target_time}ms)")
+        
+        if integrity_results['recommendations']:
+            print(f"\n   💡 Recommendations:")
+            for rec in integrity_results['recommendations']:
+                print(f"      • {rec}")
+        
+        # Cleanup
+        search_engine.close()
+        vector_store.close()
+        
+        # Return overall success
+        overall_success = tier_correct and integrity_results['status'] in ['healthy', 'warning'] and performance_ok
+        
+        if overall_success:
+            print(f"\n✅ Tier validation test PASSED for {dataset_size} vectors")
+        else:
+            print(f"\n❌ Tier validation test FAILED for {dataset_size} vectors")
+        
+        return overall_success
+        
+    except Exception as e:
+        print(f"\n❌ Tier validation test ERROR: {e}")
+        return False
+
+
 def main():
     """Main test runner."""
     parser = argparse.ArgumentParser(description="AdaptiveSearchEngine Test Suite")
     parser.add_argument("--benchmark", action="store_true", help="Run performance benchmarks")
     parser.add_argument("--scalability", action="store_true", help="Run scalability tests")
     parser.add_argument("--unit-tests", action="store_true", default=True, help="Run unit tests")
+    parser.add_argument("--size", type=int, help="Test with specific dataset size for tier validation")
     
     args = parser.parse_args()
     
@@ -519,6 +645,11 @@ def main():
     logging.basicConfig(level=logging.WARNING)
     
     success = True
+    
+    # Run tier validation test if specific size requested
+    if args.size:
+        success = run_tier_validation_test(args.size)
+        return 0 if success else 1
     
     # Run unit tests by default
     if args.unit_tests and not (args.benchmark or args.scalability):

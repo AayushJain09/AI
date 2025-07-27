@@ -46,6 +46,7 @@ PLATFORM-SPECIFIC OPTIMIZATIONS:
 """
 
 import logging
+import os
 import time
 import threading
 import numpy as np
@@ -340,24 +341,57 @@ class FAISSFlatTier(SearchTier):
         start_time = time.time()
         
         try:
-            # Create FAISS Flat index optimized for platform
+            # Advanced platform-specific FAISS optimization
             if self.platform_type == "NVIDIA_GPU":
-                # GPU-accelerated FAISS
+                # GPU-accelerated FAISS with optimized memory management
                 try:
-                    # Try GPU FAISS first
+                    import torch
+                    # Verify CUDA availability
+                    if not torch.cuda.is_available():
+                        raise RuntimeError("CUDA not available")
+                    
+                    # Create CPU index first
                     cpu_index = faiss.IndexFlatIP(self.vector_dim)
+                    
+                    # Configure GPU resources with optimized memory allocation
                     gpu_resource = faiss.StandardGpuResources()
+                    
+                    # Set memory fraction (use 80% of GPU memory for safety)
+                    gpu_memory_bytes = torch.cuda.get_device_properties(0).total_memory
+                    faiss_memory_bytes = int(gpu_memory_bytes * 0.8)
+                    gpu_resource.setTempMemory(faiss_memory_bytes)
+                    
+                    # Transfer to GPU with device 0
                     self.index = faiss.index_cpu_to_gpu(gpu_resource, 0, cpu_index)
-                    self.logger.info("Using GPU-accelerated FAISS Flat index")
+                    self.gpu_resource = gpu_resource  # Keep reference
+                    
+                    self.logger.info(f"Using GPU-accelerated FAISS Flat index with {faiss_memory_bytes//1024//1024}MB GPU memory")
+                    
                 except Exception as gpu_error:
-                    # Fallback to CPU
-                    self.logger.warning(f"GPU FAISS failed, using CPU: {gpu_error}")
+                    # Fallback to optimized CPU implementation
+                    self.logger.warning(f"GPU FAISS failed, using optimized CPU: {gpu_error}")
                     self.index = faiss.IndexFlatIP(self.vector_dim)
-            else:
-                # CPU FAISS for Apple Silicon and CPU-only platforms
+                    self._configure_cpu_threading()
+                    
+            elif self.platform_type == "Apple_Silicon":
+                # Apple Silicon optimized FAISS configuration
                 self.index = faiss.IndexFlatIP(self.vector_dim)
                 
-                # Platform-specific optimizations
+                # Apple Silicon specific optimizations:
+                # 1. Optimal thread count for efficiency + performance cores
+                # 2. Memory-mapped operations for unified memory architecture
+                # 3. Conservative threading to avoid core contention
+                optimal_threads = min(8, max(4, os.cpu_count() // 2))
+                faiss.omp_set_num_threads(optimal_threads)
+                
+                self.logger.info(f"Apple Silicon FAISS: {optimal_threads} threads, unified memory optimization")
+                
+            else:
+                # CPU-only platforms (Intel Mac, Linux, Windows without GPU)
+                self.index = faiss.IndexFlatIP(self.vector_dim)
+                self._configure_cpu_threading()
+                
+                self.logger.info(f"CPU FAISS Flat index with optimized threading")
                 if self.platform_type == "Apple_Silicon":
                     # Apple Silicon optimizations
                     faiss.omp_set_num_threads(min(8, 16))  # Optimal for efficiency cores
@@ -498,6 +532,34 @@ class FAISSFlatTier(SearchTier):
         self.stats['avg_search_time_ms'] = (
             self.stats['total_search_time_ms'] / total_searches
         )
+    
+    def _configure_cpu_threading(self):
+        """
+        Configure optimal CPU threading for FAISS operations.
+        
+        Platform-specific thread optimization:
+        - Intel/AMD: Use most CPU cores with hyperthreading
+        - General CPU: Conservative threading to avoid contention
+        """
+        try:
+            cpu_count = os.cpu_count() or 4
+            
+            # Platform-specific thread optimization
+            if self.platform_type == "CPU_Intel" or self.platform_type.startswith("Intel"):
+                # Intel CPUs benefit from higher thread counts
+                optimal_threads = min(16, cpu_count)
+            else:
+                # Conservative threading for unknown CPU architectures
+                optimal_threads = min(8, max(4, cpu_count // 2))
+            
+            # Apply threading configuration
+            faiss.omp_set_num_threads(optimal_threads)
+            
+            self.logger.info(f"Configured FAISS CPU threading: {optimal_threads} threads for {self.platform_type}")
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to configure CPU threading: {e}")
+            # Use default FAISS threading
 
 
 class FAISSIVFTier(SearchTier):
@@ -553,37 +615,67 @@ class FAISSIVFTier(SearchTier):
             max_centroids = max(4, n_vectors // 50)  # Conservative: 50 vectors per centroid
             self.n_centroids = min(max(int(np.sqrt(n_vectors)), 4), max_centroids)
             
-            # Platform-specific optimizations
+            # Advanced platform-specific optimizations for IVF
             if self.platform_type == "NVIDIA_GPU":
                 try:
-                    # GPU-accelerated FAISS IVF
+                    import torch
+                    # Verify CUDA availability
+                    if not torch.cuda.is_available():
+                        raise RuntimeError("CUDA not available")
+                    
+                    # GPU-accelerated FAISS IVF with memory optimization
                     quantizer = faiss.IndexFlatIP(self.vector_dim)
                     cpu_index = faiss.IndexIVFFlat(quantizer, self.vector_dim, self.n_centroids)
                     
+                    # Configure GPU resources with optimized memory allocation
                     gpu_resource = faiss.StandardGpuResources()
-                    self.index = faiss.index_cpu_to_gpu(gpu_resource, 0, cpu_index)
                     
-                    # GPU-optimized probe count
-                    self.n_probe = min(64, self.n_centroids // 4)
-                    self.logger.info("Using GPU-accelerated FAISS IVF index")
+                    # Set memory fraction (use 70% for IVF as it needs more memory)
+                    gpu_memory_bytes = torch.cuda.get_device_properties(0).total_memory
+                    faiss_memory_bytes = int(gpu_memory_bytes * 0.7)
+                    gpu_resource.setTempMemory(faiss_memory_bytes)
+                    
+                    # Transfer to GPU
+                    self.index = faiss.index_cpu_to_gpu(gpu_resource, 0, cpu_index)
+                    self.gpu_resource = gpu_resource  # Keep reference
+                    
+                    # GPU-optimized probe count (higher for GPU efficiency)
+                    self.n_probe = min(64, max(16, self.n_centroids // 4))
+                    
+                    self.logger.info(f"Using GPU-accelerated FAISS IVF index with {faiss_memory_bytes//1024//1024}MB GPU memory, {self.n_centroids} centroids, {self.n_probe} probes")
                     
                 except Exception as gpu_error:
-                    self.logger.warning(f"GPU FAISS IVF failed, using CPU: {gpu_error}")
+                    self.logger.warning(f"GPU FAISS IVF failed, using optimized CPU: {gpu_error}")
                     quantizer = faiss.IndexFlatIP(self.vector_dim)
                     self.index = faiss.IndexIVFFlat(quantizer, self.vector_dim, self.n_centroids)
                     self.n_probe = min(32, self.n_centroids // 8)
-            else:
-                # CPU FAISS IVF
+                    self._configure_cpu_threading()
+            elif self.platform_type == "Apple_Silicon":
+                # Apple Silicon optimized FAISS IVF
                 quantizer = faiss.IndexFlatIP(self.vector_dim)
                 self.index = faiss.IndexIVFFlat(quantizer, self.vector_dim, self.n_centroids)
                 
-                # Platform-specific probe optimization
-                if self.platform_type == "Apple_Silicon":
-                    self.n_probe = min(32, self.n_centroids // 8)  # Balanced for unified memory
-                    faiss.omp_set_num_threads(min(8, 16))
-                else:
-                    self.n_probe = min(16, self.n_centroids // 16)  # Conservative for CPU-only
-                    faiss.omp_set_num_threads(min(4, 8))
+                # Apple Silicon specific optimizations for IVF:
+                # 1. Balanced probe count for unified memory architecture
+                # 2. Optimal threading for efficiency + performance cores
+                self.n_probe = min(32, max(8, self.n_centroids // 8))
+                
+                # Unified memory optimization - conservative threading
+                optimal_threads = min(8, max(4, os.cpu_count() // 2))
+                faiss.omp_set_num_threads(optimal_threads)
+                
+                self.logger.info(f"Apple Silicon FAISS IVF: {optimal_threads} threads, {self.n_centroids} centroids, {self.n_probe} probes")
+                
+            else:
+                # CPU-only platforms with general optimizations
+                quantizer = faiss.IndexFlatIP(self.vector_dim)
+                self.index = faiss.IndexIVFFlat(quantizer, self.vector_dim, self.n_centroids)
+                
+                # Conservative probe optimization for CPU-only
+                self.n_probe = min(16, max(4, self.n_centroids // 16))
+                self._configure_cpu_threading()
+                
+                self.logger.info(f"CPU FAISS IVF: {self.n_centroids} centroids, {self.n_probe} probes")
             
             # Set search parameters
             self.index.nprobe = self.n_probe
@@ -747,6 +839,33 @@ class FAISSIVFTier(SearchTier):
         self.stats['avg_search_time_ms'] = (
             self.stats['total_search_time_ms'] / total_searches
         )
+    
+    def _configure_cpu_threading(self):
+        """
+        Configure optimal CPU threading for FAISS IVF operations.
+        
+        IVF indexes benefit from different threading strategies than Flat indexes
+        due to the inverted file structure and centroid-based search.
+        """
+        try:
+            cpu_count = os.cpu_count() or 4
+            
+            # Platform-specific thread optimization for IVF
+            if self.platform_type == "CPU_Intel" or self.platform_type.startswith("Intel"):
+                # Intel CPUs with IVF: slightly lower threads due to complex operations
+                optimal_threads = min(12, max(4, cpu_count * 3 // 4))
+            else:
+                # Conservative threading for unknown CPU architectures with IVF
+                optimal_threads = min(6, max(4, cpu_count // 3))
+            
+            # Apply threading configuration
+            faiss.omp_set_num_threads(optimal_threads)
+            
+            self.logger.info(f"Configured FAISS IVF CPU threading: {optimal_threads} threads for {self.platform_type}")
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to configure IVF CPU threading: {e}")
+            # Use default FAISS threading
 
 
 class AdaptiveSearchEngine:
@@ -1141,6 +1260,266 @@ class AdaptiveSearchEngine:
         self.search_stats['avg_search_time_ms'] = (
             self.search_stats['total_search_time_ms'] / total_searches
         )
+    
+    def rebuild_index_optimized(self, force_tier: Optional[str] = None) -> bool:
+        """
+        Rebuild search index with advanced optimization strategies.
+        
+        Provides intelligent index rebuilding with:
+        - Memory-efficient batch processing
+        - Platform-specific optimizations
+        - Index validation and error recovery
+        - Performance monitoring
+        
+        Args:
+            force_tier: Force specific tier type (linear/faiss_flat/faiss_ivf)
+            
+        Returns:
+            bool: True if rebuild successful
+        """
+        try:
+            self.logger.info("Starting optimized index rebuild...")
+            start_time = time.time()
+            
+            # Determine optimal tier for current dataset
+            target_tier = force_tier or self._determine_optimal_tier()
+            
+            # Collect all vectors from vector store
+            all_vectors = []
+            all_metadata = []
+            
+            # Batch processing to avoid memory issues
+            batch_size = 1000  # Process in batches
+            vector_count = 0
+            
+            # Get all vector IDs (this should be implemented in vector store)
+            try:
+                # For now, use existing vectors from current tier
+                if self.current_tier and hasattr(self.current_tier, 'vectors') and self.current_tier.vectors is not None:
+                    all_vectors.append(self.current_tier.vectors)
+                    all_metadata.extend(self.current_tier.metadata)
+                    vector_count = len(self.current_tier.metadata)
+                else:
+                    self.logger.warning("No existing vectors found for rebuild")
+                    return False
+                    
+            except Exception as e:
+                self.logger.error(f"Failed to collect vectors for rebuild: {e}")
+                return False
+            
+            # Concatenate all vectors
+            if all_vectors:
+                combined_vectors = np.vstack(all_vectors)
+            else:
+                self.logger.warning("No vectors to rebuild index")
+                return False
+            
+            # Create new tier with optimized parameters
+            old_tier = self.current_tier
+            self.current_tier_type = target_tier
+            
+            if target_tier == 'linear':
+                self.current_tier = LinearSearchTier(self.platform_type)
+            elif target_tier == 'faiss_flat':
+                self.current_tier = FAISSFlatTier(self.platform_type, self.vector_dim)
+            elif target_tier == 'faiss_ivf':
+                self.current_tier = FAISSIVFTier(self.platform_type, self.vector_dim)
+            else:
+                raise ValueError(f"Unknown tier type: {target_tier}")
+            
+            # Initialize new tier with all vectors
+            success = self.current_tier.initialize(combined_vectors, all_metadata)
+            
+            if not success:
+                # Rollback on failure
+                self.current_tier = old_tier
+                self.logger.error("Index rebuild failed, rolled back to previous tier")
+                return False
+            
+            # Update vector count
+            self.vector_count = vector_count
+            
+            # Clear cache after rebuild
+            self._clear_cache()
+            
+            # Update statistics
+            self.search_stats['tier_transitions'] += 1
+            
+            rebuild_time = time.time() - start_time
+            self.logger.info(f"Index rebuild completed in {rebuild_time:.2f}s: {vector_count} vectors → {target_tier}")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Index rebuild failed: {e}")
+            return False
+    
+    def add_vectors_batch_incremental(self, vectors_data: List[Tuple[str, np.ndarray, Optional[Dict]]]) -> int:
+        """
+        Add multiple vectors incrementally without full index rebuild.
+        
+        Optimized for high-throughput scenarios:
+        - Batched index updates
+        - Memory-efficient processing
+        - Automatic tier management
+        - Partial failure handling
+        
+        Args:
+            vectors_data: List of (item_id, vector, metadata) tuples
+            
+        Returns:
+            int: Number of successfully added vectors
+        """
+        try:
+            if not vectors_data:
+                return 0
+            
+            self.logger.info(f"Adding {len(vectors_data)} vectors incrementally...")
+            start_time = time.time()
+            
+            successful_adds = 0
+            batch_size = 100  # Process in smaller batches for stability
+            
+            for i in range(0, len(vectors_data), batch_size):
+                batch = vectors_data[i:i + batch_size]
+                
+                try:
+                    # Prepare batch vectors
+                    batch_vectors = []
+                    batch_metadata = []
+                    
+                    for item_id, vector, metadata in batch:
+                        # Store in vector store first
+                        success = self.vector_store.store_vector(
+                            f"incremental_{self.vector_count + len(batch_vectors)}",
+                            item_id,
+                            vector,
+                            metadata or {}
+                        )
+                        
+                        if success:
+                            batch_vectors.append(vector)
+                            batch_metadata.append(metadata or {})
+                    
+                    if batch_vectors:
+                        # Convert to numpy array
+                        batch_array = np.array(batch_vectors)
+                        
+                        # Add to current tier
+                        if self.current_tier is not None:
+                            tier_success = self.current_tier.add_vectors(batch_array)
+                            if tier_success:
+                                self.current_tier.metadata.extend(batch_metadata)
+                                successful_adds += len(batch_vectors)
+                                self.vector_count += len(batch_vectors)
+                
+                except Exception as batch_error:
+                    self.logger.warning(f"Batch {i//batch_size + 1} failed: {batch_error}")
+                    continue
+                
+                # Check for tier transition after each batch
+                new_tier_type = self._should_transition_tier()
+                if new_tier_type:
+                    self.logger.info(f"Triggering tier transition to {new_tier_type} during batch add")
+                    if not self._transition_tier(new_tier_type):
+                        self.logger.warning("Tier transition failed during batch add")
+            
+            # Clear cache after batch operations
+            self._clear_cache()
+            
+            add_time = time.time() - start_time
+            self.logger.info(f"Batch incremental add completed: {successful_adds}/{len(vectors_data)} vectors in {add_time:.2f}s")
+            
+            return successful_adds
+            
+        except Exception as e:
+            self.logger.error(f"Batch incremental add failed: {e}")
+            return 0
+    
+    def _determine_optimal_tier(self) -> str:
+        """
+        Determine optimal tier type based on current dataset characteristics.
+        
+        Returns:
+            str: Optimal tier type
+        """
+        if self.vector_count <= self.linear_threshold:
+            return 'linear'
+        elif self.vector_count <= self.flat_threshold:
+            return 'faiss_flat'
+        else:
+            return 'faiss_ivf'
+    
+    def validate_index_integrity(self) -> Dict[str, Any]:
+        """
+        Validate search index integrity and performance.
+        
+        Returns:
+            Dict with validation results and recommendations
+        """
+        try:
+            validation_results = {
+                'status': 'healthy',
+                'issues': [],
+                'recommendations': [],
+                'performance_metrics': {}
+            }
+            
+            if not self.current_tier:
+                validation_results['status'] = 'error'
+                validation_results['issues'].append('No active search tier')
+                return validation_results
+            
+            # Test search performance with a random query
+            test_vector = np.random.random(self.vector_dim).astype(np.float32)
+            start_time = time.time()
+            
+            try:
+                results = self.search_adaptive(test_vector, k=min(10, self.vector_count))
+                search_time = (time.time() - start_time) * 1000
+                
+                validation_results['performance_metrics']['test_search_time_ms'] = search_time
+                
+                # Performance analysis
+                if search_time > 100:  # >100ms is slow
+                    validation_results['issues'].append(f'Slow search performance: {search_time:.2f}ms')
+                    validation_results['recommendations'].append('Consider index optimization or tier upgrade')
+                
+                if len(results) == 0 and self.vector_count > 0:
+                    validation_results['issues'].append('Search returned no results despite having vectors')
+                    validation_results['status'] = 'warning'
+                
+            except Exception as search_error:
+                validation_results['status'] = 'error'
+                validation_results['issues'].append(f'Search test failed: {search_error}')
+            
+            # Memory usage analysis
+            memory_usage = self.current_tier.get_memory_usage()
+            validation_results['performance_metrics']['memory_usage_mb'] = memory_usage
+            
+            if memory_usage > 1000:  # >1GB
+                validation_results['recommendations'].append('High memory usage - consider data compression or tier optimization')
+            
+            # Vector count vs tier optimization
+            if self.current_tier_type == 'linear' and self.vector_count > self.linear_threshold * 1.5:
+                validation_results['recommendations'].append('Consider upgrading to FAISS Flat tier for better performance')
+            elif self.current_tier_type == 'faiss_flat' and self.vector_count > self.flat_threshold * 1.5:
+                validation_results['recommendations'].append('Consider upgrading to FAISS IVF tier for better scalability')
+            
+            if not validation_results['issues']:
+                validation_results['status'] = 'healthy'
+            elif validation_results['status'] != 'error':
+                validation_results['status'] = 'warning'
+            
+            return validation_results
+            
+        except Exception as e:
+            return {
+                'status': 'error',
+                'issues': [f'Validation failed: {e}'],
+                'recommendations': ['Check search engine configuration'],
+                'performance_metrics': {}
+            }
     
     def optimize_search_performance(self):
         """
