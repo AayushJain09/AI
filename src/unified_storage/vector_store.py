@@ -284,28 +284,54 @@ class VectorCompressor:
         vector_bytes = vector.tobytes()
         original_size = len(vector_bytes)
         
-        # LZ4 compression with maximum compression level
-        compressed_data = lz4.frame.compress(
+        # Test compression efficiency first with fast mode
+        test_compressed = lz4.frame.compress(
             vector_bytes,
-            compression_level=lz4.frame.COMPRESSIONLEVEL_MAX
+            compression_level=lz4.frame.COMPRESSIONLEVEL_MIN
         )
         
-        compression_time = (time.time() - start_time) * 1000
-        compressed_size = len(compressed_data)
-        compression_ratio = compressed_size / original_size
+        test_ratio = len(test_compressed) / original_size
         
-        # Update statistics
-        self._update_compression_stats(original_size, compressed_size, compression_time, 0)
-        
-        stats = CompressionStats(
-            original_size=original_size,
-            compressed_size=compressed_size,
-            compression_ratio=compression_ratio,
-            compression_time_ms=compression_time,
-            decompression_time_ms=0  # Will be set during decompression
-        )
-        
-        return compressed_data, stats
+        # If compression doesn't provide significant benefit (>10% reduction), skip it
+        if test_ratio > 0.9:
+            # Return uncompressed data - compression overhead not worth it
+            compression_time = (time.time() - start_time) * 1000
+            
+            stats = CompressionStats(
+                original_size=original_size,
+                compressed_size=original_size,  # No compression applied
+                compression_ratio=1.0,  # No compression
+                compression_time_ms=compression_time,
+                decompression_time_ms=0
+            )
+            
+            # Update statistics to reflect no compression
+            self._update_compression_stats(original_size, original_size, compression_time, 0)
+            
+            return vector_bytes, stats
+        else:
+            # Compression provides benefit - use maximum compression
+            compressed_data = lz4.frame.compress(
+                vector_bytes,
+                compression_level=lz4.frame.COMPRESSIONLEVEL_MAX
+            )
+            
+            compression_time = (time.time() - start_time) * 1000
+            compressed_size = len(compressed_data)
+            compression_ratio = compressed_size / original_size
+            
+            # Update statistics
+            self._update_compression_stats(original_size, compressed_size, compression_time, 0)
+            
+            stats = CompressionStats(
+                original_size=original_size,
+                compressed_size=compressed_size,
+                compression_ratio=compression_ratio,
+                compression_time_ms=compression_time,
+                decompression_time_ms=0  # Will be set during decompression
+            )
+            
+            return compressed_data, stats
     
     def decompress_vector(self, compressed_data: bytes, shape: Tuple[int, ...], 
                          dtype: np.dtype = np.float32) -> Tuple[np.ndarray, float]:
@@ -322,17 +348,24 @@ class VectorCompressor:
         """
         start_time = time.time()
         
-        # LZ4 decompression
-        vector_bytes = lz4.frame.decompress(compressed_data)
+        try:
+            # Try LZ4 decompression first
+            vector_bytes = lz4.frame.decompress(compressed_data)
+            was_compressed = True
+        except (RuntimeError, Exception):
+            # Data was not compressed - use directly
+            vector_bytes = compressed_data
+            was_compressed = False
         
         # Convert back to NumPy array
         vector = np.frombuffer(vector_bytes, dtype=dtype).reshape(shape)
         
         decompression_time = (time.time() - start_time) * 1000
         
-        # Update statistics
-        self._update_compression_stats(0, 0, 0, decompression_time)
-        self.compression_stats['total_decompressed'] += 1
+        # Update statistics only if decompression was actually performed
+        if was_compressed:
+            self._update_compression_stats(0, 0, 0, decompression_time)
+            self.compression_stats['total_decompressed'] += 1
         
         return vector, decompression_time
     
@@ -606,14 +639,19 @@ class HighPerformanceVectorStore:
                 compressed_data, compression_stats = self.compressor.compress_vector(vector_data)
                 enhanced_metadata['compression_stats'] = asdict(compression_stats)
                 
+                # Check if compression was actually applied (ratio < 1.0)
+                was_compressed = compression_stats.compression_ratio < 1.0
+                enhanced_metadata['compressed'] = was_compressed
+                
                 # Update compression savings tracking
                 savings_mb = (compression_stats.original_size - compression_stats.compressed_size) / (1024 * 1024)
                 self.performance_stats['total_compression_savings_mb'] += savings_mb
                 
-                # Store compressed data as BLOB
+                # Store the data (might be compressed or uncompressed based on efficiency)
                 storage_data = compressed_data
             else:
                 storage_data = vector_data.tobytes()
+                enhanced_metadata['compressed'] = False
             
             # Create enhanced vector record for SQLite storage
             # Store as a properly shaped uint8 array for SQLite BLOB compatibility
@@ -716,15 +754,26 @@ class HighPerformanceVectorStore:
             
             # Decompress if necessary
             if is_compressed:
-                # Convert uint8 array back to bytes for decompression
-                compressed_data = vector_record.vector_data.tobytes()
+                # SQLite stores compressed data as bytes - decompress directly
+                if isinstance(vector_record.vector_data, np.ndarray):
+                    # Convert numpy array back to bytes for decompression
+                    compressed_data = vector_record.vector_data.tobytes()
+                else:
+                    # Already bytes
+                    compressed_data = vector_record.vector_data
+                    
                 vector_data, decompression_time = self.compressor.decompress_vector(
                     compressed_data, vector_shape, vector_dtype
                 )
+                self.compressor._update_statistics(0, decompression_time)
             else:
-                # Convert bytes back to original vector
-                vector_bytes = vector_record.vector_data.tobytes()
-                vector_data = np.frombuffer(vector_bytes, dtype=vector_dtype).reshape(vector_shape)
+                # SQLite stores uncompressed vectors as raw bytes - restore directly
+                if isinstance(vector_record.vector_data, np.ndarray):
+                    # Already a numpy array, just reshape
+                    vector_data = vector_record.vector_data.reshape(vector_shape)
+                else:
+                    # Convert bytes back to original vector
+                    vector_data = np.frombuffer(vector_record.vector_data, dtype=vector_dtype).reshape(vector_shape)
             
             # Verify integrity if requested and hash available
             if verify_integrity and integrity_hash:
@@ -804,6 +853,10 @@ class HighPerformanceVectorStore:
                     compressed_data, compression_stats = self.compressor.compress_vector(vector_data)
                     enhanced_metadata['compression_stats'] = asdict(compression_stats)
                     
+                    # Check if compression was actually applied
+                    was_compressed = compression_stats.compression_ratio < 1.0
+                    enhanced_metadata['compressed'] = was_compressed
+                    
                     # Update compression savings
                     savings_mb = (compression_stats.original_size - compression_stats.compressed_size) / (1024 * 1024)
                     self.performance_stats['total_compression_savings_mb'] += savings_mb
@@ -811,6 +864,7 @@ class HighPerformanceVectorStore:
                     storage_data = compressed_data
                 else:
                     storage_data = vector_data.tobytes()
+                    enhanced_metadata['compressed'] = False
                 
                 # Create vector record
                 storage_array = np.frombuffer(storage_data, dtype=np.uint8)
