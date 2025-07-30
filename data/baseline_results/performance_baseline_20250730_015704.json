@@ -1,0 +1,812 @@
+{
+  "platform_info": {
+    "platform_type": "Apple_Silicon",
+    "cpu_count": 10,
+    "cpu_freq_mhz": 3504,
+    "total_memory_gb": 16.0,
+    "available_memory_gb": 6.9875640869140625,
+    "python_version": "3.13.5 (v3.13.5:6cb20a219a8, Jun 11 2025, 12:23:45) [Clang 16.0.0 (clang-1600.0.26.6)]",
+    "architecture": "unknown",
+    "gpu_available": true,
+    "gpu_memory_gb": null,
+    "optimization_settings": {
+      "faiss_threads": "unknown",
+      "cache_size_mb": "unknown",
+      "memory_limit": "unknown",
+      "duckdb_memory_limit": "1GB",
+      "duckdb_threads": 6
+    }
+  },
+  "test_timestamp": "2025-07-30T01:57:04.335843",
+  "vector_storage_metrics": [
+    {
+      "operation": "vector_insert_small",
+      "duration_ms": 12.185811996459961,
+      "memory_mb": 450.078125,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vector_count": 100,
+        "vector_dimension": 768,
+        "iteration": 0
+      }
+    },
+    {
+      "operation": "vector_insert_small",
+      "duration_ms": 9.738922119140625,
+      "memory_mb": 450.59375,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vector_count": 100,
+        "vector_dimension": 768,
+        "iteration": 1
+      }
+    },
+    {
+      "operation": "vector_insert_small",
+      "duration_ms": 9.556055068969727,
+      "memory_mb": 450.75,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vector_count": 100,
+        "vector_dimension": 768,
+        "iteration": 2
+      }
+    },
+    {
+      "operation": "vector_insert_medium",
+      "duration_ms": 10.267019271850586,
+      "memory_mb": 451.234375,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vector_count": 100,
+        "vector_dimension": 768,
+        "iteration": 0
+      }
+    },
+    {
+      "operation": "vector_insert_medium",
+      "duration_ms": 9.021997451782227,
+      "memory_mb": 451.75,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vector_count": 100,
+        "vector_dimension": 768,
+        "iteration": 1
+      }
+    },
+    {
+      "operation": "vector_insert_medium",
+      "duration_ms": 9.418964385986328,
+      "memory_mb": 452.265625,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vector_count": 100,
+        "vector_dimension": 768,
+        "iteration": 2
+      }
+    },
+    {
+      "operation": "vector_insert_large",
+      "duration_ms": 10.514974594116211,
+      "memory_mb": 452.734375,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vector_count": 100,
+        "vector_dimension": 1536,
+        "iteration": 0
+      }
+    },
+    {
+      "operation": "vector_insert_large",
+      "duration_ms": 11.053800582885742,
+      "memory_mb": 453.78125,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vector_count": 100,
+        "vector_dimension": 1536,
+        "iteration": 1
+      }
+    },
+    {
+      "operation": "vector_insert_large",
+      "duration_ms": 12.130260467529297,
+      "memory_mb": 454.75,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vector_count": 100,
+        "vector_dimension": 1536,
+        "iteration": 2
+      }
+    },
+    {
+      "operation": "vector_search",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {}
+    },
+    {
+      "operation": "vector_search",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {}
+    },
+    {
+      "operation": "vector_search",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {}
+    }
+  ],
+  "metadata_operation_metrics": [
+    {
+      "operation": "metadata_insert_basic",
+      "duration_ms": 0.308990478515625,
+      "memory_mb": 455.78125,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "complexity": "basic",
+        "metadata_size_bytes": 44,
+        "iteration": 0
+      }
+    },
+    {
+      "operation": "metadata_insert_basic",
+      "duration_ms": 0.2777576446533203,
+      "memory_mb": 455.78125,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "complexity": "basic",
+        "metadata_size_bytes": 44,
+        "iteration": 1
+      }
+    },
+    {
+      "operation": "metadata_insert_basic",
+      "duration_ms": 0.2770423889160156,
+      "memory_mb": 455.78125,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "complexity": "basic",
+        "metadata_size_bytes": 44,
+        "iteration": 2
+      }
+    },
+    {
+      "operation": "metadata_insert_complex",
+      "duration_ms": 0.2830028533935547,
+      "memory_mb": 455.78125,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "complexity": "complex",
+        "metadata_size_bytes": 670,
+        "iteration": 0
+      }
+    },
+    {
+      "operation": "metadata_insert_complex",
+      "duration_ms": 0.2627372741699219,
+      "memory_mb": 455.78125,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "complexity": "complex",
+        "metadata_size_bytes": 670,
+        "iteration": 1
+      }
+    },
+    {
+      "operation": "metadata_insert_complex",
+      "duration_ms": 0.2570152282714844,
+      "memory_mb": 455.78125,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "complexity": "complex",
+        "metadata_size_bytes": 670,
+        "iteration": 2
+      }
+    },
+    {
+      "operation": "metadata_retrieval",
+      "duration_ms": 0.8111000061035156,
+      "memory_mb": 455.78125,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vectors_retrieved": 50,
+        "total_vectors": 1506,
+        "iteration": 0
+      }
+    },
+    {
+      "operation": "metadata_retrieval",
+      "duration_ms": 0.7390975952148438,
+      "memory_mb": 456.34375,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vectors_retrieved": 50,
+        "total_vectors": 1506,
+        "iteration": 1
+      }
+    },
+    {
+      "operation": "metadata_retrieval",
+      "duration_ms": 0.6709098815917969,
+      "memory_mb": 456.640625,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "vectors_retrieved": 50,
+        "total_vectors": 1506,
+        "iteration": 2
+      }
+    }
+  ],
+  "analytics_query_metrics": [
+    {
+      "operation": "analytics_simple_count",
+      "duration_ms": 0.7448196411132812,
+      "memory_mb": 468.859375,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "query_type": "simple_count",
+        "result_rows": 1,
+        "execution_time_reported": 0.7169246673583984,
+        "iteration": 0
+      }
+    },
+    {
+      "operation": "analytics_simple_count",
+      "duration_ms": 0.6358623504638672,
+      "memory_mb": 469.296875,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "query_type": "simple_count",
+        "result_rows": 1,
+        "execution_time_reported": 0.6041526794433594,
+        "iteration": 1
+      }
+    },
+    {
+      "operation": "analytics_simple_count",
+      "duration_ms": 0.5071163177490234,
+      "memory_mb": 469.3125,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "query_type": "simple_count",
+        "result_rows": 1,
+        "execution_time_reported": 0.4858970642089844,
+        "iteration": 2
+      }
+    },
+    {
+      "operation": "analytics_aggregation",
+      "duration_ms": 3.693819046020508,
+      "memory_mb": 469.3125,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "query_type": "aggregation",
+        "result_rows": 1,
+        "execution_time_reported": 3.673076629638672,
+        "iteration": 0
+      }
+    },
+    {
+      "operation": "analytics_aggregation",
+      "duration_ms": 0.7600784301757812,
+      "memory_mb": 469.546875,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "query_type": "aggregation",
+        "result_rows": 1,
+        "execution_time_reported": 0.7350444793701172,
+        "iteration": 1
+      }
+    },
+    {
+      "operation": "analytics_aggregation",
+      "duration_ms": 0.6611347198486328,
+      "memory_mb": 469.546875,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "query_type": "aggregation",
+        "result_rows": 1,
+        "execution_time_reported": 0.6399154663085938,
+        "iteration": 2
+      }
+    },
+    {
+      "operation": "analytics_time_series",
+      "duration_ms": 3.1769275665283203,
+      "memory_mb": 469.734375,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "query_type": "time_series",
+        "result_rows": 1,
+        "execution_time_reported": 3.1468868255615234,
+        "iteration": 0
+      }
+    },
+    {
+      "operation": "analytics_time_series",
+      "duration_ms": 0.7669925689697266,
+      "memory_mb": 469.90625,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "query_type": "time_series",
+        "result_rows": 1,
+        "execution_time_reported": 0.7429122924804688,
+        "iteration": 1
+      }
+    },
+    {
+      "operation": "analytics_time_series",
+      "duration_ms": 0.7622241973876953,
+      "memory_mb": 469.90625,
+      "cpu_percent": 111.9,
+      "success": true,
+      "error_message": null,
+      "metadata": {
+        "query_type": "time_series",
+        "result_rows": 1,
+        "execution_time_reported": 0.7379055023193359,
+        "iteration": 2
+      }
+    }
+  ],
+  "recognition_pipeline_metrics": [
+    {
+      "operation": "recognition_pipeline",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {}
+    },
+    {
+      "operation": "recognition_pipeline",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {}
+    },
+    {
+      "operation": "recognition_pipeline",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {}
+    }
+  ],
+  "concurrency_test_metrics": [
+    {
+      "operation": "concurrent_operation",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {
+        "thread_id": 0
+      }
+    },
+    {
+      "operation": "concurrent_operation",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {
+        "thread_id": 3
+      }
+    },
+    {
+      "operation": "concurrent_operation",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {
+        "thread_id": 1
+      }
+    },
+    {
+      "operation": "concurrent_operation",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {
+        "thread_id": 2
+      }
+    },
+    {
+      "operation": "concurrent_operation",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {
+        "thread_id": 1
+      }
+    },
+    {
+      "operation": "concurrent_operation",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {
+        "thread_id": 3
+      }
+    },
+    {
+      "operation": "concurrent_operation",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {
+        "thread_id": 2
+      }
+    },
+    {
+      "operation": "concurrent_operation",
+      "duration_ms": 0.0,
+      "memory_mb": 0.0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+      "metadata": {
+        "thread_id": 0
+      }
+    }
+  ],
+  "memory_usage_profile": {
+    "system_total_gb": 16.0,
+    "system_available_gb": 6.9395904541015625,
+    "system_used_percent": 56.6,
+    "process_rss_mb": 469.40625,
+    "process_vms_mb": 402073.296875,
+    "peak_usage_from_profiler": {
+      "peak_memory_mb": 470.109375,
+      "peak_cpu_percent": 145.6,
+      "avg_memory_mb": 461.3640422077922,
+      "avg_cpu_percent": 103.51558441558441
+    }
+  },
+  "system_resource_usage": {
+    "cpu_usage_percent": 0.6,
+    "cpu_count_logical": 10,
+    "cpu_count_physical": 10,
+    "memory_info": {
+      "total": 17179869184,
+      "available": 7450722304,
+      "percent": 56.6,
+      "used": 8124956672,
+      "free": 70598656,
+      "active": 6613368832,
+      "inactive": 7280967680,
+      "wired": 1511587840
+    },
+    "disk_usage": {
+      "total": 494384795648,
+      "used": 336660467712,
+      "free": 138137968640,
+      "percent": 70.9
+    },
+    "load_average": [
+      1.30029296875,
+      1.59130859375,
+      1.56005859375
+    ],
+    "boot_time": 1753811840.0,
+    "python_memory_mb": 469.421875
+  },
+  "performance_summary": {
+    "vector_insert_small": {
+      "total_runs": 3,
+      "successful_runs": 3,
+      "success_rate_percent": 100.0,
+      "duration_stats": {
+        "mean_ms": 10.493596394856771,
+        "median_ms": 9.738922119140625,
+        "std_dev_ms": 1.4683512254367095,
+        "min_ms": 9.556055068969727,
+        "max_ms": 12.185811996459961,
+        "p95_ms": 12.185811996459961
+      },
+      "memory_stats": {
+        "mean_mb": 450.4739583333333,
+        "peak_mb": 450.75
+      },
+      "cpu_stats": {
+        "mean_percent": 111.9,
+        "peak_percent": 111.9
+      }
+    },
+    "vector_insert_medium": {
+      "total_runs": 3,
+      "successful_runs": 3,
+      "success_rate_percent": 100.0,
+      "duration_stats": {
+        "mean_ms": 9.569327036539713,
+        "median_ms": 9.418964385986328,
+        "std_dev_ms": 0.6359846917361001,
+        "min_ms": 9.021997451782227,
+        "max_ms": 10.267019271850586,
+        "p95_ms": 10.267019271850586
+      },
+      "memory_stats": {
+        "mean_mb": 451.75,
+        "peak_mb": 452.265625
+      },
+      "cpu_stats": {
+        "mean_percent": 111.9,
+        "peak_percent": 111.9
+      }
+    },
+    "vector_insert_large": {
+      "total_runs": 3,
+      "successful_runs": 3,
+      "success_rate_percent": 100.0,
+      "duration_stats": {
+        "mean_ms": 11.233011881510416,
+        "median_ms": 11.053800582885742,
+        "std_dev_ms": 0.8224199841796317,
+        "min_ms": 10.514974594116211,
+        "max_ms": 12.130260467529297,
+        "p95_ms": 12.130260467529297
+      },
+      "memory_stats": {
+        "mean_mb": 453.7552083333333,
+        "peak_mb": 454.75
+      },
+      "cpu_stats": {
+        "mean_percent": 111.9,
+        "peak_percent": 111.9
+      }
+    },
+    "vector_search": {
+      "total_runs": 3,
+      "successful_runs": 0,
+      "success_rate_percent": 0.0,
+      "errors": [
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'"
+      ]
+    },
+    "metadata_insert_basic": {
+      "total_runs": 3,
+      "successful_runs": 3,
+      "success_rate_percent": 100.0,
+      "duration_stats": {
+        "mean_ms": 0.287930170694987,
+        "median_ms": 0.2777576446533203,
+        "std_dev_ms": 0.018242267452744383,
+        "min_ms": 0.2770423889160156,
+        "max_ms": 0.308990478515625,
+        "p95_ms": 0.308990478515625
+      },
+      "memory_stats": {
+        "mean_mb": 455.78125,
+        "peak_mb": 455.78125
+      },
+      "cpu_stats": {
+        "mean_percent": 111.9,
+        "peak_percent": 111.9
+      }
+    },
+    "metadata_insert_complex": {
+      "total_runs": 3,
+      "successful_runs": 3,
+      "success_rate_percent": 100.0,
+      "duration_stats": {
+        "mean_ms": 0.2675851186116536,
+        "median_ms": 0.2627372741699219,
+        "std_dev_ms": 0.01365523202548156,
+        "min_ms": 0.2570152282714844,
+        "max_ms": 0.2830028533935547,
+        "p95_ms": 0.2830028533935547
+      },
+      "memory_stats": {
+        "mean_mb": 455.78125,
+        "peak_mb": 455.78125
+      },
+      "cpu_stats": {
+        "mean_percent": 111.9,
+        "peak_percent": 111.9
+      }
+    },
+    "metadata_retrieval": {
+      "total_runs": 3,
+      "successful_runs": 3,
+      "success_rate_percent": 100.0,
+      "duration_stats": {
+        "mean_ms": 0.7403691609700521,
+        "median_ms": 0.7390975952148438,
+        "std_dev_ms": 0.07010371182936867,
+        "min_ms": 0.6709098815917969,
+        "max_ms": 0.8111000061035156,
+        "p95_ms": 0.8111000061035156
+      },
+      "memory_stats": {
+        "mean_mb": 456.2552083333333,
+        "peak_mb": 456.640625
+      },
+      "cpu_stats": {
+        "mean_percent": 111.9,
+        "peak_percent": 111.9
+      }
+    },
+    "analytics_simple_count": {
+      "total_runs": 3,
+      "successful_runs": 3,
+      "success_rate_percent": 100.0,
+      "duration_stats": {
+        "mean_ms": 0.629266103108724,
+        "median_ms": 0.6358623504638672,
+        "std_dev_ms": 0.11898886647069508,
+        "min_ms": 0.5071163177490234,
+        "max_ms": 0.7448196411132812,
+        "p95_ms": 0.7448196411132812
+      },
+      "memory_stats": {
+        "mean_mb": 469.15625,
+        "peak_mb": 469.3125
+      },
+      "cpu_stats": {
+        "mean_percent": 111.9,
+        "peak_percent": 111.9
+      }
+    },
+    "analytics_aggregation": {
+      "total_runs": 3,
+      "successful_runs": 3,
+      "success_rate_percent": 100.0,
+      "duration_stats": {
+        "mean_ms": 1.7050107320149739,
+        "median_ms": 0.7600784301757812,
+        "std_dev_ms": 1.7230688746670797,
+        "min_ms": 0.6611347198486328,
+        "max_ms": 3.693819046020508,
+        "p95_ms": 3.693819046020508
+      },
+      "memory_stats": {
+        "mean_mb": 469.46875,
+        "peak_mb": 469.546875
+      },
+      "cpu_stats": {
+        "mean_percent": 111.9,
+        "peak_percent": 111.9
+      }
+    },
+    "analytics_time_series": {
+      "total_runs": 3,
+      "successful_runs": 3,
+      "success_rate_percent": 100.0,
+      "duration_stats": {
+        "mean_ms": 1.5687147776285808,
+        "median_ms": 0.7669925689697266,
+        "std_dev_ms": 1.392755170562075,
+        "min_ms": 0.7622241973876953,
+        "max_ms": 3.1769275665283203,
+        "p95_ms": 3.1769275665283203
+      },
+      "memory_stats": {
+        "mean_mb": 469.8489583333333,
+        "peak_mb": 469.90625
+      },
+      "cpu_stats": {
+        "mean_percent": 111.9,
+        "peak_percent": 111.9
+      }
+    },
+    "recognition_pipeline": {
+      "total_runs": 3,
+      "successful_runs": 0,
+      "success_rate_percent": 0.0,
+      "errors": [
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'"
+      ]
+    },
+    "concurrent_operation": {
+      "total_runs": 8,
+      "successful_runs": 0,
+      "success_rate_percent": 0.0,
+      "errors": [
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'",
+        "'SQLiteVectorStore' object has no attribute 'search_similar_vectors'"
+      ]
+    }
+  },
+  "recommendations": [
+    "\u2705 Apple Silicon detected - unified memory architecture optimized",
+    "\ud83d\udca1 Consider increasing batch sizes for vector operations",
+    "\u26a0\ufe0f Limited memory available - reduce cache sizes",
+    "\u26a0\ufe0f vector_search has low success rate: 0.0%",
+    "\u26a0\ufe0f recognition_pipeline has low success rate: 0.0%",
+    "\u26a0\ufe0f concurrent_operation has low success rate: 0.0%",
+    "\ud83d\udcca Monitor performance metrics regularly",
+    "\ud83d\udd04 Run baseline periodically to detect performance regression",
+    "\u26a1 Consider enabling query result caching for analytics",
+    "\ud83d\udcc8 Scale resources based on actual usage patterns"
+  ]
+}

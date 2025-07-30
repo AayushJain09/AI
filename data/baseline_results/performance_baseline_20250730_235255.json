@@ -1,0 +1,71 @@
+{
+  "platform_type": "Apple_Silicon",
+  "hardware_profile": {
+    "platform_type": "Apple_Silicon",
+    "python_version": "3.13.5 (v3.13.5:6cb20a219a8, Jun 11 2025, 12:23:45) [Clang 16.0.0 (clang-1600.0.26.6)]",
+    "timestamp": "2025-07-30T23:52:55.374876",
+    "cpu": {
+      "cpu_count_logical": 10,
+      "cpu_count_physical": 10,
+      "cpu_freq_current": 3504,
+      "cpu_freq_max": 3504
+    },
+    "memory": {
+      "total_gb": 16.0,
+      "available_gb": 7.1717071533203125,
+      "percent_used": 55.2,
+      "page_size": 4096
+    },
+    "disk": {
+      "total_gb": 460.4317207336426,
+      "free_gb": 131.35962677001953,
+      "used_percent": 2.2756001307148033
+    },
+    "config": {
+      "faiss_threads": 8,
+      "cache_size_mb": 128,
+      "batch_size": 8,
+      "memory_limit_mb": "1GB"
+    }
+  },
+  "recognition_avg_ms": 7012.799382209778,
+  "recognition_p95_ms": 7099.559783935547,
+  "recognition_p99_ms": 10649.33967590332,
+  "recognition_throughput_ops_sec": 0.14259640772511215,
+  "peak_memory_mb": 29.421875,
+  "avg_memory_mb": 17.1875,
+  "memory_efficiency_ratio": 0.5841741901221456,
+  "cpu_utilization_percent": 80.0,
+  "gpu_utilization_percent": null,
+  "avg_confidence_score": 0.85,
+  "success_rate_percent": 100.0,
+  "error_rate_percent": 0.0,
+  "indexing_avg_ms": 200.0,
+  "search_avg_ms": 50.0,
+  "performance_trend_7d": [
+    150.0,
+    155.0,
+    160.0,
+    165.0,
+    170.0,
+    175.0,
+    180.0
+  ],
+  "error_trend_7d": [
+    2.0,
+    2.5,
+    3.0,
+    3.5,
+    4.0,
+    4.5,
+    5.0
+  ],
+  "created_at": "2025-07-30T23:52:55.388784",
+  "sample_size": 2,
+  "confidence_interval": 0.95,
+  "data_sources": [
+    "historical_logs",
+    "system_benchmarks",
+    "hardware_profile"
+  ]
+}

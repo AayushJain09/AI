@@ -1,0 +1,188 @@
+2025-07-31 00:14:14,505 - __main__ - INFO - [execute_migration:595] - 🚀 Starting migration orchestration...
+2025-07-31 00:14:14,505 - __main__ - INFO - [execute_migration:600] - 📊 Phase 1: Pre-migration Analysis
+2025-07-31 00:14:14,505 - __main__ - INFO - [analyze_legacy_data:256] - 🔍 Analyzing legacy data structure...
+2025-07-31 00:14:14,505 - unified_storage.unified_store.UnifiedStore - INFO - [_setup_logging:203] - Logging initialized for unified storage
+2025-07-31 00:14:14,505 - unified_storage.unified_store - INFO - [__init__:152] - 🚀 Initializing Unified Storage System...
+2025-07-31 00:14:14,505 - unified_storage.platform_detector - INFO - [_initialize_detection:124] - Initializing platform detection...
+2025-07-31 00:14:14,528 - unified_storage.platform_detector - INFO - [_detect_os_info:225] - Detected Apple Silicon Mac (arm64)
+2025-07-31 00:14:14,543 - unified_storage.platform_detector - INFO - [_detect_gpu_capabilities:348] - Apple Silicon MPS detected
+2025-07-31 00:14:14,543 - unified_storage.platform_detector - INFO - [_initialize_detection:126] - Platform detected: Apple_Silicon
+2025-07-31 00:14:14,544 - unified_storage.config_manager - INFO - [__init__:154] - ConfigManager initialized with data_dir: data
+2025-07-31 00:14:14,544 - unified_storage.config_manager - INFO - [_build_optimized_config:164] - Building platform-optimized configuration...
+2025-07-31 00:14:14,550 - unified_storage.config_manager - INFO - [_load_user_config:200] - Loaded user configuration from config.yaml
+2025-07-31 00:14:14,550 - unified_storage.config_manager - INFO - [_build_optimized_config:189] - Configuration built for platform: Apple_Silicon
+2025-07-31 00:14:14,550 - unified_storage.unified_store - INFO - [__init__:158] - 📊 Platform: Apple_Silicon
+2025-07-31 00:14:14,550 - unified_storage.unified_store - INFO - [__init__:159] - ⚡ Device: mps
+2025-07-31 00:14:14,550 - unified_storage.unified_store - INFO - [__init__:160] - 🧠 Memory: 16.0GB
+2025-07-31 00:14:14,550 - unified_storage.unified_store - INFO - [__init__:161] - 🔧 Optimization: cpu_optimized FAISS
+2025-07-31 00:14:14,550 - unified_storage.unified_store - INFO - [_initialize_feature_extractor:212] - 🔧 Initializing cross-platform feature extractor...
+2025-07-31 00:14:14,550 - unified_storage.unified_store - INFO - [_initialize_feature_extractor:227] - 📈 Optimal extraction config: batch_size=8, memory_limit=8.0GB
+2025-07-31 00:14:14,550 - unified_storage.platform_detector - INFO - [_initialize_detection:124] - Initializing platform detection...
+2025-07-31 00:14:14,570 - unified_storage.platform_detector - INFO - [_detect_os_info:225] - Detected Apple Silicon Mac (arm64)
+2025-07-31 00:14:14,571 - unified_storage.platform_detector - INFO - [_detect_gpu_capabilities:348] - Apple Silicon MPS detected
+2025-07-31 00:14:14,571 - unified_storage.platform_detector - INFO - [_initialize_detection:126] - Platform detected: Apple_Silicon
+2025-07-31 00:14:14,571 - unified_storage.cross_platform_extractor - INFO - [_determine_platform_optimizations:194] - 🎯 Platform optimizations for Apple_Silicon: {'device_preference': 'mps', 'batch_size_multiplier': 1.0, 'memory_pressure_management': True, 'compile_mode': 'default', 'thread_count': 2, 'unified_memory_optimization': True, 'max_memory_gb': 8.0, 'cache_size_mb': 1024}
+2025-07-31 00:14:14,571 - unified_storage.cross_platform_extractor - INFO - [__init__:138] - 🔧 Platform optimizer initialized for Apple_Silicon
+2025-07-31 00:14:14,571 - unified_storage.cross_platform_extractor - INFO - [optimize_batch_size:222] - 📊 Batch size optimization: 8 → 8 (memory limit: 10783, platform factor: 1.0)
+2025-07-31 00:14:14,571 - unified_storage.cross_platform_extractor - INFO - [_apply_platform_overrides:355] - 🔧 Applied platform overrides: batch_size=8, memory_limit=8.0GB
+2025-07-31 00:14:14,571 - unified_storage.cross_platform_extractor - INFO - [get_device_configuration:272] - 🍎 Using Apple Metal Performance Shaders (MPS) with unified memory
+2025-07-31 00:14:14,571 - unified_storage.cross_platform_extractor - INFO - [__init__:1218] - 🔍 Memory monitor initialized: 8.0GB limit, device: mps, GPU monitoring: True
+2025-07-31 00:14:14,571 - unified_storage.cross_platform_extractor - INFO - [_initialize_models:371] - 🚀 Loading CLIP model (ViT-L/14)...
+2025-07-31 00:14:19,247 - unified_storage.cross_platform_extractor - INFO - [_initialize_clip_model:422] - 🔧 CLIP model using mixed precision (FP16)
+2025-07-31 00:14:19,350 - unified_storage.cross_platform_extractor - INFO - [_initialize_clip_model:434] - ✓ CLIP model loaded: 768 dimensions
+2025-07-31 00:14:19,350 - unified_storage.cross_platform_extractor - INFO - [_initialize_models:375] - 🔥 Loading DINOv2 model (dinov2_vitb14)...
+2025-07-31 00:14:20,387 - dinov2 - INFO - [__init__:123] - using MLP layer as FFN
+2025-07-31 00:14:21,726 - unified_storage.cross_platform_extractor - INFO - [_initialize_dinov2_model:456] - 🔧 DINOv2 model using mixed precision (FP16)
+2025-07-31 00:14:21,777 - unified_storage.cross_platform_extractor - INFO - [_initialize_dinov2_model:467] - ✓ DINOv2 model loaded: 768 dimensions
+2025-07-31 00:14:21,778 - unified_storage.cross_platform_extractor - INFO - [_compile_models:521] - 🍎 Using compatible MPS compilation (aot_eager + default)
+2025-07-31 00:14:21,778 - unified_storage.cross_platform_extractor - INFO - [_compile_models:539] - 🔧 Compiling CLIP model...
+2025-07-31 00:14:21,854 - unified_storage.cross_platform_extractor - INFO - [_compile_models:547] - ✓ CLIP model compiled successfully
+2025-07-31 00:14:21,854 - unified_storage.cross_platform_extractor - INFO - [_compile_models:551] - 🔧 Compiling DINOv2 model...
+2025-07-31 00:14:21,854 - unified_storage.cross_platform_extractor - INFO - [_compile_models:557] - ✓ DINOv2 model compiled successfully
+2025-07-31 00:14:21,854 - unified_storage.cross_platform_extractor - INFO - [_compile_models:560] - ✅ 2 models compiled in 76.7ms (mode: default, backend: aot_eager)
+2025-07-31 00:14:21,854 - unified_storage.cross_platform_extractor - INFO - [_warmup_compiled_models:583] - 🔥 Warming up compiled models...
+2025-07-31 00:14:22,891 - unified_storage.cross_platform_extractor - INFO - [_warmup_compiled_models:603] - ✓ CLIP model warmed up
+2025-07-31 00:14:23,888 - unified_storage.cross_platform_extractor - INFO - [_warmup_compiled_models:611] - ✓ DINOv2 model warmed up
+2025-07-31 00:14:23,888 - unified_storage.cross_platform_extractor - INFO - [_warmup_compiled_models:616] - 🔥 Model warmup completed in 2034.0ms
+2025-07-31 00:14:23,888 - unified_storage.cross_platform_extractor - INFO - [_setup_preprocessing:642] - 🔧 Preprocessing configured for 224x224 images
+2025-07-31 00:14:23,888 - unified_storage.cross_platform_extractor - INFO - [_initialize_models:388] - ✅ Models initialized and optimized in 9316.9ms
+2025-07-31 00:14:23,888 - unified_storage.cross_platform_extractor - INFO - [__init__:332] - ✅ CrossPlatformFeatureExtractor initialized for Apple_Silicon
+2025-07-31 00:14:23,888 - unified_storage.unified_store - INFO - [_initialize_feature_extractor:236] - ✅ Feature extractor initialized successfully
+2025-07-31 00:14:23,888 - unified_storage.unified_store - INFO - [_initialize_storage_backends:249] - 💾 Initializing storage backends...
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA cache_size = -150000
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA mmap_size = 536870912
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA journal_mode = WAL
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA synchronous = NORMAL
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA temp_store = MEMORY
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA page_size = 4096
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA foreign_keys = ON
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (image_id)
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (image_id)
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (item_category)
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (recognition_status)
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (operation_type)
+2025-07-31 00:14:23,891 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (timestamp)
+2025-07-31 00:14:23,891 - unified_storage.unified_store - INFO - [_initialize_sqlite_storage:310] - 📊 SQLite initialized: data/recognition.db
+2025-07-31 00:14:23,891 - unified_storage.unified_store - INFO - [_initialize_sqlite_storage:311] - 🔧 Cache: 150000KB, Memory mapping: 512MB
+2025-07-31 00:14:23,954 - unified_storage.unified_store - ERROR - [_initialize_analytics_storage:422] - ❌ Failed to initialize DuckDB: Invalid Input Error: Could not set option "enable_progress_bar" as a global option
+2025-07-31 00:14:23,954 - unified_storage.unified_store - INFO - [_initialize_storage_backends:259] - ✅ Storage backends initialized successfully
+2025-07-31 00:14:23,954 - unified_storage.unified_store - INFO - [_initialize_search_engine:467] - 🔍 Initializing FAISS search engine...
+2025-07-31 00:14:23,954 - unified_storage.unified_store - INFO - [_initialize_search_engine:494] - 🔧 Initializing CPU FAISS index (10 threads)
+2025-07-31 00:14:23,956 - unified_storage.unified_store - INFO - [_initialize_search_engine:502] - ✅ FAISS search engine initialized (1536D vectors)
+2025-07-31 00:14:23,956 - unified_storage.unified_store - INFO - [__init__:177] - ✅ Unified Storage System initialized successfully
+2025-07-31 00:14:23,956 - migrate_metadata - INFO - [_validate_inputs:122] - ✅ Validation passed for data/raw
+2025-07-31 00:14:23,956 - migrate_metadata - INFO - [discover_directory_structure:154] - 🔍 Analyzing legacy directory structure...
+2025-07-31 00:14:23,961 - migrate_metadata - INFO - [discover_directory_structure:239] - 📊 Directory Structure Analysis:
+2025-07-31 00:14:23,961 - migrate_metadata - INFO - [discover_directory_structure:240] -    Total directories: 27
+2025-07-31 00:14:23,961 - migrate_metadata - INFO - [discover_directory_structure:241] -    Total files: 122
+2025-07-31 00:14:23,961 - migrate_metadata - INFO - [discover_directory_structure:242] -    Image files: 120
+2025-07-31 00:14:23,961 - migrate_metadata - INFO - [discover_directory_structure:243] -    Item directories: 26
+2025-07-31 00:14:23,961 - migrate_metadata - INFO - [discover_directory_structure:244] -    Categories: 0
+2025-07-31 00:14:23,961 - migrate_metadata - INFO - [discover_directory_structure:245] -    File extensions: {'': 1, '.jpg': 120, '.json': 1}
+2025-07-31 00:14:23,961 - migrate_metadata - INFO - [discover_directory_structure:246] -    Organization patterns: ['item_based_directories', 'jpeg_images']
+2025-07-31 00:14:23,961 - unified_storage.unified_store - INFO - [close:1158] - 🔒 Closing unified storage system...
+2025-07-31 00:14:24,049 - unified_storage.cross_platform_extractor - INFO - [close:1178] - ✅ CrossPlatformFeatureExtractor resources cleaned up
+2025-07-31 00:14:24,049 - unified_storage.unified_store - INFO - [close:1164] - ✅ Feature extractor closed
+2025-07-31 00:14:24,050 - unified_storage.unified_store - INFO - [close:1169] - ✅ SQLite connection closed
+2025-07-31 00:14:24,050 - unified_storage.unified_store - INFO - [close:1178] - ✅ FAISS index cleared
+2025-07-31 00:14:24,050 - unified_storage.unified_store - INFO - [close:1181] - ✅ Unified storage system closed successfully
+2025-07-31 00:14:24,050 - __main__ - INFO - [analyze_legacy_data:315] - 📊 Legacy Data Analysis:
+2025-07-31 00:14:24,050 - __main__ - INFO - [analyze_legacy_data:321] -    Metadata: 122 files
+2025-07-31 00:14:24,050 - __main__ - INFO - [analyze_legacy_data:322] -    Estimated time: 6.1s
+2025-07-31 00:14:24,050 - __main__ - INFO - [execute_migration:604] - 💾 Phase 2: Backup Creation
+2025-07-31 00:14:24,050 - __main__ - INFO - [create_backup:224] - 💾 Creating data backup...
+2025-07-31 00:14:27,429 - __main__ - INFO - [create_backup:243] - ✅ Backup created: data_backup_1753901054 (1697.2MB)
+2025-07-31 00:14:27,429 - __main__ - INFO - [execute_migration:609] - 🔧 Phase 3: Initialize Unified Storage
+2025-07-31 00:14:27,429 - unified_storage.unified_store.UnifiedStore - INFO - [_setup_logging:203] - Logging initialized for unified storage
+2025-07-31 00:14:27,429 - unified_storage.unified_store - INFO - [__init__:152] - 🚀 Initializing Unified Storage System...
+2025-07-31 00:14:27,429 - unified_storage.platform_detector - INFO - [_initialize_detection:124] - Initializing platform detection...
+2025-07-31 00:14:27,486 - unified_storage.platform_detector - INFO - [_detect_os_info:225] - Detected Apple Silicon Mac (arm64)
+2025-07-31 00:14:27,487 - unified_storage.platform_detector - INFO - [_detect_gpu_capabilities:348] - Apple Silicon MPS detected
+2025-07-31 00:14:27,487 - unified_storage.platform_detector - INFO - [_initialize_detection:126] - Platform detected: Apple_Silicon
+2025-07-31 00:14:27,487 - unified_storage.config_manager - INFO - [__init__:154] - ConfigManager initialized with data_dir: data
+2025-07-31 00:14:27,487 - unified_storage.config_manager - INFO - [_build_optimized_config:164] - Building platform-optimized configuration...
+2025-07-31 00:14:27,493 - unified_storage.config_manager - INFO - [_load_user_config:200] - Loaded user configuration from config.yaml
+2025-07-31 00:14:27,493 - unified_storage.config_manager - INFO - [_build_optimized_config:189] - Configuration built for platform: Apple_Silicon
+2025-07-31 00:14:27,493 - unified_storage.unified_store - INFO - [__init__:158] - 📊 Platform: Apple_Silicon
+2025-07-31 00:14:27,493 - unified_storage.unified_store - INFO - [__init__:159] - ⚡ Device: mps
+2025-07-31 00:14:27,493 - unified_storage.unified_store - INFO - [__init__:160] - 🧠 Memory: 16.0GB
+2025-07-31 00:14:27,493 - unified_storage.unified_store - INFO - [__init__:161] - 🔧 Optimization: cpu_optimized FAISS
+2025-07-31 00:14:27,493 - unified_storage.unified_store - INFO - [_initialize_feature_extractor:212] - 🔧 Initializing cross-platform feature extractor...
+2025-07-31 00:14:27,494 - unified_storage.unified_store - INFO - [_initialize_feature_extractor:227] - 📈 Optimal extraction config: batch_size=8, memory_limit=8.0GB
+2025-07-31 00:14:27,494 - unified_storage.platform_detector - INFO - [_initialize_detection:124] - Initializing platform detection...
+2025-07-31 00:14:27,542 - unified_storage.platform_detector - INFO - [_detect_os_info:225] - Detected Apple Silicon Mac (arm64)
+2025-07-31 00:14:27,543 - unified_storage.platform_detector - INFO - [_detect_gpu_capabilities:348] - Apple Silicon MPS detected
+2025-07-31 00:14:27,543 - unified_storage.platform_detector - INFO - [_initialize_detection:126] - Platform detected: Apple_Silicon
+2025-07-31 00:14:27,543 - unified_storage.cross_platform_extractor - INFO - [_determine_platform_optimizations:194] - 🎯 Platform optimizations for Apple_Silicon: {'device_preference': 'mps', 'batch_size_multiplier': 1.0, 'memory_pressure_management': True, 'compile_mode': 'default', 'thread_count': 2, 'unified_memory_optimization': True, 'max_memory_gb': 8.0, 'cache_size_mb': 1024}
+2025-07-31 00:14:27,543 - unified_storage.cross_platform_extractor - INFO - [__init__:138] - 🔧 Platform optimizer initialized for Apple_Silicon
+2025-07-31 00:14:27,543 - unified_storage.cross_platform_extractor - INFO - [optimize_batch_size:222] - 📊 Batch size optimization: 8 → 8 (memory limit: 10783, platform factor: 1.0)
+2025-07-31 00:14:27,543 - unified_storage.cross_platform_extractor - INFO - [_apply_platform_overrides:355] - 🔧 Applied platform overrides: batch_size=8, memory_limit=8.0GB
+2025-07-31 00:14:27,543 - unified_storage.cross_platform_extractor - INFO - [get_device_configuration:272] - 🍎 Using Apple Metal Performance Shaders (MPS) with unified memory
+2025-07-31 00:14:27,543 - unified_storage.cross_platform_extractor - INFO - [__init__:1218] - 🔍 Memory monitor initialized: 8.0GB limit, device: mps, GPU monitoring: True
+2025-07-31 00:14:27,543 - unified_storage.cross_platform_extractor - INFO - [_initialize_models:371] - 🚀 Loading CLIP model (ViT-L/14)...
+2025-07-31 00:14:32,937 - unified_storage.cross_platform_extractor - INFO - [_initialize_clip_model:422] - 🔧 CLIP model using mixed precision (FP16)
+2025-07-31 00:14:32,968 - unified_storage.cross_platform_extractor - INFO - [_initialize_clip_model:434] - ✓ CLIP model loaded: 768 dimensions
+2025-07-31 00:14:32,968 - unified_storage.cross_platform_extractor - INFO - [_initialize_models:375] - 🔥 Loading DINOv2 model (dinov2_vitb14)...
+2025-07-31 00:14:33,084 - dinov2 - INFO - [__init__:123] - using MLP layer as FFN
+2025-07-31 00:14:34,423 - unified_storage.cross_platform_extractor - INFO - [_initialize_dinov2_model:456] - 🔧 DINOv2 model using mixed precision (FP16)
+2025-07-31 00:14:34,436 - unified_storage.cross_platform_extractor - INFO - [_initialize_dinov2_model:467] - ✓ DINOv2 model loaded: 768 dimensions
+2025-07-31 00:14:34,436 - unified_storage.cross_platform_extractor - INFO - [_compile_models:521] - 🍎 Using compatible MPS compilation (aot_eager + default)
+2025-07-31 00:14:34,436 - unified_storage.cross_platform_extractor - INFO - [_compile_models:539] - 🔧 Compiling CLIP model...
+2025-07-31 00:14:34,436 - unified_storage.cross_platform_extractor - INFO - [_compile_models:547] - ✓ CLIP model compiled successfully
+2025-07-31 00:14:34,436 - unified_storage.cross_platform_extractor - INFO - [_compile_models:551] - 🔧 Compiling DINOv2 model...
+2025-07-31 00:14:34,436 - unified_storage.cross_platform_extractor - INFO - [_compile_models:557] - ✓ DINOv2 model compiled successfully
+2025-07-31 00:14:34,436 - unified_storage.cross_platform_extractor - INFO - [_compile_models:560] - ✅ 2 models compiled in 0.7ms (mode: default, backend: aot_eager)
+2025-07-31 00:14:34,436 - unified_storage.cross_platform_extractor - INFO - [_warmup_compiled_models:583] - 🔥 Warming up compiled models...
+2025-07-31 00:14:34,498 - unified_storage.cross_platform_extractor - INFO - [_warmup_compiled_models:603] - ✓ CLIP model warmed up
+2025-07-31 00:14:34,522 - unified_storage.cross_platform_extractor - INFO - [_warmup_compiled_models:611] - ✓ DINOv2 model warmed up
+2025-07-31 00:14:34,522 - unified_storage.cross_platform_extractor - INFO - [_warmup_compiled_models:616] - 🔥 Model warmup completed in 85.7ms
+2025-07-31 00:14:34,522 - unified_storage.cross_platform_extractor - INFO - [_setup_preprocessing:642] - 🔧 Preprocessing configured for 224x224 images
+2025-07-31 00:14:34,522 - unified_storage.cross_platform_extractor - INFO - [_initialize_models:388] - ✅ Models initialized and optimized in 6979.1ms
+2025-07-31 00:14:34,522 - unified_storage.cross_platform_extractor - INFO - [__init__:332] - ✅ CrossPlatformFeatureExtractor initialized for Apple_Silicon
+2025-07-31 00:14:34,522 - unified_storage.unified_store - INFO - [_initialize_feature_extractor:236] - ✅ Feature extractor initialized successfully
+2025-07-31 00:14:34,522 - unified_storage.unified_store - INFO - [_initialize_storage_backends:249] - 💾 Initializing storage backends...
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA cache_size = -150000
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA mmap_size = 536870912
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA journal_mode = WAL
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA synchronous = NORMAL
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA temp_store = MEMORY
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA page_size = 4096
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_initialize_sqlite_storage:304] - Applied SQLite optimization: PRAGMA foreign_keys = ON
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (image_id)
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (image_id)
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (item_category)
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (recognition_status)
+2025-07-31 00:14:34,525 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (operation_type)
+2025-07-31 00:14:34,526 - unified_storage.unified_store - DEBUG - [_create_sqlite_tables:384] - Created index: (timestamp)
+2025-07-31 00:14:34,526 - unified_storage.unified_store - INFO - [_initialize_sqlite_storage:310] - 📊 SQLite initialized: data/recognition.db
+2025-07-31 00:14:34,526 - unified_storage.unified_store - INFO - [_initialize_sqlite_storage:311] - 🔧 Cache: 150000KB, Memory mapping: 512MB
+2025-07-31 00:14:34,526 - unified_storage.unified_store - ERROR - [_initialize_analytics_storage:422] - ❌ Failed to initialize DuckDB: Invalid Input Error: Could not set option "enable_progress_bar" as a global option
+2025-07-31 00:14:34,526 - unified_storage.unified_store - INFO - [_initialize_storage_backends:259] - ✅ Storage backends initialized successfully
+2025-07-31 00:14:34,526 - unified_storage.unified_store - INFO - [_initialize_search_engine:467] - 🔍 Initializing FAISS search engine...
+2025-07-31 00:14:34,526 - unified_storage.unified_store - INFO - [_initialize_search_engine:494] - 🔧 Initializing CPU FAISS index (10 threads)
+2025-07-31 00:14:34,526 - unified_storage.unified_store - INFO - [_initialize_search_engine:502] - ✅ FAISS search engine initialized (1536D vectors)
+2025-07-31 00:14:34,526 - unified_storage.unified_store - INFO - [__init__:177] - ✅ Unified Storage System initialized successfully
+2025-07-31 00:14:34,526 - __main__ - INFO - [execute_migration:615] - 📥 Phase 4: Data Migration
+2025-07-31 00:14:34,526 - __main__ - INFO - [migrate_features:338] - ⏭️ Skipping feature migration (not requested or no source)
+2025-07-31 00:14:34,526 - __main__ - INFO - [migrate_indices:373] - ⏭️ Skipping index migration (not requested or no source)
+2025-07-31 00:14:34,526 - __main__ - INFO - [migrate_metadata:412] - 🔄 Starting metadata migration...
+2025-07-31 00:14:34,526 - __main__ - ERROR - [migrate_metadata:436] - ❌ Metadata migration failed: MetadataMigrator.__init__() got an unexpected keyword argument 'unified_store'
+2025-07-31 00:14:34,526 - __main__ - ERROR - [execute_migration:654] - ❌ Migration orchestration failed: Critical migration failures occurred
+2025-07-31 00:14:34,526 - unified_storage.unified_store - INFO - [close:1158] - 🔒 Closing unified storage system...
+2025-07-31 00:14:34,651 - unified_storage.cross_platform_extractor - INFO - [close:1178] - ✅ CrossPlatformFeatureExtractor resources cleaned up
+2025-07-31 00:14:34,652 - unified_storage.unified_store - INFO - [close:1164] - ✅ Feature extractor closed
+2025-07-31 00:14:34,652 - unified_storage.unified_store - INFO - [close:1169] - ✅ SQLite connection closed
+2025-07-31 00:14:34,652 - unified_storage.unified_store - INFO - [close:1178] - ✅ FAISS index cleared
+2025-07-31 00:14:34,652 - unified_storage.unified_store - INFO - [close:1181] - ✅ Unified storage system closed successfully
+2025-07-31 00:14:34,652 - __main__ - INFO - [_log_final_summary:676] - ============================================================
+2025-07-31 00:14:34,652 - __main__ - INFO - [_log_final_summary:677] - MIGRATION ORCHESTRATION SUMMARY
+2025-07-31 00:14:34,652 - __main__ - INFO - [_log_final_summary:678] - ============================================================
+2025-07-31 00:14:34,652 - __main__ - INFO - [_log_final_summary:681] - Status: ❌ FAILED
+2025-07-31 00:14:34,652 - __main__ - INFO - [_log_final_summary:682] - Total Time: 20.1s
+2025-07-31 00:14:34,652 - __main__ - ERROR - [_log_final_summary:703] - Errors (2):
+2025-07-31 00:14:34,652 - __main__ - ERROR - [_log_final_summary:705] -   - Metadata migration error: MetadataMigrator.__init__() got an unexpected keyword argument 'unified_store'
+2025-07-31 00:14:34,652 - __main__ - ERROR - [_log_final_summary:705] -   - Orchestration error: Critical migration failures occurred
+2025-07-31 00:14:34,652 - __main__ - WARNING - [_log_final_summary:708] - Warnings (2):
+2025-07-31 00:14:34,652 - __main__ - WARNING - [_log_final_summary:710] -   - Target directory not empty: data
+2025-07-31 00:14:34,652 - __main__ - WARNING - [_log_final_summary:710] -   - Metadata migration failed
+2025-07-31 00:14:34,652 - __main__ - INFO - [_log_final_summary:712] - ============================================================

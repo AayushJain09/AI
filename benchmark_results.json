@@ -1,0 +1,106 @@
+{
+  "single_operations": {
+    "hp_store": {
+      "insert_avg_ms": 0.13730287551879883,
+      "insert_p95_ms": 0.17409324645996094,
+      "retrieve_avg_ms": 0.05707263946533203,
+      "retrieve_p95_ms": 0.06171464920043945,
+      "successful_inserts": 200,
+      "successful_retrievals": 100
+    },
+    "baseline_store": {
+      "insert_avg_ms": 0.09087443351745605,
+      "insert_p95_ms": 0.09894371032714844,
+      "retrieve_avg_ms": 0.047435760498046875,
+      "retrieve_p95_ms": 0.058746337890625,
+      "successful_inserts": 200,
+      "successful_retrievals": 100
+    }
+  },
+  "batch_operations": {
+    "50": {
+      "hp_throughput": 19700.81728511038,
+      "baseline_throughput": 42230.20539669754,
+      "hp_time_ms": 2.537965774536133,
+      "baseline_time_ms": 1.1839866638183594,
+      "hp_successful": 50,
+      "baseline_successful": 50
+    },
+    "100": {
+      "hp_throughput": 22159.256128486897,
+      "baseline_throughput": 41651.47964250248,
+      "hp_time_ms": 4.512786865234375,
+      "baseline_time_ms": 2.4008750915527344,
+      "hp_successful": 100,
+      "baseline_successful": 100
+    }
+  },
+  "memory_usage": {
+    "initial_memory_mb": 198.203125,
+    "final_memory_mb": 201.765625,
+    "memory_increase_mb": 3.5625,
+    "cache_memory_mb": 1.1791229248046875,
+    "memory_overhead_percent": 304.0,
+    "memory_samples": [
+      198.921875,
+      199.34375
+    ]
+  },
+  "final_stats": {
+    "performance": {
+      "vectors_inserted": 400,
+      "vectors_retrieved": 100,
+      "cache_hits": 0,
+      "cache_misses": 100,
+      "batch_operations": 2,
+      "avg_insert_time_ms": 0.13149201869964597,
+      "avg_retrieval_time_ms": 0.05573034286499024,
+      "total_compression_savings_mb": 0.0,
+      "cache_hit_rate": 0.0
+    },
+    "l1_cache": {
+      "size": 200,
+      "max_size": 1000,
+      "memory_usage_mb": 1.1791229248046875,
+      "max_memory_mb": 200.0,
+      "memory_utilization": 0.5895614624023438,
+      "hits": 0,
+      "misses": 100,
+      "evictions": 0,
+      "hit_rate": 0.0
+    },
+    "compression": {
+      "total_compressed": 550,
+      "total_decompressed": 0,
+      "total_original_bytes": 3379200,
+      "total_compressed_bytes": 3379200,
+      "avg_compression_ratio": 1.0,
+      "avg_compression_time_ms": 0.002760453657670456,
+      "avg_decompression_time_ms": 0.0
+    },
+    "integrity": {
+      "hashes_computed": 650,
+      "hashes_verified": 100,
+      "corruption_detected": 0,
+      "avg_hash_time_ms": 0.0034985175499549267,
+      "corruption_rate": 0.0
+    },
+    "sqlite_storage": {
+      "total_vectors": 200,
+      "unique_items": 100,
+      "database_size_mb": 1.66015625,
+      "avg_insert_time_ms": 0.09272277355194092,
+      "avg_select_time_ms": 0.029118061065673825,
+      "cache_size_mb": 150,
+      "memory_map_mb": 512,
+      "platform_type": "Apple_Silicon",
+      "performance_optimizations": {
+        "wal_mode": true,
+        "memory_mapping": true,
+        "connection_pooling": true
+      }
+    },
+    "platform_type": "Apple_Silicon",
+    "database_path": "/var/folders/nj/wthlwt9n1pb0_t11q88pcnsc0000gp/T/tmp1k18qgl0/hp_benchmark.db"
+  }
+}
