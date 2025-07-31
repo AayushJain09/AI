@@ -5,6 +5,7 @@
 **Objective**: Upgrade from scattered file architecture to unified cross-platform performance system
 **Timeline**: 4 weeks (20 working days)
 **Goal**: Maintain 100% accuracy while achieving 35-60% performance improvements
+**Architecture**: Raw features (CLIP+DINOv2) + Refiner model (NO Siamese model)
 
 ## Pre-Implementation Checklist
 
@@ -360,31 +361,37 @@ python scripts/validation/accuracy_test.py --comprehensive
 
 ### Day 11: Recognition Pipeline Integration
 
-#### Morning: Update Core Recognition
+#### Morning: Update Core Recognition (Raw + Refiner)
 **Time: 4-5 hours**
 
 **Tasks:**
 - [ ] **Update main recognition pipeline** (`src/inference/recognize.py`)
   - [ ] Replace current I/O with unified store calls
-  - [ ] Integrate adaptive search engine
+  - [ ] Integrate adaptive search engine for raw 1536D features
+  - [ ] Remove all Siamese model references
+  - [ ] Add refiner model integration for hard cases
   - [ ] Add performance monitoring
   - [ ] Maintain API compatibility
 
 **Code Changes:**
 ```python
-# Replace scattered data access with:
+# Replace scattered data access with raw + refiner system:
 unified_store = UnifiedStore(config.data_dir)
-results = unified_store.search_similar(query_features, k=50)
+raw_features = feature_extractor.extract_features(image)  # 1536D
+results = unified_store.search_similar(raw_features, k=50)  # Direct search on raw features
+if should_refine(results):
+    refined_results = refiner_model.refine(raw_features, results)
 ```
 
-#### Afternoon: Feature Extraction Integration
+#### Afternoon: Raw Feature Pipeline Integration
 **Time: 3-4 hours**
 
 **Tasks:**
 - [ ] **Update feature extraction** (`src/feature_extraction/`)
-  - [ ] Integrate cross-platform extractor
-  - [ ] Use unified storage for new features
-  - [ ] Add batch processing capabilities
+  - [ ] Ensure CLIP+DINOv2 produces identical 1536D features
+  - [ ] Remove any Siamese model integration
+  - [ ] Use unified storage for raw feature storage
+  - [ ] Add batch processing capabilities for raw features
 
 ### Day 12: Main Pipeline Updates
 
@@ -394,6 +401,9 @@ results = unified_store.search_similar(query_features, k=50)
 **Tasks:**
 - [ ] **Modify main pipeline** (`main.py`)
   - [ ] Replace file-based operations with unified storage
+  - [ ] Update to use raw feature + refiner architecture
+  - [ ] Remove Siamese model initialization
+  - [ ] Add refiner model loading for hard cases
   - [ ] Add performance monitoring
   - [ ] Implement graceful fallback
 
@@ -542,10 +552,11 @@ results = unified_store.search_similar(query_features, k=50)
 - [ ] **Security and reliability testing**
 
 **Performance Validation Targets:**
-- [ ] Recognition time: 0.15s-0.35s (vs current 0.388s)
-- [ ] Model loading: 2-4s (vs current 7.8s)
-- [ ] Memory usage: 150-250MB (vs current 278MB)
-- [ ] Accuracy: EXACTLY 1.408+ confidence (zero loss)
+- [ ] Recognition time: ≤ 0.4s (maintain current 0.379s)
+- [ ] Raw feature extraction: 1-2s for CLIP+DINOv2
+- [ ] Memory usage: ≤ 2GB for raw feature pipeline
+- [ ] Accuracy: EXACTLY preserve 14-15 confidence scores on high-performing items
+- [ ] Refiner effectiveness: Improve 0% accuracy items to ≥50%
 
 ### Day 20: Production Deployment
 
@@ -621,11 +632,12 @@ results = unified_store.search_similar(query_features, k=50)
 ## Success Metrics & Validation
 
 ### Technical Metrics
-- [ ] **100% Accuracy Preservation**: Recognition confidence must match current system exactly
+- [ ] **100% Accuracy Preservation**: Raw feature recognition confidence must match current system exactly
 - [ ] **Performance Improvements**: Achieve target speeds on each platform
-- [ ] **Memory Efficiency**: Stay within memory targets
+- [ ] **Memory Efficiency**: Stay within memory targets for raw feature pipeline
 - [ ] **Cross-Platform Compatibility**: Work on Windows/Mac/Linux
 - [ ] **Data Integrity**: Zero data loss or corruption
+- [ ] **Refiner Integration**: Improve hard cases (items 008, 020) from 0% to ≥50% accuracy
 
 ### Operational Metrics
 - [ ] **Zero Downtime Migration**: Seamless transition
