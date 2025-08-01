@@ -50,6 +50,7 @@ loguru           # Enhanced logging
 # Recommended for new DB architecture:
 sqlite-utils
 duckdb
+chromadb
 pyarrow
 # Optional: psutil for monitoring memory usage  
 
@@ -75,3 +76,6 @@ memory-profiler
 
 # Performance Profiling (NEW)  
 py-spy
+
+
+onnxruntime

@@ -14,7 +14,7 @@ ARCHITECTURE:
 - CrossPlatformFeatureExtractor: Optimized feature extraction (CLIP + DINOv2)
 - SQLiteStore: Vector storage and metadata management  
 - AnalyticsStore: DuckDB-based analytics and reporting
-- SearchEngine: FAISS-powered similarity search
+- SearchEngine: ChromaDB-powered similarity search
 - ConfigManager: Platform-specific optimization
 
 DESIGN PHILOSOPHY:
@@ -114,7 +114,7 @@ class UnifiedStore:
     Key Features:
     - Automatic platform detection and optimization
     - Cross-platform feature extraction (CLIP + DINOv2)
-    - Vector similarity search with FAISS
+    - Vector similarity search with ChromaDB
     - SQLite-based metadata and vector storage
     - DuckDB analytics and reporting
     - Comprehensive error handling and logging
@@ -158,7 +158,7 @@ class UnifiedStore:
         logger.info(f"📊 Platform: {platform.platform_type}")
         logger.info(f"⚡ Device: {platform.device_type}")
         logger.info(f"🧠 Memory: {platform.memory_gb:.1f}GB")
-        logger.info(f"🔧 Optimization: {platform.faiss_mode} FAISS")
+        logger.info(f"🔧 Optimization: {platform.faiss_mode} mode for ChromaDB")
         
         # Initialize statistics tracking
         self.statistics = StorageStatistics(
@@ -457,57 +457,51 @@ class UnifiedStore:
     
     def _initialize_search_engine(self):
         """
-        Initialize FAISS search engine with platform optimizations.
+        Initialize ChromaDB search engine with platform optimizations.
         
-        FAISS configuration is critical for search performance:
-        - GPU vs CPU mode based on platform capabilities
-        - Index type selection based on dataset size
-        - Thread optimization for platform characteristics
+        ChromaDB configuration for scalable vector search:
+        - Automatic optimization for dataset size and platform
+        - Persistent storage in single directory
+        - Better memory management than FAISS at scale
+        - Handles millions of vectors efficiently
         """
-        logger.info("🔍 Initializing FAISS search engine...")
+        logger.info("🔍 Initializing ChromaDB search engine...")
         
         try:
-            import faiss
+            # Import ChromaDB indexer
+            from .preprocessing.chromadb_indexer import OptimalChromaDBIndexer
             
             search_config = self.config.search
             platform = self.config.platform
             
-            # Initialize FAISS index based on platform capabilities
-            # 1536 dimensions (768 CLIP + 768 DINOv2)
+            # 1536 dimensions (768 CLIP + 768 DINOv2) 
             self.vector_dimension = 1536
             
-            # Select index type based on platform and expected dataset size
-            if search_config.gpu_enabled and platform.device_type == 'cuda':
-                # GPU-accelerated FAISS for NVIDIA systems
-                logger.info("🚀 Initializing GPU-accelerated FAISS index")
-                self.faiss_index = faiss.IndexFlatL2(self.vector_dimension)
-                
-                # Move to GPU if available
-                if faiss.get_num_gpus() > 0:
-                    gpu_resources = faiss.StandardGpuResources()
-                    self.faiss_index = faiss.index_cpu_to_gpu(
-                        gpu_resources, 0, self.faiss_index
-                    )
-                    logger.info("✅ FAISS index moved to GPU")
-            else:
-                # CPU FAISS with platform-specific threading
-                logger.info(f"🔧 Initializing CPU FAISS index ({search_config.faiss_threads} threads)")
-                faiss.omp_set_num_threads(search_config.faiss_threads)
-                self.faiss_index = faiss.IndexFlatL2(self.vector_dimension)
+            # Initialize ChromaDB with platform optimizations
+            # ChromaDB handles GPU/CPU optimization internally
+            gpu_enabled = search_config.gpu_enabled and platform.device_type == 'cuda'
+            
+            self.chromadb_indexer = OptimalChromaDBIndexer(
+                dimension=self.vector_dimension,
+                collection_name="recognition_vectors",
+                persist_directory="data/chromadb",
+                gpu_enabled=gpu_enabled  # ChromaDB handles optimization internally
+            )
             
             # Track index state
             self.index_size = 0
-            self.image_id_mapping = {}  # Maps FAISS index position to image_id
+            self.image_id_mapping = {}  # Maps ChromaDB position to image_id
             
-            logger.info(f"✅ FAISS search engine initialized ({self.vector_dimension}D vectors)")
+            logger.info(f"✅ ChromaDB search engine initialized ({self.vector_dimension}D vectors)")
+            logger.info(f"📁 Storage: data/chromadb directory")
             
-        except ImportError:
-            logger.error("❌ FAISS not available - search functionality disabled")
-            self.faiss_index = None
-            raise RuntimeError("FAISS is required for search functionality")
+        except ImportError as e:
+            logger.error(f"❌ ChromaDB not available - search functionality disabled: {e}")
+            self.chromadb_indexer = None
+            raise RuntimeError("ChromaDB is required for search functionality")
         except Exception as e:
-            logger.error(f"❌ Failed to initialize FAISS: {e}")
-            raise RuntimeError(f"FAISS initialization failed: {e}")
+            logger.error(f"❌ Failed to initialize ChromaDB: {e}")
+            raise RuntimeError(f"ChromaDB initialization failed: {e}")
     
     @contextmanager
     def _database_transaction(self):
@@ -690,30 +684,36 @@ class UnifiedStore:
     
     def _update_search_index(self, image_id: str, features: Dict[str, np.ndarray]):
         """
-        Update FAISS search index with new feature vector.
+        Update ChromaDB search index with new feature vector.
         
         Adds the combined 1536D feature vector to the search index
         and maintains the ID mapping.
         """
-        if self.faiss_index is None:
-            logger.warning("FAISS index not available - skipping index update")
+        if self.chromadb_indexer is None:
+            logger.warning("ChromaDB indexer not available - skipping index update")
             return
         
         try:
             # Use combined features for search (1536 dimensions)
             vector = features['combined'].astype(np.float32).reshape(1, -1)
             
-            # Add to FAISS index
-            self.faiss_index.add(vector)
+            # Add to ChromaDB index incrementally
+            result = self.chromadb_indexer.add_vectors_incremental(
+                new_vectors=vector,
+                new_item_ids=[image_id]
+            )
             
-            # Update ID mapping
-            self.image_id_mapping[self.index_size] = image_id
-            self.index_size += 1
-            
-            logger.debug(f"Updated search index: {image_id} at position {self.index_size - 1}")
+            if result['success']:
+                # Update ID mapping
+                self.image_id_mapping[self.index_size] = image_id
+                self.index_size += 1
+                
+                logger.debug(f"Updated ChromaDB index: {image_id} at position {self.index_size - 1}")
+            else:
+                logger.error(f"Failed to add vector to ChromaDB: {result.get('error', 'Unknown error')}")
             
         except Exception as e:
-            logger.error(f"Failed to update search index for {image_id}: {e}")
+            logger.error(f"Failed to update ChromaDB index for {image_id}: {e}")
             # Don't raise here - storage can continue without search indexing
     
     def search_similar(self, 
@@ -724,7 +724,7 @@ class UnifiedStore:
         Search for similar images using vector similarity.
         
         Performs feature extraction on query image and searches for
-        most similar vectors in the database using FAISS.
+        most similar vectors in the database using ChromaDB.
         
         Args:
             query_image_path: Path to query image
@@ -737,8 +737,8 @@ class UnifiedStore:
         if not self._initialized:
             raise RuntimeError("UnifiedStore not initialized")
         
-        if self.faiss_index is None:
-            raise RuntimeError("Search index not available")
+        if self.chromadb_indexer is None:
+            raise RuntimeError("ChromaDB search index not available")
         
         start_time = time.time()
         
@@ -751,29 +751,28 @@ class UnifiedStore:
                 if query_features is None:
                     raise RuntimeError("Failed to extract features from query image")
                 
-                # Search in FAISS index
-                query_vector = query_features['combined'].astype(np.float32).reshape(1, -1)
+                # Search in ChromaDB index
+                query_vector = query_features['combined'].astype(np.float32)
                 
-                # Perform similarity search
-                distances, indices = self.faiss_index.search(query_vector, min(top_k, self.index_size))
+                # Perform similarity search using ChromaDB
+                search_result = self.chromadb_indexer.search(
+                    query_vector=query_vector,
+                    k=min(top_k, self.index_size),
+                    return_distances=True
+                )
                 
-                # Convert distances to similarity scores (L2 distance -> cosine similarity)
-                # For normalized vectors: similarity = 1 - (distance^2 / 4)
-                similarities = 1.0 - (distances[0] / 4.0)
+                if not search_result['success']:
+                    raise RuntimeError(f"ChromaDB search failed: {search_result.get('error', 'Unknown error')}")
                 
-                # Build search results
+                # Build search results from ChromaDB response
                 results = []
-                for i, (idx, similarity) in enumerate(zip(indices[0], similarities)):
-                    if idx == -1:  # FAISS returns -1 for invalid indices
-                        continue
-                        
+                for result_item in search_result['results']:
+                    similarity = result_item['similarity']
+                    
                     if similarity < similarity_threshold:
                         continue
                     
-                    # Get image_id from mapping
-                    image_id = self.image_id_mapping.get(idx)
-                    if image_id is None:
-                        continue
+                    image_id = result_item['item_id']
                     
                     # Get metadata from database
                     metadata = self._get_image_metadata(image_id)
@@ -1028,40 +1027,50 @@ class UnifiedStore:
     
     def optimize_index(self) -> Dict[str, Any]:
         """
-        Optimize search index for better performance.
+        Optimize ChromaDB search index for better performance.
         
-        Rebuilds FAISS index with optimal parameters based on current dataset size.
+        Rebuilds ChromaDB index from database with optimal parameters.
+        ChromaDB handles internal optimization automatically.
         """
         if not self._initialized:
             raise RuntimeError("UnifiedStore not initialized")
         
-        if self.faiss_index is None or self.index_size == 0:
+        if self.chromadb_indexer is None or self.index_size == 0:
             return {"status": "no_optimization_needed", "reason": "Empty index"}
         
         start_time = time.time()
         
         with self._lock:
             try:
-                logger.info(f"🔧 Optimizing search index ({self.index_size} vectors)...")
+                logger.info(f"🔧 Optimizing ChromaDB search index ({self.index_size} vectors)...")
                 
-                # For now, we keep the flat index for simplicity and accuracy
-                # In production, could switch to IVF or other advanced indices
-                # based on dataset size and search requirements
+                # Rebuild ChromaDB index from database
+                # ChromaDB handles internal optimization (HNSW parameters, clustering, etc.)
+                rebuild_result = self.chromadb_indexer.rebuild_index_from_database(
+                    conn=self.sqlite_connection
+                )
                 
                 optimization_time = (time.time() - start_time) * 1000
                 
-                result = {
-                    "status": "optimized",
-                    "index_size": self.index_size,
-                    "optimization_time_ms": optimization_time,
-                    "index_type": "FlatL2"
-                }
-                
-                logger.info(f"✅ Index optimization completed in {optimization_time:.1f}ms")
-                return result
+                if rebuild_result['success']:
+                    result = {
+                        "status": "optimized",
+                        "index_size": rebuild_result['vector_count'],
+                        "optimization_time_ms": optimization_time,
+                        "index_type": "ChromaDB-HNSW",
+                        "rebuild_time": rebuild_result.get('build_time', 0.0)
+                    }
+                    
+                    logger.info(f"✅ ChromaDB index optimization completed in {optimization_time:.1f}ms")
+                    return result
+                else:
+                    return {
+                        "status": "failed", 
+                        "error": rebuild_result.get('error', 'Unknown optimization error')
+                    }
                 
             except Exception as e:
-                logger.error(f"❌ Index optimization failed: {e}")
+                logger.error(f"❌ ChromaDB index optimization failed: {e}")
                 return {"status": "failed", "error": str(e)}
     
     def health_check(self) -> Dict[str, Any]:
@@ -1108,15 +1117,16 @@ class UnifiedStore:
             
             # Check search index
             try:
-                if self.faiss_index is not None:
+                if self.chromadb_indexer is not None:
                     health_status["components"]["search_index"] = {
                         "status": "healthy",
                         "index_size": self.index_size,
-                        "dimension": self.vector_dimension
+                        "dimension": self.vector_dimension,
+                        "index_type": "ChromaDB-HNSW"
                     }
                 else:
                     health_status["components"]["search_index"] = {"status": "unavailable"}
-                    health_status["warnings"].append("Search index not available")
+                    health_status["warnings"].append("ChromaDB search index not available")
             except Exception as e:
                 health_status["components"]["search_index"] = {"status": "error", "error": str(e)}
                 health_status["errors"].append(f"Search index error: {e}")
@@ -1172,10 +1182,10 @@ class UnifiedStore:
                 self.duckdb_connection.close()
                 logger.info("✅ DuckDB connection closed")
             
-            # Clear FAISS index from memory
-            if hasattr(self, 'faiss_index'):
-                self.faiss_index = None
-                logger.info("✅ FAISS index cleared")
+            # Clear ChromaDB indexer from memory
+            if hasattr(self, 'chromadb_indexer'):
+                self.chromadb_indexer = None
+                logger.info("✅ ChromaDB indexer cleared")
             
             self._initialized = False
             logger.info("✅ Unified storage system closed successfully")
