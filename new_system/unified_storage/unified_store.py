@@ -760,33 +760,25 @@ class UnifiedStore:
                 query_vector = query_features['combined'].astype(np.float32)
                 
                 # Perform similarity search using hybrid indexer
-                search_result = self.hybrid_indexer.search(
+                search_results = self.hybrid_indexer.search(
                     query_vector=query_vector,
-                    k=min(top_k, self.index_size),
-                    return_metadata=True
+                    k=min(top_k, self.index_size)
                 )
                 
-                if not search_result['success']:
-                    raise RuntimeError(f"Hybrid search failed: {search_result.get('error', 'Unknown error')}")
+                # The hybrid indexer returns List[SearchResult] directly
+                if not search_results:
+                    logger.warning("No search results returned from hybrid indexer")
+                    return []
                 
-                # Build search results from hybrid indexer response
+                # Filter results by similarity threshold
                 results = []
-                for result_item in search_result['results']:
-                    similarity = result_item['similarity']
-                    
-                    if similarity < similarity_threshold:
+                for result_item in search_results:
+                    # SearchResult has similarity_score attribute
+                    if result_item.similarity_score < similarity_threshold:
                         continue
                     
-                    image_id = result_item['item_id']
-                    
-                    # Get metadata from database
-                    metadata = self._get_image_metadata(image_id)
-                    
-                    results.append(SearchResult(
-                        image_id=image_id,
-                        similarity_score=float(similarity),
-                        metadata=metadata
-                    ))
+                    # SearchResult already has the correct format
+                    results.append(result_item)
                 
                 # Sort by similarity (highest first)
                 results.sort(key=lambda x: x.similarity_score, reverse=True)
