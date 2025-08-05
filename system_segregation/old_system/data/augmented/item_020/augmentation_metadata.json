@@ -1,0 +1,14 @@
+{
+  "item_id": "item_020",
+  "original_images": 3,
+  "augmented_images": 150,
+  "timestamp": "2025-07-22T01:59:45.188854",
+  "config": {
+    "augmentations_per_image": 50,
+    "image_size": [
+      768,
+      768
+    ],
+    "quality": 90
+  }
+}
