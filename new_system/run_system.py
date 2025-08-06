@@ -46,8 +46,9 @@ def launch_gui():
         print("🔧 Background removal, augmentation, and GPU acceleration ready")
         print("🎯 Launching modern GUI interface...")
         
-        # Create and run enhanced GUI
-        app = UnifiedGUI()
+        # Create and run enhanced GUI with correct data directory
+        data_path = project_root / "data"
+        app = UnifiedGUI(data_dir=str(data_path))
         app.run()
         
     except ImportError as e:
@@ -80,7 +81,9 @@ def launch_cli():
         print("✅ Enhanced unified storage ready!")
         
         # Create enhanced store with your proven approach
-        store = create_enhanced_unified_store(data_dir="data")
+        # Use data directory relative to this script's location
+        data_path = project_root / "data"
+        store = create_enhanced_unified_store(data_dir=str(data_path))
         
         print(f"🎯 Enhanced system active with proven approach:")
         config = store.get_augmentation_config()
@@ -152,7 +155,9 @@ def test_system():
         
         # Test enhanced store with recognition creation
         print("🏗️ Testing enhanced store with recognition...")
-        store = create_enhanced_unified_store_with_recognition(data_dir="test_data")
+        # Use test_data directory relative to this script's location
+        test_data_path = project_root / "test_data"
+        store = create_enhanced_unified_store_with_recognition(data_dir=str(test_data_path))
         print("✅ Enhanced store created successfully")
         
         # Test configuration

@@ -17,6 +17,7 @@ import sys
 import os
 import time
 import threading
+import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import tkinter as tk
@@ -30,6 +31,9 @@ from ..unified_store import UnifiedStore
 from ..preprocessing.input_manager import (
     ItemInformation, ImageSource
 )
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class ProcessingProgressWindow:
@@ -131,14 +135,17 @@ class UnifiedGUI:
     Main GUI application for unified preprocessing system
     """
     
-    def __init__(self):
+    def __init__(self, data_dir: str = "data"):
         self.root = tk.Tk()
         self.root.title("AI Recognition System - Unified Item Addition")
         self.root.geometry("1200x800")
         
+        # Store data directory for consistent path usage
+        self.data_dir = Path(data_dir)
+        
         # Initialize enhanced unified storage system with original proven approach
         from ..enhanced_unified_store import create_enhanced_unified_store
-        self.unified_store = create_enhanced_unified_store(data_dir="data")
+        self.unified_store = create_enhanced_unified_store(data_dir=data_dir)
         
         # Extract components for backward compatibility
         self.input_manager = None  # Will use unified store directly
@@ -569,7 +576,7 @@ class UnifiedGUI:
                         )
                     
                     # Create item directory structure for processing
-                    item_dir = Path("temp_processing") / f"{item_info.item_id}_{i}"
+                    item_dir = self.data_dir / "temp_processing" / f"{item_info.item_id}_{i}"
                     item_dir.mkdir(parents=True, exist_ok=True)
                     
                     # Copy image to temporary item directory
@@ -683,8 +690,24 @@ class UnifiedGUI:
             return
         
         if not self.hybrid_indexer or not getattr(self.hybrid_indexer, 'current_index', None):
-            # Try to load index
-            if not self.hybrid_indexer or not self.hybrid_indexer.load_index_from_database():
+            # Try to load index from disk first, then build from database if needed
+            index_loaded = False
+            
+            if self.hybrid_indexer:
+                # Try loading existing index from disk
+                if self.hybrid_indexer.load_index_from_disk():
+                    index_loaded = True
+                    logger.info("✅ Loaded existing index from disk")
+                else:
+                    # No disk index, try building from database
+                    build_result = self.hybrid_indexer.build_index_from_database()
+                    if build_result.get('success', False):
+                        index_loaded = True
+                        logger.info(f"✅ Built index from database: {build_result.get('vector_count', 0)} vectors")
+                    else:
+                        logger.error(f"Failed to build index: {build_result.get('error', 'Unknown error')}")
+            
+            if not index_loaded:
                 messagebox.showerror("Error", "No hybrid index available. Please add some items first.")
                 return
         

@@ -473,9 +473,12 @@ class GuaranteedDataPersistence:
                 # Import and initialize FAISS indexer
                 from .faiss_indexer import OptimalFAISSIndexer
                 
+                # Calculate models directory relative to database path
+                models_dir = self.database_path.parent / "models"
                 faiss_indexer = OptimalFAISSIndexer(
                     dimension=1536,  # PRESERVE: 1536D features
                     database_path=str(self.database_path),
+                    models_dir=str(models_dir),
                     gpu_enabled=processing_metadata.gpu_acceleration_used
                 )
                 

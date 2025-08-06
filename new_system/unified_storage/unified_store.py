@@ -358,6 +358,38 @@ class UnifiedStore:
             )
         """)
         
+        # Original images table - stores original image data as BLOBs
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS original_images (
+                image_id TEXT PRIMARY KEY,
+                item_id TEXT NOT NULL,
+                image_data BLOB NOT NULL,
+                image_metadata TEXT,
+                source_hash TEXT NOT NULL,
+                file_size INTEGER,
+                width INTEGER,
+                height INTEGER,
+                format TEXT,
+                created_timestamp TEXT NOT NULL
+            )
+        """)
+        
+        # Augmented images table - stores processed augmentations as BLOBs
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS augmented_images (
+                augmented_id TEXT PRIMARY KEY,
+                item_id TEXT NOT NULL,
+                original_image_id TEXT NOT NULL,
+                augmentation_params TEXT NOT NULL,
+                image_data BLOB NOT NULL,
+                augmentation_strategy TEXT NOT NULL,
+                quality_level INTEGER DEFAULT 95,
+                processing_timestamp TEXT NOT NULL,
+                checksum TEXT NOT NULL,
+                FOREIGN KEY (original_image_id) REFERENCES original_images (image_id)
+            )
+        """)
+        
         # Performance statistics table - tracks system performance
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS performance_stats (
@@ -380,6 +412,9 @@ class UnifiedStore:
             "CREATE INDEX IF NOT EXISTS idx_metadata_image_id ON metadata (image_id)",
             "CREATE INDEX IF NOT EXISTS idx_metadata_category ON metadata (item_category)",
             "CREATE INDEX IF NOT EXISTS idx_metadata_status ON metadata (recognition_status)",
+            "CREATE INDEX IF NOT EXISTS idx_original_images_item ON original_images (item_id)",
+            "CREATE INDEX IF NOT EXISTS idx_augmented_images_item ON augmented_images (item_id)",
+            "CREATE INDEX IF NOT EXISTS idx_augmented_images_original ON augmented_images (original_image_id)",
             "CREATE INDEX IF NOT EXISTS idx_stats_operation ON performance_stats (operation_type)",
             "CREATE INDEX IF NOT EXISTS idx_stats_timestamp ON performance_stats (timestamp)",
         ]
@@ -770,17 +805,28 @@ class UnifiedStore:
                     logger.warning("No search results returned from hybrid indexer")
                     return []
                 
-                # Filter results by similarity threshold
+                # Filter results by similarity threshold and convert to unified SearchResult format
                 results = []
                 for result_item in search_results:
-                    # SearchResult has similarity_score attribute
-                    if result_item.similarity_score < similarity_threshold:
+                    # Handle different SearchResult types - hybrid indexer uses 'similarity' instead of 'similarity_score'
+                    similarity = getattr(result_item, 'similarity_score', None) or getattr(result_item, 'similarity', 0.0)
+                    
+                    if similarity < similarity_threshold:
                         continue
                     
-                    # SearchResult already has the correct format
-                    results.append(result_item)
+                    # Convert to unified SearchResult format - PRESERVE ORIGINAL SIMILARITY VALUES
+                    # Do not cap or modify similarity scores - let the indexer's raw values through
+                    unified_result = SearchResult(
+                        image_id=getattr(result_item, 'item_id', getattr(result_item, 'image_id', 'unknown')),
+                        similarity_score=similarity,  # Use raw similarity - DO NOT MODIFY
+                        metadata=getattr(result_item, 'metadata', {}),
+                        feature_vector=None,  # Not included in search results for performance
+                        extraction_time_ms=getattr(result_item, 'search_time_ms', None)
+                    )
+                    
+                    results.append(unified_result)
                 
-                # Sort by similarity (highest first)
+                # Sort by similarity (highest first) - let natural ordering determine best matches
                 results.sort(key=lambda x: x.similarity_score, reverse=True)
                 
                 # Update statistics

@@ -39,6 +39,7 @@ class OptimalFAISSIndexer:
     def __init__(self, 
                  dimension: int = 1536,
                  database_path: str = "data/recognition.db",
+                 models_dir: str = "data/models",
                  gpu_enabled: bool = None):
         """
         Initialize optimal FAISS indexer
@@ -46,10 +47,12 @@ class OptimalFAISSIndexer:
         Args:
             dimension: Feature vector dimension (1536 for CLIP+DINOv2)
             database_path: Path to SQLite database
+            models_dir: Directory for storing FAISS index files
             gpu_enabled: Enable GPU acceleration (auto-detect if None)
         """
         self.dimension = dimension
         self.database_path = Path(database_path)
+        self.models_dir = Path(models_dir)
         
         # GPU configuration
         self.gpu_enabled = self._detect_gpu_support() if gpu_enabled is None else gpu_enabled
@@ -521,8 +524,7 @@ class OptimalFAISSIndexer:
                 return
             
             # Create models directory if it doesn't exist
-            models_dir = Path("data/models")
-            models_dir.mkdir(parents=True, exist_ok=True)
+            self.models_dir.mkdir(parents=True, exist_ok=True)
             
             # Convert index to CPU if needed
             if self.gpu_enabled and hasattr(self.current_index, 'index'):
@@ -531,7 +533,7 @@ class OptimalFAISSIndexer:
                 cpu_index = self.current_index
             
             # Save FAISS index as binary file
-            index_file = models_dir / "faiss_index.bin"
+            index_file = self.models_dir / "faiss_index.bin"
             faiss.write_index(cpu_index, str(index_file))
             
             # Save metadata and mappings as pickle file
@@ -544,7 +546,7 @@ class OptimalFAISSIndexer:
                 'gpu_enabled': self.gpu_enabled
             }
             
-            metadata_file = models_dir / "index_metadata.pkl"
+            metadata_file = self.models_dir / "index_metadata.pkl"
             with open(metadata_file, 'wb') as f:
                 pickle.dump(metadata, f)
             
@@ -572,9 +574,8 @@ class OptimalFAISSIndexer:
     def load_index_from_database(self) -> bool:
         """Load FAISS index from file system (like original system)"""
         try:
-            models_dir = Path("data/models")
-            index_file = models_dir / "faiss_index.bin"
-            metadata_file = models_dir / "index_metadata.pkl"
+            index_file = self.models_dir / "faiss_index.bin"
+            metadata_file = self.models_dir / "index_metadata.pkl"
             
             # Check if files exist
             if not index_file.exists():

@@ -793,11 +793,20 @@ class HybridDatabaseIndexer:
                     
                     item_id = self.item_id_mapping[faiss_idx]
                     
-                    # Convert distance to similarity based on metric
-                    if self.config.precision_mode == "accurate":
-                        similarity = float(distance)  # Inner product is already similarity
+                    # Convert distance to similarity based on FAISS index metric type
+                    # For Inner Product (IndexFlatIP, IVF with METRIC_INNER_PRODUCT): distance IS similarity
+                    # For L2 distance (IndexFlatL2, IVF with METRIC_L2): need to convert to similarity
+                    if (self.current_index_type in ["flat", "ivf", "ivf_pq", "hnsw"] and 
+                        hasattr(self.current_index, 'metric_type') and 
+                        getattr(self.current_index, 'metric_type', None) == faiss.METRIC_INNER_PRODUCT):
+                        # Inner product: distance is already similarity (can exceed 1.0)
+                        similarity = float(distance)
+                    elif "IP" in str(type(self.current_index)) or "inner" in str(type(self.current_index)).lower():
+                        # IndexFlatIP or similar: distance is similarity
+                        similarity = float(distance)
                     else:
-                        similarity = 1.0 / (1.0 + float(distance))  # Convert L2 to similarity
+                        # L2 distance: convert to similarity score
+                        similarity = 1.0 / (1.0 + float(distance))
                     
                     # Determine confidence level
                     confidence_level = self._classify_confidence(similarity)
@@ -1218,6 +1227,17 @@ def create_hybrid_database_indexer(
     Returns:
         Configured HybridDatabaseIndexer instance
     """
+    # Auto-generate models directory path based on database path
+    from pathlib import Path
+    data_dir = Path(database_path).parent
+    models_dir = data_dir / "models"
+    
+    # Override default paths with data-directory-relative paths
+    if 'index_save_path' not in kwargs:
+        kwargs['index_save_path'] = str(models_dir / "hybrid_faiss_index.bin")
+    if 'metadata_save_path' not in kwargs:
+        kwargs['metadata_save_path'] = str(models_dir / "hybrid_metadata.pkl")
+    
     config = EnhancedIndexConfig(
         database_path=database_path,
         precision_mode=precision_mode,

@@ -48,12 +48,15 @@ import threading
 import time
 import json
 import random
+import hashlib
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any, Union, Callable
 from dataclasses import dataclass, asdict
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from io import BytesIO
 from PIL import Image
 import torch
 import torchvision.transforms as transforms
@@ -392,6 +395,164 @@ class EnhancedUnifiedStore(UnifiedStore):
         
         return strategies
     
+    def _store_vectors_metadata_and_images(self, 
+                                         image_id: str,
+                                         original_image_path: str, 
+                                         features: Dict[str, np.ndarray],
+                                         metadata: Dict[str, Any],
+                                         augmented_image: np.ndarray,
+                                         original_index: int,
+                                         augmentation_index: int):
+        """
+        Store feature vectors, metadata, AND image data as BLOBs in SQLite database.
+        
+        This method ensures that:
+        1. Original images are stored as BLOBs (if not already stored)
+        2. Augmented images are stored as BLOBs  
+        3. Feature vectors are stored as BLOBs
+        4. All metadata is properly linked
+        
+        Args:
+            image_id: Unique identifier for this augmented image
+            original_image_path: Path to the original image file
+            features: Dictionary containing CLIP, DINOv2, and combined features
+            metadata: Processing metadata
+            augmented_image: The processed/augmented image as numpy array
+            original_index: Index of the original image (for multiple originals per item)
+            augmentation_index: Index of this augmentation
+        """
+        # First, store using the base unified store method (for vectors and basic metadata)
+        self._store_vectors_and_metadata(image_id, original_image_path, features, metadata)
+        
+        # Now store the actual image data as BLOBs
+        with self._database_transaction() as cursor:
+            item_id = metadata.get('item_id')
+            
+            # 1. Store original image as BLOB (if not already stored)
+            original_image_id = f"{item_id}_orig_{original_index}"
+            
+            # Check if original image already exists
+            cursor.execute("SELECT COUNT(*) FROM original_images WHERE image_id = ?", (original_image_id,))
+            original_exists = cursor.fetchone()[0] > 0
+            
+            logger.debug(f"Original image {original_image_id} exists: {original_exists}")
+            
+            if not original_exists:
+                try:
+                    # Load and convert original image to JPEG BLOB
+                    from PIL import Image
+                    from io import BytesIO
+                    import hashlib
+                    import json
+                    from datetime import datetime
+                    
+                    with Image.open(original_image_path) as original_img:
+                        # Convert to RGB if needed
+                        if original_img.mode != 'RGB':
+                            original_img = original_img.convert('RGB')
+                        
+                        # Save as high-quality JPEG
+                        buffer = BytesIO()
+                        original_img.save(buffer, format='JPEG', quality=95, optimize=True)
+                        original_image_data = buffer.getvalue()
+                        
+                        # Calculate hash for integrity
+                        source_hash = hashlib.sha256(original_image_data).hexdigest()
+                        
+                        # Store original image
+                        cursor.execute("""
+                            INSERT OR REPLACE INTO original_images 
+                            (image_id, item_id, image_data, image_metadata, source_hash,
+                             file_size, width, height, format, created_timestamp)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            original_image_id,
+                            item_id,
+                            original_image_data,
+                            json.dumps({
+                                'original_path': original_image_path,
+                                'processing_method': 'enhanced_proven_pipeline'
+                            }),
+                            source_hash,
+                            len(original_image_data),
+                            original_img.width,
+                            original_img.height,
+                            'JPEG',
+                            datetime.now().isoformat()
+                        ))
+                        
+                        logger.info(f"✅ Stored original image as BLOB: {original_image_id} ({len(original_image_data)} bytes)")
+                
+                except Exception as e:
+                    logger.error(f"Failed to store original image {original_image_path}: {e}")
+                    # If original image storage fails, don't attempt to store augmented image
+                    # to avoid foreign key constraint failure
+                    return
+            
+            # 2. Verify original image exists before storing augmented image
+            cursor.execute("SELECT COUNT(*) FROM original_images WHERE image_id = ?", (original_image_id,))
+            if cursor.fetchone()[0] == 0:
+                logger.error(f"Cannot store augmented image {image_id}: original image {original_image_id} not found")
+                return
+            
+            # 3. Store augmented image as BLOB (only if original image exists)
+            try:
+                from PIL import Image
+                from io import BytesIO
+                import hashlib
+                import json
+                from datetime import datetime
+                
+                # Convert numpy array to PIL Image
+                augmented_pil = Image.fromarray(augmented_image.astype(np.uint8))
+                
+                # Save as JPEG BLOB with proven quality (95%)
+                buffer = BytesIO()
+                augmented_pil.save(buffer, format='JPEG', quality=95, optimize=True)
+                augmented_image_data = buffer.getvalue()
+                
+                # Calculate checksum for integrity
+                checksum = hashlib.sha256(augmented_image_data).hexdigest()
+                
+                # Prepare augmentation parameters
+                augmentation_params = {
+                    'augmentation_index': augmentation_index,
+                    'original_index': original_index,
+                    'processing_method': 'enhanced_proven_pipeline',
+                    'strategy_weights': self.augmentation_config.strategy_weights,
+                    'background_removal': self.augmentation_config.use_background_removal,
+                    'quality_level': 95
+                }
+                
+                # Store augmented image
+                cursor.execute("""
+                    INSERT OR REPLACE INTO augmented_images 
+                    (augmented_id, item_id, original_image_id, augmentation_params,
+                     image_data, augmentation_strategy, quality_level, 
+                     processing_timestamp, checksum)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    image_id,  # Use the same image_id as the augmented_id
+                    item_id,
+                    original_image_id,
+                    json.dumps(augmentation_params),
+                    augmented_image_data,
+                    json.dumps({
+                        'strategy': 'proven_pipeline',
+                        'weights': self.augmentation_config.strategy_weights
+                    }),
+                    95,  # quality_level
+                    datetime.now().isoformat(),
+                    checksum
+                ))
+                
+                logger.info(f"✅ Stored augmented image as BLOB: {image_id} ({len(augmented_image_data)} bytes)")
+                
+            except Exception as e:
+                logger.error(f"Failed to store augmented image {image_id}: {e}")
+                
+        logger.info(f"Successfully stored vectors, metadata, and image data for {image_id}")
+    
     def _select_augmentation_strategy(self) -> A.Compose:
         """
         Select augmentation strategy using your proven weights.
@@ -654,7 +815,7 @@ class EnhancedUnifiedStore(UnifiedStore):
                         except Exception as e:
                             logger.warning(f"Lightweight refiner failed: {e}")
                     
-                    # 6. STORE IN UNIFIED STORAGE SYSTEM
+                    # 6. STORE IN UNIFIED STORAGE SYSTEM WITH IMAGE DATA
                     image_id = f"{item_id}_{i}_{aug_idx}"
                     
                     # Create feature dictionary
@@ -673,8 +834,8 @@ class EnhancedUnifiedStore(UnifiedStore):
                         'processing_method': 'enhanced_proven_pipeline'
                     }
                     
-                    # Store vectors and metadata in SQLite
-                    self._store_vectors_and_metadata(image_id, str(image_path), feature_dict, metadata)
+                    # Store vectors, metadata, AND image data in SQLite
+                    self._store_vectors_metadata_and_images(image_id, str(image_path), feature_dict, metadata, aug_image, i, aug_idx)
                     
                     # Update hybrid search index
                     self._update_search_index(image_id, feature_dict)
