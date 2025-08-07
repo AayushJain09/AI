@@ -1,0 +1,429 @@
+# AI Recognition System - Project-Specific .gitignore
+# =========================================================
+
+# ==============================================
+# PYTHON ENVIRONMENT & DEPENDENCIES
+# ==============================================
+
+# Python virtual environments
+env/
+venv/
+.env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# ==============================================
+# AI/ML SPECIFIC FILES
+# ==============================================
+
+# Model files and checkpoints (large files)
+*.pth
+*.pt
+*.bin
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.safetensors
+*.onnx
+*.tflite
+
+# Model checkpoints directory
+checkpoints/
+models/
+saved_models/
+weights/
+
+# Training artifacts
+runs/
+logs/
+tensorboard_logs/
+wandb/
+mlruns/
+
+# ==============================================
+# DATABASE & STORAGE FILES
+# ==============================================
+
+# SQLite databases (contain processed data)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# FAISS indices (can be rebuilt)
+*faiss_index*.bin
+*faiss_index*.index
+faiss_*.bin
+hybrid_faiss_index.bin
+index_metadata.pkl
+hybrid_metadata.pkl
+
+# ChromaDB data (if using ChromaDB)
+data_chromadb/
+chroma_db/
+
+# Vector databases
+*.index
+*.vectordb
+
+# ==============================================
+# DATA DIRECTORIES
+# ==============================================
+
+# Main data storage
+data/
+!data/.gitkeep
+
+# Specifically ignore data subdirectories
+data/models/
+data/logs/
+data/temp_processing/
+data/chromadb/
+data/raw/
+data/augmented/
+data_augmented/
+data_models/
+
+# Test data (can be large)
+test_data/
+sample_data/
+validation_data/
+
+# Temporary processing
+temp_processing/
+processing_temp/
+*.tmp
+
+# ==============================================
+# IMAGE & MEDIA FILES
+# ==============================================
+
+# Large image datasets
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.tif
+*.webp
+*.svg
+
+# Exclude small example/demo images
+!examples/*.jpg
+!examples/*.png
+!demo/*.jpg
+!demo/*.png
+!assets/*.jpg
+!assets/*.png
+
+# Video files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv
+*.wmv
+
+# Audio files
+*.wav
+*.mp3
+*.flac
+*.aac
+
+# ==============================================
+# LOG FILES & OUTPUT
+# ==============================================
+
+# System logs
+*.log
+logs/
+log/
+*.log.*
+
+# Output files
+output/
+outputs/
+results/
+benchmark_results/
+
+# Performance logs
+profile_*.txt
+*.prof
+
+# ==============================================
+# CONFIGURATION FILES
+# ==============================================
+
+# Sensitive configuration files
+config_local.yaml
+config_dev.yaml
+config_prod.yaml
+secrets.yaml
+.secrets
+
+# User-specific configurations
+user_config.json
+local_settings.py
+
+# API keys and credentials
+.env
+.env.local
+.env.production
+*.key
+*.pem
+*.crt
+api_keys.txt
+
+# ==============================================
+# SYSTEM-SPECIFIC FILES
+# ==============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+.Spotlight-V100
+.Trashes
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.fuse_hidden*
+.nfs*
+
+# ==============================================
+# IDE & EDITOR FILES
+# ==============================================
+
+# PyCharm
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# VS Code
+.vscode/
+!.vscode/settings.json.example
+!.vscode/launch.json.example
+!.vscode/extensions.json.example
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ==============================================
+# DOCUMENTATION BUILD FILES
+# ==============================================
+
+# Sphinx documentation
+docs/_build/
+docs/build/
+.readthedocs.yml
+
+# MkDocs
+site/
+
+# ==============================================
+# BACKUP & TEMPORARY FILES
+# ==============================================
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+
+# Temporary files
+*.temp
+*.tmp
+*~
+.tmp/
+
+# Archive files (usually large)
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.7z
+*.rar
+
+# ==============================================
+# PROJECT-SPECIFIC EXCLUSIONS
+# ==============================================
+
+# Enhanced unified storage cache
+cache/
+.cache/
+*_cache/
+
+# Feature extraction cache
+features_cache/
+extracted_features/
+
+# Processing artifacts
+augmentation_cache/
+background_cache/
+synthetic_backgrounds/
+
+# Performance benchmarks (can be regenerated)
+benchmark_*.json
+performance_*.json
+evaluation_results.json
+
+# User uploads directory
+uploads/
+user_data/
+
+# System-generated files
+generated_config.yaml
+auto_config.yaml
+
+# ==============================================
+# INCLUDE IMPORTANT FILES
+# ==============================================
+
+# Always include these files even if they match patterns above
+!requirements.txt
+!CLAUDE.md
+!README.md
+!setup.py
+!pyproject.toml
+!Dockerfile
+!docker-compose.yml
+!.github/
+!.gitignore
+!LICENSE
+!MANIFEST.in
+
+# Include example configurations (but not actual configs)
+!config.yaml.example
+!settings.json.example
+
+# Include small demo/example files
+!examples/
+!demo/
+!assets/logo.*
+!assets/icon.*
+
+# ==============================================
+# SPECIAL DIRECTORIES TO TRACK
+# ==============================================
+
+# Keep directory structure but ignore contents
+data/.gitkeep
+logs/.gitkeep
+models/.gitkeep
+checkpoints/.gitkeep
+
+# ==============================================
+# DEPLOYMENT FILES
+# ==============================================
+
+# Docker
+.dockerignore
+
+# Deployment scripts
+deploy.sh
+deploy_prod.sh
+
+# ==============================================
+# TESTING FILES
+# ==============================================
+
+# Test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+test_results/
+
+# Performance test results
+load_test_results/
+stress_test_results/
+
+
+old/
