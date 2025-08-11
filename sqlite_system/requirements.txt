@@ -1,0 +1,65 @@
+# SQLite-Based AI Recognition System Dependencies
+# Preserves all dependencies from original proven system
+
+# === CORE DEEP LEARNING ===
+torch
+torchvision
+transformers
+# torchaudio
+
+# === COMPUTER VISION MODELS ===
+# CLIP model
+# clip-by-openai
+clip @ git+https://github.com/openai/CLIP.git
+
+# DINOv2 (loaded via torch.hub)
+timm  # For some DINOv2 variants
+
+# === IMAGE PROCESSING ===
+opencv-python
+pillow
+albumentations
+rembg          # Background removal
+onnxruntime    # Required by rembg for background removal
+
+# === DATABASE & STORAGE ===
+# SQLite is built into Python
+# sqlite-vec extension (when available)
+# Note: sqlite-vec may need to be compiled separately
+
+# === VECTOR OPERATIONS ===
+numpy
+scipy
+scikit-learn    # For preprocessing utilities
+
+# === SYSTEM UTILITIES ===
+psutil         # System monitoring
+pyyaml           # Configuration files
+tqdm          # Progress bars
+sqlite-utils
+
+# === LOGGING & MONITORING ===
+structlog      # Structured logging
+
+# === GUI FRAMEWORK ===
+PySide6        # Modern Qt6-based GUI framework
+PySide6-Addons # Additional PySide6 components
+
+# === DEVELOPMENT & TESTING ===
+pytest        # Testing framework
+pytest-cov     # Coverage reporting
+
+# === OPTIONAL PERFORMANCE ===
+# These can improve performance but aren't required
+numba          # JIT compilation for numerical code
+# intel-openmp          # Intel OpenMP for better CPU performance
+
+# === PLATFORM-SPECIFIC (AUTO-INSTALLED) ===
+# Windows: 
+# - torch with CUDA support: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# macOS Apple Silicon:
+# - torch with MPS support comes by default in recent versions
+
+# Linux:
+# - torch with CUDA: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118

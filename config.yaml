@@ -1,0 +1,25 @@
+feature_extraction:
+  batch_size: 8
+  cache_features: true
+  clip_model: ViT-L/14
+  device: auto
+  dinov2_model: dinov2_vitb14
+monitoring:
+  enable_performance_tracking: true
+  metrics_retention_days: 7
+  real_time_monitoring: true
+platform:
+  auto_optimize: true
+  force_cpu: false
+recognition:
+  cache_size: 1000
+  confidence_gap_threshold: 0.15
+  confidence_threshold: 0.98
+  final_candidates_k: 10
+  high_confidence_threshold: 0.95
+  hybrid_mode: true
+  initial_search_k: 50
+  max_candidate_score_gap: 0.1
+  min_stage1_confidence: 0.85
+  min_top_score_margin: 0.05
+  refinement_threshold: 0.82

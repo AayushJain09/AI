@@ -1,0 +1,156 @@
+# SQLite-Based AI Recognition System Configuration
+# Preserves all critical thresholds and settings from the original proven system
+
+# === SYSTEM PATHS ===
+paths:
+  database_file: "data/database/recognition.db"        # SQLite database file
+  models_dir: "data/models"                            # Trained models directory
+  temp_dir: "data/temp"                                # Temporary processing
+  log_dir: "logs"                                      # System logs
+
+# === FEATURE EXTRACTION SETTINGS (PRESERVED FROM ORIGINAL) ===
+feature_extraction:
+  # Model specifications (exact preservation)
+  clip_model: "ViT-L/14"                              # 768 dimensions (native)
+  dinov2_model: "dinov2_vitb14"                       # 768 dimensions (native)
+  combined_dimensions: 1536                            # Total feature dimensions
+  
+  # Processing settings
+  image_size: 768                                      # High-resolution processing
+  normalize_features: true                             # L2 normalization for cosine similarity
+  batch_processing: true                               # Enable batch processing
+  
+  # Device optimization (auto-detected)
+  device: "auto"                                       # 'auto', 'cuda', 'mps', 'cpu'
+
+# === DATA AUGMENTATION (PRESERVED STRATEGY WEIGHTS) ===
+augmentation:
+  # Core settings
+  augmentations_per_image: 50                          # Empirically validated optimal
+  target_image_size: [1024, 1024]                     # Target resolution
+  jpeg_quality: 95                                     # Minimal compression artifacts
+  
+  # CRITICAL: Proven strategy weights (must sum to 1.0)
+  strategy_weights:
+    geometric: 0.30                                    # Rotation, flip, scale
+    perspective: 0.25                                  # Perspective, distortion
+    lighting: 0.25                                     # Brightness, contrast variations
+    noise_blur: 0.15                                   # Noise, blur effects
+    effects: 0.05                                      # Environmental effects
+  
+  # Anti-overfitting controls
+  diversity_factor: 0.8                                # 0.0=identical, 1.0=max variety
+  augmentation_intensity: 0.6                          # 0.0=subtle, 1.0=extreme
+  multi_strategy_probability: 0.3                      # Mix multiple strategies
+  
+  # Background processing
+  background_removal: true                             # Use rembg for background removal
+  synthetic_backgrounds: 25                            # Number of synthetic backgrounds
+  background_complexity: 0.5                          # Background complexity level
+
+# === RECOGNITION THRESHOLDS (CRITICAL - PRESERVE EXACTLY) ===
+recognition:
+  # Primary decision thresholds
+  confidence_threshold: 0.98                           # Final recognition threshold
+  min_stage1_confidence: 0.85                         # Minimum initial confidence
+  high_confidence_threshold: 0.95                     # Skip additional processing above this
+  
+  # Refinement triggers
+  refinement_threshold: 0.82                          # Apply refinement below this
+  confidence_gap_threshold: 0.15                      # Minimum gap between candidates
+  max_candidate_score_gap: 0.1                        # Reject if top candidates too close
+  min_top_score_margin: 0.05                          # Minimum margin requirement
+  
+  # Search parameters
+  initial_search_k: 50                                # Initial broad search
+  final_candidates_k: 10                              # Final refined candidates
+  similarity_metric: "cosine"                         # Similarity computation method
+
+# === ENSEMBLE WEIGHTING (HYBRID MODE) ===
+ensemble:
+  # Confidence-based ensemble weights
+  high_confidence:                                     # Raw confidence > 0.9
+    raw_weight: 0.85
+    refiner_weight: 0.15
+  
+  medium_confidence:                                   # Raw confidence 0.7-0.9
+    raw_weight: 0.60
+    refiner_weight: 0.40
+  
+  low_confidence:                                      # Raw confidence < 0.7
+    raw_weight: 0.30
+    refiner_weight: 0.70
+
+# === STORAGE OPTIMIZATION ===
+storage:
+  # SQLite configuration
+  enable_wal_mode: true                               # Write-Ahead Logging
+  optimize_for_read: true                             # Read-heavy optimization
+  vector_compression: false                           # Keep full precision
+  
+  # Performance tuning (platform-specific overrides applied automatically)
+  cache_size_mb: 256                                  # Base cache size
+  max_connections: 10                                 # Connection pooling
+  timeout_seconds: 30                                 # Connection timeout
+
+# === PERFORMANCE MONITORING ===
+monitoring:
+  enable_performance_tracking: true                   # Track recognition performance
+  log_level: "INFO"                                   # Logging verbosity
+  metrics_retention_days: 30                          # Keep metrics for 30 days
+  
+  # Performance targets (platform-dependent)
+  target_recognition_time_ms: 250                     # Base target (overridden by platform)
+  target_accuracy_percent: 99.0                       # Accuracy target
+  
+# === PLATFORM OPTIMIZATION (AUTO-DETECTED) ===
+platform:
+  # These are base settings - platform detector will override based on hardware
+  auto_detect_hardware: true                          # Enable automatic hardware detection
+  prefer_gpu_acceleration: true                       # Use GPU when available
+  memory_conservative_mode: false                     # Enable for low-memory systems
+  
+  # Platform-specific overrides (applied automatically)
+  nvidia_gpu:
+    recognition_target_ms: 150
+    batch_size: 32
+    cache_size_mb: 512
+    
+  apple_silicon:
+    recognition_target_ms: 250
+    batch_size: 8
+    cache_size_mb: 256
+    
+  cpu_only:
+    recognition_target_ms: 350
+    batch_size: 4
+    cache_size_mb: 128
+
+# === LIGHTWEIGHT REFINER ===
+lightweight_refiner:
+  # Model architecture
+  input_dimensions: 1536                              # CLIP + DINOv2 combined
+  hidden_dimensions: 512                              # Hidden layer size
+  output_dimensions: 256                              # Refined feature size
+  
+  # Training settings
+  dropout_rate: 0.3                                   # Regularization
+  learning_rate: 0.001                               # Training rate
+  batch_norm: true                                    # Batch normalization
+  
+  # Model file
+  model_path: "data/models/lightweight_refiner.pth"  # Trained model file
+
+# === SYSTEM BEHAVIOR ===
+system:
+  # Error handling
+  graceful_degradation: true                          # Fall back on errors
+  max_retries: 3                                      # Retry failed operations
+  
+  # Logging
+  log_rotation_mb: 100                                # Rotate logs at 100MB
+  keep_log_files: 10                                  # Keep 10 old log files
+  
+  # Development mode
+  debug_mode: false                                   # Enable debug logging
+  profile_performance: false                          # Enable performance profiling
