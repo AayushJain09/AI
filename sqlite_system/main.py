@@ -318,7 +318,7 @@ class SQLiteRecognitionSystem:
         # Initialize augmentation pipeline
         augmentation_config = self.config.get('augmentation', {})
         augmentation_pipeline = AdvancedAugmentationPipeline(
-            self.vector_store, augmentation_config
+            augmentation_config, self.vector_store
         )
         
         # Process directory
@@ -327,10 +327,7 @@ class SQLiteRecognitionSystem:
             raise FileNotFoundError(f"Source directory not found: {source_path}")
         
         start_time = time.time()
-        results = augmentation_pipeline.process_directory_to_sqlite(
-            source_path, 
-            background_removal=background_removal
-        )
+        results = augmentation_pipeline.process_dataset_to_sqlite(source_path)
         processing_time = time.time() - start_time
         
         logger.info(f"✅ Data preparation completed in {processing_time:.2f}s")

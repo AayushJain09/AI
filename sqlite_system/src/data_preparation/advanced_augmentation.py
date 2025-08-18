@@ -15,6 +15,7 @@ import torchvision.transforms.functional as TF
 from tqdm import tqdm
 import json
 import uuid
+import time
 from datetime import datetime
 import logging
 from PIL import Image
@@ -715,91 +716,151 @@ class AdvancedAugmentationPipeline:
         Process all images for a single item and store directly to SQLite
         Replaces file-based storage with SQLite Vector Store
         """
+        item_start_time = time.time()
+        
         if item_id is None:
             item_id = item_dir.name
         
+        logger.info(f"⏱️ PREPROCESSING TIMING - Starting item: {item_id}")
+        
         # Check if this item already exists in SQLite
+        check_start_time = time.time()
         existing_features = self.vector_store.get_item_features(item_id)
+        check_time = (time.time() - check_start_time) * 1000
+        logger.info(f"⏱️ SQLite check: {check_time:.2f}ms")
+        
         if existing_features:
             expected_augmentations = len(existing_features)
+            total_time = (time.time() - item_start_time) * 1000
             logger.info(f"Item {item_id} already processed - found {expected_augmentations} features in SQLite")
+            logger.info(f"⏱️ Total time (skipped): {total_time:.2f}ms")
             self.stats['total_augmentations_created'] += expected_augmentations
             return {
                 'status': 'skipped',
                 'item_id': item_id,
                 'reason': 'already_processed',
-                'augmented_count': expected_augmentations
+                'augmented_count': expected_augmentations,
+                'timing_ms': total_time
             }
         
         # Find all images
+        file_scan_start = time.time()
         image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
         image_files = []
         for ext in image_extensions:
             image_files.extend(item_dir.glob(f"*{ext}"))
             image_files.extend(item_dir.glob(f"*{ext.upper()}"))
+        file_scan_time = (time.time() - file_scan_start) * 1000
+        logger.info(f"⏱️ File scanning: {file_scan_time:.2f}ms")
             
         if len(image_files) == 0:
+            total_time = (time.time() - item_start_time) * 1000
             logger.warning(f"No images found in {item_dir}")
-            return {'status': 'failed', 'reason': 'no_images'}
+            logger.info(f"⏱️ Total time (no images): {total_time:.2f}ms")
+            return {'status': 'failed', 'reason': 'no_images', 'timing_ms': total_time}
             
         logger.info(f"Processing {len(image_files)} images for item {item_id}")
         
         # Add item to SQLite
+        sqlite_add_start = time.time()
         self.vector_store.add_item(item_id, {
             'source_directory': str(item_dir),
             'original_images': len(image_files),
             'processing_started': datetime.now().isoformat()
         })
+        sqlite_add_time = (time.time() - sqlite_add_start) * 1000
+        logger.info(f"⏱️ SQLite item creation: {sqlite_add_time:.2f}ms")
         
         total_augmentations_created = 0
         total_originals_stored = 0
         
+        # Initialize feature extractor timing
+        extractor_init_start = time.time()
+        if not hasattr(self, '_feature_extractor'):
+            from ..feature_extraction.multimodal_extractor import MultiModalFeatureExtractor
+            config = {'device': 'auto'}
+            self._feature_extractor = MultiModalFeatureExtractor(config, self.vector_store)
+            logger.info("✅ Feature extractor created and cached for reuse")
+        extractor_init_time = (time.time() - extractor_init_start) * 1000
+        logger.info(f"⏱️ Feature extractor initialization: {extractor_init_time:.2f}ms")
+        
+        # Detailed timing for each processing stage
+        total_original_processing_time = 0
+        total_augmentation_time = 0
+        total_feature_extraction_time = 0
+        total_storage_time = 0
+        
         # Process each original image
         for image_idx, image_file in enumerate(image_files):
+            image_start_time = time.time()
             logger.info(f"Processing image {image_idx + 1}/{len(image_files)}: {image_file.name}")
             
             # Store original image with features first
             original_image_id = f"{item_id}_orig_{image_idx}_{uuid.uuid4().hex[:8]}"
             
-            # Create feature extractor only once per item (not per image)
-            if not hasattr(self, '_feature_extractor'):
-                from ..feature_extraction.multimodal_extractor import MultiModalFeatureExtractor
-                config = {'device': 'auto'}
-                self._feature_extractor = MultiModalFeatureExtractor(config, self.vector_store)
-                logger.info("✅ Feature extractor created and cached for reuse")
-            
-            # Store original image with features
+            original_processing_start = time.time()
             original_success = self._store_original_image_with_features(
                 str(image_file), original_image_id, item_id, image_idx
             )
+            original_processing_time = (time.time() - original_processing_start) * 1000
+            total_original_processing_time += original_processing_time
             
             if original_success:
                 total_originals_stored += 1
-                logger.debug(f"✅ Stored original image {image_idx + 1}/{len(image_files)}")
+                logger.debug(f"✅ Stored original image {image_idx + 1}/{len(image_files)} ({original_processing_time:.1f}ms)")
             else:
-                logger.warning(f"⚠️ Failed to store original image {image_idx + 1}/{len(image_files)}")
+                logger.warning(f"⚠️ Failed to store original image {image_idx + 1}/{len(image_files)} ({original_processing_time:.1f}ms)")
             
             # Create augmented versions and extract features
+            augmentation_batch_start = time.time()
             for aug_idx in range(self.augmentations_per_image):
+                aug_creation_start = time.time()
                 aug_record = self.create_augmented_image_record(
                     str(image_file), item_id, image_idx, aug_idx
                 )
+                aug_creation_time = (time.time() - aug_creation_start) * 1000
                 
                 if aug_record:
                     # Store the augmented image data and extract features
+                    storage_start = time.time()
                     success = self.store_augmented_image_with_features(aug_record, self._feature_extractor)
+                    storage_time = (time.time() - storage_start) * 1000
+                    
+                    total_storage_time += storage_time
+                    
                     if success:
                         total_augmentations_created += 1
-                        logger.debug(f"Processed and stored augmentation {aug_idx + 1}/{self.augmentations_per_image}")
+                        if aug_idx % 10 == 0:  # Log every 10th augmentation to avoid spam
+                            logger.debug(f"Processed augmentation {aug_idx + 1}/{self.augmentations_per_image} (create: {aug_creation_time:.1f}ms, store: {storage_time:.1f}ms)")
                     else:
                         logger.warning(f"Failed to store augmentation {aug_idx + 1}/{self.augmentations_per_image}")
+            
+            augmentation_batch_time = (time.time() - augmentation_batch_start) * 1000
+            total_augmentation_time += augmentation_batch_time
+            
+            image_total_time = (time.time() - image_start_time) * 1000
+            logger.info(f"⏱️ Image {image_idx + 1} complete: {image_total_time:.1f}ms (orig: {original_processing_time:.1f}ms, augs: {augmentation_batch_time:.1f}ms)")
         
         # Update statistics
         self.stats['total_images_processed'] += len(image_files)
         self.stats['total_augmentations_created'] += total_augmentations_created
         self.stats['items_processed'] += 1
         
+        # Calculate final timing
+        total_item_time = (time.time() - item_start_time) * 1000
+        
         logger.info(f"✅ Processing complete for item {item_id}: {total_originals_stored} originals + {total_augmentations_created} augmentations = {total_originals_stored + total_augmentations_created} total images")
+        
+        # === DETAILED PREPROCESSING TIMING BREAKDOWN ===
+        logger.info(f"📊 PREPROCESSING TIMING BREAKDOWN for {item_id}:")
+        logger.info(f"   📁 File scanning: {file_scan_time:.1f}ms")
+        logger.info(f"   🗄️  SQLite setup: {sqlite_add_time:.1f}ms") 
+        logger.info(f"   🧠 Feature extractor init: {extractor_init_time:.1f}ms")
+        logger.info(f"   📷 Original processing: {total_original_processing_time:.1f}ms")
+        logger.info(f"   🔄 Augmentation creation: {total_augmentation_time:.1f}ms")
+        logger.info(f"   💾 Storage operations: {total_storage_time:.1f}ms")
+        logger.info(f"   ⏱️  TOTAL TIME: {total_item_time:.1f}ms ({total_item_time/1000:.2f}s)")
+        logger.info(f"   📈 Avg per augmentation: {total_item_time/(total_augmentations_created or 1):.1f}ms")
         
         return {
             'status': 'success',
@@ -807,7 +868,17 @@ class AdvancedAugmentationPipeline:
             'original_count': total_originals_stored,
             'augmented_count': total_augmentations_created, 
             'total_images_processed': total_originals_stored + total_augmentations_created,
-            'storage_method': 'sqlite'
+            'storage_method': 'sqlite',
+            'timing_ms': {
+                'total_time': total_item_time,
+                'file_scanning': file_scan_time,
+                'sqlite_setup': sqlite_add_time,
+                'extractor_init': extractor_init_time,
+                'original_processing': total_original_processing_time,
+                'augmentation_creation': total_augmentation_time,
+                'storage_operations': total_storage_time,
+                'avg_per_augmentation': total_item_time/(total_augmentations_created or 1)
+            }
         }
     
     def process_dataset_to_sqlite(self, input_dir: Path) -> Dict:
