@@ -243,13 +243,16 @@ class SQLiteVectorStore:
         """Add a new item to the database"""
         try:
             cursor = self.connection.cursor()
+            metadata_json = json.dumps(metadata or {})
+            
             cursor.execute('''
             INSERT OR REPLACE INTO items (item_id, metadata, updated_at)
             VALUES (?, ?, CURRENT_TIMESTAMP)
-            ''', (item_id, json.dumps(metadata or {})))
+            ''', (item_id, metadata_json))
             
             self.connection.commit()
-            logger.debug(f"✅ Added item: {item_id}")
+            logger.info(f"✅ Added item: {item_id} with metadata: {metadata}")
+            logger.debug(f"   Saved JSON: {metadata_json}")
             return True
             
         except Exception as e:
@@ -511,6 +514,129 @@ class SQLiteVectorStore:
             
         except Exception as e:
             logger.error(f"❌ Failed to get statistics: {e}")
+            return {}
+    
+    def get_item_details(self, item_id: str) -> Dict:
+        """Get comprehensive details for a specific item"""
+        try:
+            cursor = self.connection.cursor()
+            
+            # Get item metadata - explicitly select metadata column
+            cursor.execute('SELECT item_id, metadata, created_at, updated_at FROM items WHERE item_id = ?', (item_id,))
+            item_row = cursor.fetchone()
+            
+            if not item_row:
+                return None
+            
+            # Parse item metadata with error handling
+            # item_row = (item_id, metadata, created_at, updated_at)
+            metadata_json = item_row[1]  # metadata column
+            
+            try:
+                metadata = json.loads(metadata_json) if metadata_json else {}
+                logger.debug(f"✅ Successfully parsed metadata for {item_id}: {metadata}")
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.warning(f"Failed to parse metadata for {item_id}: {e}. Raw data: {metadata_json}")
+                # If JSON parsing fails, treat as raw string and create basic metadata
+                metadata = {
+                    'item_name': str(metadata_json) if metadata_json else item_id,
+                    'category': 'Unknown',
+                    'description': 'Metadata parsing failed - using fallback',
+                    'created_at': item_row[2] if len(item_row) > 2 else None  # Use DB timestamp
+                }
+            
+            # Get image statistics for this item
+            cursor.execute("""
+                SELECT 
+                    image_type,
+                    COUNT(*) as count
+                FROM images 
+                WHERE item_id = ? 
+                GROUP BY image_type
+            """, (item_id,))
+            
+            image_stats = dict(cursor.fetchall())
+            original_images = image_stats.get('original', 0)
+            augmented_images = image_stats.get('augmented', 0)
+            total_images = original_images + augmented_images
+            
+            # Get feature count for this item
+            cursor.execute('SELECT COUNT(*) FROM features WHERE item_id = ?', (item_id,))
+            feature_count = cursor.fetchone()[0]
+            
+            # Get overall database statistics
+            db_stats = self.get_statistics()
+            
+            # Compile comprehensive details with smart fallbacks
+            # Check if this item has proper GUI metadata or just system metadata
+            has_user_metadata = any(key in metadata for key in ['item_name', 'category', 'description'])
+            
+            # Provide intelligent fallbacks for items added by system processes
+            if not has_user_metadata:
+                # This item was likely added by augmentation pipeline or migration
+                fallback_name = f"Item {item_id}"
+                fallback_category = "System Generated" 
+                fallback_description = f"Auto-generated from {metadata.get('source_directory', 'unknown source')} with {original_images} original images"
+                source_info = f" (Source: {metadata.get('source_directory', 'Unknown')})"
+            else:
+                fallback_name = metadata.get('item_name', item_id)
+                fallback_category = metadata.get('category', 'Uncategorized')
+                fallback_description = metadata.get('description', 'No description provided')
+                source_info = ""
+            
+            details = {
+                'item_id': item_id,
+                'item_name': fallback_name,
+                'category': fallback_category, 
+                'description': fallback_description + source_info,
+                'created_at': metadata.get('created_at') or metadata.get('processing_started') or metadata.get('migration_timestamp'),
+                'processing_options': metadata.get('processing_options', {}),
+                'total_images': total_images,
+                'original_images': original_images,
+                'augmented_images': augmented_images,
+                'total_features': feature_count,
+                'feature_dimensions': '1536',  # CLIP (768) + DINOv2 (768)
+                'extraction_method': 'Multi-modal (CLIP + DINOv2)',
+                'system_metadata': metadata,  # Include raw metadata for debugging
+                'data_source': 'User Added' if has_user_metadata else 'System Generated',
+                'database_stats': {
+                    'database_size_mb': db_stats.get('database_size_mb', 0),
+                    'total_items': db_stats.get('total_items', 0),
+                    'total_images': db_stats.get('total_images', 0),
+                    'total_features': db_stats.get('total_features', 0)
+                }
+            }
+            
+            return details
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get item details for {item_id}: {e}")
+            return None
+    
+    def debug_item_metadata(self, item_id: str) -> Dict:
+        """Debug method to check raw item metadata in database"""
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute('SELECT item_id, metadata, created_at FROM items WHERE item_id = ?', (item_id,))
+            row = cursor.fetchone()
+            
+            if row:
+                logger.info(f"🔍 DEBUG: Raw database data for {item_id}:")
+                logger.info(f"   item_id: {row[0]}")
+                logger.info(f"   metadata (raw): {row[1]}")
+                logger.info(f"   created_at: {row[2]}")
+                
+                return {
+                    'item_id': row[0],
+                    'metadata_raw': row[1],
+                    'created_at': row[2]
+                }
+            else:
+                logger.warning(f"❌ Item {item_id} not found in database")
+                return {}
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to debug item {item_id}: {e}")
             return {}
     
     def _compute_image_hash(self, image_path: str) -> str:

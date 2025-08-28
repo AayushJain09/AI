@@ -450,6 +450,7 @@ class RecognitionTab(QWidget):
         super().__init__()
         self.system = system
         self.current_image_path = None
+        self.current_recognized_item_id = None  # Store currently recognized item ID
         self.worker_thread = None
         self.worker = None
         
@@ -559,14 +560,32 @@ class RecognitionTab(QWidget):
         metrics_layout.addWidget(self.confidence_card)
         metrics_layout.addWidget(self.timing_card)
         
-        # Top matches table
+        # Top matches table with action column
         self.matches_table = QTableWidget()
-        self.matches_table.setColumnCount(3)
-        self.matches_table.setHorizontalHeaderLabels(["Rank", "Item ID", "Confidence"])
-        self.matches_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.matches_table.setMaximumHeight(180)  # Slightly reduced for better fit
+        self.matches_table.setColumnCount(4)
+        self.matches_table.setHorizontalHeaderLabels(["Rank", "Item ID", "Confidence", "Action"])
+        
+        # Configure column sizing
+        header = self.matches_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)  # Rank
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)           # Item ID
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)  # Confidence  
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)             # Action - fixed width
+        header.resizeSection(3, 100)  # Wider Action column for better button visibility
+        
+        # Increase table height to accommodate buttons properly
+        self.matches_table.setMaximumHeight(200)
+        self.matches_table.setMinimumHeight(120)
         
         results_layout.addWidget(self.result_label)
+        
+        # View Details button (initially hidden)
+        self.view_details_btn = QPushButton("📋 View Item Details")
+        self.view_details_btn.setProperty("class", "secondary")
+        self.view_details_btn.clicked.connect(self.view_item_details)
+        self.view_details_btn.setVisible(False)  # Hidden until successful recognition
+        results_layout.addWidget(self.view_details_btn)
+        
         results_layout.addLayout(metrics_layout)
         results_layout.addWidget(QLabel("Top Matches:"))
         results_layout.addWidget(self.matches_table)
@@ -634,6 +653,7 @@ class RecognitionTab(QWidget):
     def clear_image(self):
         """Clear the current image"""
         self.current_image_path = None
+        self.current_recognized_item_id = None
         self.image_label.clear()
         self.image_label.setText("Drop image here or click 'Select Image'")
         self.recognize_btn.setEnabled(False)
@@ -641,6 +661,7 @@ class RecognitionTab(QWidget):
         
         # Clear results
         self.result_label.setText("No recognition performed")
+        self.view_details_btn.setVisible(False)  # Hide details button
         self.confidence_card.update_value("0%")
         self.timing_card.update_value("0ms")
         self.matches_table.setRowCount(0)
@@ -684,6 +705,10 @@ class RecognitionTab(QWidget):
             confidence = result['confidence']
             processing_time = result['processing_time'] * 1000  # Convert to ms
             
+            # Store recognized item ID and show details button
+            self.current_recognized_item_id = item_id
+            self.view_details_btn.setVisible(True)
+            
             # Update main result
             self.result_label.setText(f"✅ Recognized: {item_id}")
             self.result_label.setStyleSheet("""
@@ -702,21 +727,62 @@ class RecognitionTab(QWidget):
             self.confidence_card.update_value(f"{confidence:.1%}")
             self.timing_card.update_value(f"{processing_time:.0f}ms")
             
-            # Update matches table
+            # Update matches table with View Details buttons
             top_matches = result.get('top_matches', [])
             self.matches_table.setRowCount(len(top_matches))
             
             for i, match in enumerate(top_matches):
+                match_item_id = match.get('item_id', '')
+                
+                # Create table items
                 rank_item = QTableWidgetItem(str(i + 1))
-                item_id_item = QTableWidgetItem(match.get('item_id', ''))
+                item_id_item = QTableWidgetItem(match_item_id)
                 confidence_item = QTableWidgetItem(f"{match.get('confidence', 0):.3f}")
                 
                 rank_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 confidence_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 
+                # Create View Details button for this match with high contrast styling
+                view_btn = QPushButton("Details")  # Changed to "Details" for better visibility
+                view_btn.setMinimumSize(70, 30)  # Larger size for better visibility
+                view_btn.setMaximumSize(120, 40)  # More space for text
+                
+                # High contrast styling to ensure maximum text visibility
+                view_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #89b4fa;
+                        color: #1e1e2e;
+                        border: 2px solid #74c7ec;
+                        border-radius: 6px;
+                        padding: 6px 12px;
+                        font-weight: 700;
+                        font-size: 11px;
+                        text-align: center;
+                    }
+                    QPushButton:hover {
+                        background-color: #74c7ec;
+                        color: #181825;
+                        border-color: #89b4fa;
+                        font-weight: 700;
+                    }
+                    QPushButton:pressed {
+                        background-color: #6c9fff;
+                        color: #181825;
+                        border-color: #89b4fa;
+                    }
+                """)
+                
+                view_btn.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+                view_btn.clicked.connect(lambda checked, item_id=match_item_id: self.view_match_details(item_id))
+                
+                # Add items to table
                 self.matches_table.setItem(i, 0, rank_item)
                 self.matches_table.setItem(i, 1, item_id_item)
                 self.matches_table.setItem(i, 2, confidence_item)
+                self.matches_table.setCellWidget(i, 3, view_btn)  # Button in Action column
+                
+                # Ensure row height accommodates the larger button
+                self.matches_table.setRowHeight(i, 45)  # Increased for better button visibility
             
             # Update details
             details = {
@@ -734,6 +800,10 @@ class RecognitionTab(QWidget):
         else:
             # Recognition failed
             error = result.get('error', 'Recognition failed')
+            
+            # Hide details button on failure
+            self.current_recognized_item_id = None
+            self.view_details_btn.setVisible(False)
             
             self.result_label.setText(f"❌ Recognition Failed")
             self.result_label.setStyleSheet("""
@@ -767,6 +837,259 @@ class RecognitionTab(QWidget):
         if self.worker_thread:
             self.worker_thread.quit()
             self.worker_thread.wait()
+    
+    def view_item_details(self):
+        """Show detailed information about the recognized item"""
+        if not self.current_recognized_item_id:
+            return
+        
+        try:
+            # First, debug what's actually in the database
+            print(f"🔍 DEBUG: Retrieving details for item: {self.current_recognized_item_id}")
+            debug_data = self.system.vector_store.debug_item_metadata(self.current_recognized_item_id)
+            print(f"🔍 DEBUG: Raw database data: {debug_data}")
+            
+            # Fetch comprehensive item details from the database
+            item_details = self.system.vector_store.get_item_details(self.current_recognized_item_id)
+            print(f"🔍 DEBUG: Processed item details: {item_details}")
+            
+            if item_details:
+                # Create and show the details dialog
+                dialog = ItemDetailsDialog(self.current_recognized_item_id, item_details, self)
+                dialog.exec()
+            else:
+                QMessageBox.warning(
+                    self, "Item Not Found", 
+                    f"Could not find details for item: {self.current_recognized_item_id}"
+                )
+                
+        except Exception as e:
+            print(f"❌ DEBUG: Error retrieving item details: {e}")
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self, "Error", 
+                f"Error retrieving item details:\n{str(e)}"
+            )
+    
+    def view_match_details(self, item_id: str):
+        """Show detailed information about a matched item from the top matches table"""
+        try:
+            # First, debug what's actually in the database
+            print(f"🔍 DEBUG: Retrieving match details for item: {item_id}")
+            debug_data = self.system.vector_store.debug_item_metadata(item_id)
+            print(f"🔍 DEBUG: Raw database data: {debug_data}")
+            
+            # Fetch comprehensive item details from the database
+            item_details = self.system.vector_store.get_item_details(item_id)
+            print(f"🔍 DEBUG: Processed item details: {item_details}")
+            
+            if item_details:
+                # Create and show the details dialog
+                dialog = ItemDetailsDialog(item_id, item_details, self)
+                dialog.exec()
+            else:
+                QMessageBox.warning(
+                    self, "Item Not Found", 
+                    f"Could not find details for item: {item_id}"
+                )
+                
+        except Exception as e:
+            print(f"❌ DEBUG: Error retrieving match details: {e}")
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self, "Error", 
+                f"Error retrieving item details:\n{str(e)}"
+            )
+
+
+class ItemDetailsDialog(QDialog):
+    """Dialog showing comprehensive item details"""
+    
+    def __init__(self, item_id: str, item_details: dict, parent=None):
+        super().__init__(parent)
+        self.item_id = item_id
+        self.item_details = item_details
+        
+        self.setWindowTitle(f"Item Details - {item_id}")
+        self.setModal(True)
+        self.resize(700, 600)
+        
+        self.init_ui()
+    
+    def init_ui(self):
+        """Initialize the details dialog UI"""
+        layout = QVBoxLayout()
+        
+        # Header with item ID
+        header = QLabel(f"📋 Item Details: {self.item_id}")
+        header.setStyleSheet("""
+            QLabel {
+                font-size: 20px;
+                font-weight: 700;
+                color: #89b4fa;
+                padding: 16px;
+                background: rgba(137, 180, 250, 0.1);
+                border: 2px solid #89b4fa;
+                border-radius: 8px;
+                margin-bottom: 8px;
+            }
+        """)
+        layout.addWidget(header)
+        
+        # Scrollable content
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        content_widget = QWidget()
+        content_layout = QVBoxLayout()
+        
+        # Basic Information with improved spacing
+        basic_info = QGroupBox("📝 Basic Information")
+        basic_layout = QFormLayout()
+        basic_layout.setSpacing(12)  # Increase spacing between rows
+        basic_layout.setContentsMargins(20, 20, 20, 20)  # Add padding inside group
+        
+        # Enhanced labels with consistent styling
+        item_id_label = QLabel(str(self.item_details.get('item_id', self.item_id)))
+        item_id_label.setStyleSheet("font-weight: 500; color: #cdd6f4;")
+        
+        item_name_label = QLabel(str(self.item_details.get('item_name', 'N/A')))
+        item_name_label.setStyleSheet("font-weight: 600; color: #a6e3a1; font-size: 14px;")
+        
+        category_label = QLabel(str(self.item_details.get('category', 'N/A')))
+        category_label.setStyleSheet("font-weight: 500; color: #f9e2af;")
+        
+        basic_layout.addRow("Item ID:", item_id_label)
+        basic_layout.addRow("Item Name:", item_name_label)
+        basic_layout.addRow("Category:", category_label)
+        
+        # Description with enhanced multi-line formatting
+        description_text = str(self.item_details.get('description', 'N/A'))
+        
+        # Use QTextEdit for better multi-line display instead of QLabel
+        desc_widget = QTextEdit()
+        desc_widget.setPlainText(description_text)
+        desc_widget.setReadOnly(True)
+        desc_widget.setMaximumHeight(120)  # Allow more height for multi-line content
+        desc_widget.setMinimumHeight(60)   # Ensure minimum visibility
+        
+        # Enhanced styling for better readability
+        desc_widget.setStyleSheet("""
+            QTextEdit {
+                background-color: rgba(49, 50, 68, 0.3);
+                border: 1px solid #45475a;
+                border-radius: 6px;
+                padding: 12px;
+                margin: 4px;
+                color: #cdd6f4;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                font-size: 13px;
+                line-height: 1.4;
+            }
+            QTextEdit:focus {
+                border-color: #89b4fa;
+                background-color: rgba(49, 50, 68, 0.5);
+            }
+        """)
+        
+        basic_layout.addRow("Description:", desc_widget)
+        
+        # Show data source to help users understand where the item came from
+        data_source = self.item_details.get('data_source', 'Unknown')
+        source_label = QLabel(data_source)
+        if data_source == 'System Generated':
+            source_label.setStyleSheet("color: #f9e2af; font-weight: 600;")  # Yellow for system items
+        else:
+            source_label.setStyleSheet("color: #a6e3a1; font-weight: 600;")  # Green for user items
+        basic_layout.addRow("Data Source:", source_label)
+        
+        # Timestamps
+        created_at = self.item_details.get('created_at')
+        if created_at:
+            try:
+                if isinstance(created_at, (int, float)):
+                    created_date = datetime.fromtimestamp(created_at).strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    created_date = str(created_at)
+                basic_layout.addRow("Created:", QLabel(created_date))
+            except:
+                basic_layout.addRow("Created:", QLabel("Unknown"))
+        
+        basic_info.setLayout(basic_layout)
+        content_layout.addWidget(basic_info)
+        content_layout.addSpacing(15)  # Add spacing between sections
+        
+        # Processing Options with improved formatting
+        processing_opts = self.item_details.get('processing_options', {})
+        if processing_opts:
+            processing_group = QGroupBox("⚙️ Processing Options")
+            processing_layout = QFormLayout()
+            processing_layout.setSpacing(10)
+            processing_layout.setContentsMargins(20, 15, 20, 15)
+            
+            augmentation = processing_opts.get('augmentation', False)
+            aug_label = QLabel("✅ Enabled" if augmentation else "❌ Disabled")
+            aug_label.setStyleSheet("font-weight: 500; color: #a6e3a1;" if augmentation else "font-weight: 500; color: #f38ba8;")
+            processing_layout.addRow("Augmentation:", aug_label)
+            
+            bg_removal = processing_opts.get('background_removal', False)
+            bg_label = QLabel("✅ Enabled" if bg_removal else "❌ Disabled")
+            bg_label.setStyleSheet("font-weight: 500; color: #a6e3a1;" if bg_removal else "font-weight: 500; color: #f38ba8;")
+            processing_layout.addRow("Background Removal:", bg_label)
+            
+            processing_group.setLayout(processing_layout)
+            content_layout.addWidget(processing_group)
+            content_layout.addSpacing(15)  # Add spacing after section
+        
+        # Feature Information with better spacing
+        feature_info = QGroupBox("🧠 Feature Extraction")
+        feature_layout = QVBoxLayout()
+        feature_layout.setContentsMargins(20, 15, 20, 15)
+        feature_layout.setSpacing(10)
+        
+        feature_text = QTextEdit()
+        feature_text.setMaximumHeight(130)
+        feature_text.setMinimumHeight(100)
+        feature_text.setReadOnly(True)
+        
+        # Enhanced styling for feature text
+        feature_text.setStyleSheet("""
+            QTextEdit {
+                background-color: rgba(49, 50, 68, 0.3);
+                border: 1px solid #45475a;
+                border-radius: 6px;
+                padding: 10px;
+                color: #cdd6f4;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 12px;
+                line-height: 1.3;
+            }
+        """)
+        
+        feature_details = {
+            'Feature Types': 'CLIP + DINOv2 (Multimodal)',
+            'Vector Dimensions': f"{self.item_details.get('feature_dimensions', '1536')}D",
+            'Extraction Method': self.item_details.get('extraction_method', 'Cross-platform optimized'),
+            'Storage Format': 'SQLite BLOB (compressed)',
+            'Indexing': 'Hybrid SQLite + FAISS'
+        }
+        
+        feature_text.setText(json.dumps(feature_details, indent=2))
+        feature_layout.addWidget(feature_text)
+        feature_info.setLayout(feature_layout)
+        content_layout.addWidget(feature_info)
+        
+        content_widget.setLayout(content_layout)
+        scroll_area.setWidget(content_widget)
+        layout.addWidget(scroll_area)
+        
+        # Dialog buttons
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        button_box.rejected.connect(self.accept)
+        layout.addWidget(button_box)
+        
+        self.setLayout(layout)
 
 
 class BatchProcessingTab(QWidget):
