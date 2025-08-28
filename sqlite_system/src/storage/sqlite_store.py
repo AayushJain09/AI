@@ -100,8 +100,9 @@ class SQLiteVectorStore:
             cursor.execute(f"PRAGMA {pragma} = {value}")
             logger.debug(f"Applied PRAGMA {pragma} = {value}")
         
-        # Create optimized schema
+        # Create optimized schema and run migrations
         self._create_schema()
+        self._run_migrations()
         self.connection.commit()
         
         logger.info("✅ Database schema initialized with platform optimizations")
@@ -134,6 +135,9 @@ class SQLiteVectorStore:
             image_type TEXT DEFAULT 'original',  -- 'original' or 'augmented'
             image_data BLOB,                     -- Optional: store actual image data
             augmentation_params JSON,            -- Augmentation parameters if augmented
+            dominant_colors JSON,               -- ColorThief extracted colors as RGB tuples
+            color_palette JSON,                 -- Full color palette (10 most dominant colors)
+            background_removed BOOLEAN DEFAULT 0, -- Whether background was removed
             processing_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (item_id) REFERENCES items(item_id)
         )
@@ -210,6 +214,30 @@ class SQLiteVectorStore:
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_vectors_norm ON vectors(vector_norm)')
         
         logger.info("🔍 Performance indexes created")
+    
+    def _run_migrations(self):
+        """
+        Run database migrations to add new columns to existing databases
+        """
+        cursor = self.connection.cursor()
+        
+        try:
+            # Check if color columns exist in images table
+            cursor.execute("PRAGMA table_info(images)")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'dominant_colors' not in columns:
+                logger.info("🔄 Adding color columns to images table...")
+                cursor.execute('ALTER TABLE images ADD COLUMN dominant_colors JSON')
+                cursor.execute('ALTER TABLE images ADD COLUMN color_palette JSON') 
+                cursor.execute('ALTER TABLE images ADD COLUMN background_removed BOOLEAN DEFAULT 0')
+                logger.info("✅ Color columns added to images table")
+            else:
+                logger.debug("Color columns already exist in images table")
+                
+        except Exception as e:
+            # This might happen if the table doesn't exist yet, which is fine
+            logger.debug(f"Migration check skipped: {e}")
     
     def add_item(self, item_id: str, metadata: Optional[Dict] = None) -> bool:
         """Add a new item to the database"""

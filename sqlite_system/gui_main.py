@@ -1412,7 +1412,7 @@ class AddItemWorker(QObject):
                 if self.enable_augmentation:
                     self.progress.emit("Processing with augmentation pipeline...")
                     
-                    # Create augmentation config
+                    # Create augmentation config optimized for GPU
                     augmentation_config = {
                         'augmentations_per_image': 30,  # Reduced for GUI processing
                         'background_removal': self.enable_background_removal,
@@ -1422,6 +1422,17 @@ class AddItemWorker(QObject):
                             'lighting': 0.25,
                             'noise_blur': 0.15,
                             'effects': 0.05
+                        },
+                        # GPU optimization settings
+                        'batch_processing': True,       # Enable batch processing for GPU efficiency
+                        'parallel_workers': 4,          # Use parallel workers for CPU tasks
+                        'memory_efficient': False,      # Disable memory efficiency for speed when GPU available
+                        'cache_backgrounds': True,      # Cache synthetic backgrounds
+                        'extract_colors': True,         # Enable color extraction
+                        'color_extraction': {
+                            'num_colors': 5,            # Fewer colors for faster processing
+                            'color_quality': 3,         # Slightly lower quality for speed
+                            'remove_background': self.enable_background_removal
                         }
                     }
                     

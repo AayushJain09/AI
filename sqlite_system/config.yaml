@@ -51,20 +51,24 @@ augmentation:
 # === RECOGNITION THRESHOLDS (CRITICAL - PRESERVE EXACTLY) ===
 recognition:
   # Primary decision thresholds
-  confidence_threshold: 0.98                           # Final recognition threshold
+  confidence_threshold: 0.80                           # Final recognition threshold
   min_stage1_confidence: 0.85                         # Minimum initial confidence
   high_confidence_threshold: 0.95                     # Skip additional processing above this
   
   # Refinement triggers
   refinement_threshold: 0.82                          # Apply refinement below this
   confidence_gap_threshold: 0.15                      # Minimum gap between candidates
-  max_candidate_score_gap: 0.1                        # Reject if top candidates too close
-  min_top_score_margin: 0.05                          # Minimum margin requirement
+  max_candidate_score_gap: 0.05                       # Reject if top candidates too close
+  min_top_score_margin: 0.02                          # Minimum margin requirement
   
   # Search parameters
   initial_search_k: 50                                # Initial broad search
   final_candidates_k: 10                              # Final refined candidates
   similarity_metric: "cosine"                         # Similarity computation method
+  
+  # Color-based matching
+  color_matching: false                             # Enable color-based candidate filtering
+  color_similarity_weight: 0.15                     # Weight for color similarity (0.0-1.0)
 
 # === ENSEMBLE WEIGHTING (HYBRID MODE) ===
 ensemble:

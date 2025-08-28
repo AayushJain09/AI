@@ -315,6 +315,11 @@ class PlatformDetector:
             return gpu_info
         
         try:
+            # DEBUG: Detailed CUDA detection debugging
+            self.logger.info(f"🐛 PyTorch version: {torch.__version__}")
+            self.logger.info(f"🐛 CUDA compiled version: {torch.version.cuda}")
+            self.logger.info(f"🐛 torch.cuda.is_available(): {torch.cuda.is_available()}")
+            
             # PRIORITY 1: Check CUDA availability (NVIDIA GPUs)
             # CUDA provides the best performance for our workload:
             # - GPU-accelerated FAISS (3-5x faster search)
@@ -350,6 +355,11 @@ class PlatformDetector:
             # FALLBACK: CPU-only mode
             # Still functional but slower performance
             else:
+                self.logger.warning("🐛 CUDA not available - reasons could be:")
+                self.logger.warning("🐛 1. PyTorch installed without CUDA support")
+                self.logger.warning("🐛 2. NVIDIA GPU drivers not installed")  
+                self.logger.warning("🐛 3. CUDA toolkit not properly installed")
+                self.logger.warning("🐛 4. GPU not compatible with installed CUDA version")
                 self.logger.info("Using CPU-only mode")
             
         except Exception as e:

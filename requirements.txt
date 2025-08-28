@@ -10,6 +10,9 @@ PyQt6
 requests
 urllib3
 
+# Color Detection
+colorthief
+
 # Core ML
 torch
 torchvision

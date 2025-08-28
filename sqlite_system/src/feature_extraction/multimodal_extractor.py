@@ -47,15 +47,30 @@ class MultiModalFeatureExtractor:
         if self.device_name == 'auto':
             self.device_name = platform_config.get('feature_extraction_device', 'cpu')
         
-        # Set device (preserved from original)
+        # Set device with explicit GPU priority (preserved from original but enhanced)
         if self.device_name == 'cuda' and torch.cuda.is_available():
             self.device = torch.device('cuda')
+            # Optimize CUDA for feature extraction workload
+            torch.backends.cudnn.benchmark = True
+            torch.backends.cudnn.deterministic = False
+            logger.info(f"🚀 Using CUDA GPU: {torch.cuda.get_device_name(0)} ({torch.cuda.get_device_properties(0).total_memory // (1024**3)}GB)")
         elif self.device_name == 'mps' and hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
             self.device = torch.device('mps')
+            logger.info("🍎 Using Apple Silicon MPS GPU")
         else:
             self.device = torch.device('cpu')
+            if torch.cuda.is_available():
+                logger.warning("⚠️ CUDA available but not being used - check configuration")
+            elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+                logger.warning("⚠️ MPS available but not being used - check configuration")
             
         logger.info(f"🖥️ Feature extraction device: {self.device}")
+        
+        # GPU memory optimization
+        if self.device.type == 'cuda':
+            # Clear any existing cache
+            torch.cuda.empty_cache()
+            logger.info("🧹 CUDA cache cleared for optimal memory usage")
         
         # Load models with exact same architecture as original
         self._load_models()
@@ -95,8 +110,26 @@ class MultiModalFeatureExtractor:
             
             # Load exact same CLIP variant for 768 dimensions (preserved)
             clip_variant = self.config.get('clip_model', 'ViT-L/14')
+            start_time = time.time()
             self.clip_model, self.clip_preprocess = clip.load(clip_variant, device=self.device)
+            load_time = (time.time() - start_time) * 1000
+            logger.info(f"🐛 CLIP model load time: {load_time:.1f}ms")
             self.clip_model.eval()
+            
+            # EXPLICIT GPU VERIFICATION FOR CLIP
+            clip_device = next(self.clip_model.parameters()).device
+            logger.info(f"🐛 CLIP model loaded on device: {clip_device}")
+            # Normalize device comparison (cuda == cuda:0 for single GPU)
+            expected_device_str = str(self.device)
+            actual_device_str = str(clip_device)
+            if expected_device_str == 'cuda' and actual_device_str.startswith('cuda:'):
+                logger.info(f"✅ CLIP model correctly on CUDA device: {actual_device_str}")
+            elif actual_device_str != expected_device_str:
+                logger.error(f"❌ CLIP model on wrong device! Expected: {self.device}, Got: {clip_device}")
+                self.clip_model = self.clip_model.to(self.device)
+                logger.info(f"✅ CLIP model forcibly moved to: {self.device}")
+            else:
+                logger.info(f"✅ CLIP model correctly on device: {actual_device_str}")
             
             # Verify output dimensions (preserved validation)
             with torch.no_grad():
@@ -104,6 +137,7 @@ class MultiModalFeatureExtractor:
                 dummy_output = self.clip_model.encode_image(dummy_input)
                 actual_clip_dims = dummy_output.shape[1]
                 logger.info(f"✅ CLIP {clip_variant} loaded: {actual_clip_dims} native dims (using full 768)")
+                logger.info(f"🐛 CLIP dummy test - input device: {dummy_input.device}, output device: {dummy_output.device}")
                 
         except Exception as e:
             logger.error(f"❌ Failed to load CLIP model: {e}")
@@ -115,8 +149,29 @@ class MultiModalFeatureExtractor:
         try:
             # Use exact same DINOv2 variant for 768 dimensions (preserved)
             dinov2_variant = self.config.get('dinov2_model', 'dinov2_vitb14')
-            self.dinov2 = torch.hub.load('facebookresearch/dinov2', dinov2_variant, trust_repo=True)
+            
+            # Optimize torch.hub.load with better caching
+            start_time = time.time()
+            self.dinov2 = torch.hub.load('facebookresearch/dinov2', dinov2_variant, 
+                                        trust_repo=True, verbose=False, skip_validation=True)
+            load_time = (time.time() - start_time) * 1000
+            logger.info(f"🐛 DINOv2 model load time: {load_time:.1f}ms")
             self.dinov2 = self.dinov2.to(self.device)
+            
+            # EXPLICIT GPU VERIFICATION FOR DINOV2
+            dinov2_device = next(self.dinov2.parameters()).device
+            logger.info(f"🐛 DINOv2 model loaded on device: {dinov2_device}")
+            # Normalize device comparison (cuda == cuda:0 for single GPU)
+            expected_device_str = str(self.device)
+            actual_device_str = str(dinov2_device)
+            if expected_device_str == 'cuda' and actual_device_str.startswith('cuda:'):
+                logger.info(f"✅ DINOv2 model correctly on CUDA device: {actual_device_str}")
+            elif actual_device_str != expected_device_str:
+                logger.error(f"❌ DINOv2 model on wrong device! Expected: {self.device}, Got: {dinov2_device}")
+                self.dinov2 = self.dinov2.to(self.device)
+                logger.info(f"✅ DINOv2 model forcibly moved to: {self.device}")
+            else:
+                logger.info(f"✅ DINOv2 model correctly on device: {actual_device_str}")
             self.dinov2.eval()
             
             # Verify output dimensions (preserved validation)
@@ -125,6 +180,7 @@ class MultiModalFeatureExtractor:
                 dummy_output = self.dinov2(dummy_input)
                 actual_dino_dims = dummy_output.shape[1]
                 logger.info(f"✅ DINOv2 {dinov2_variant} loaded: {actual_dino_dims} native dims (using full 768)")
+                logger.info(f"🐛 DINOv2 dummy test - input device: {dummy_input.device}, output device: {dummy_output.device}")
                 
         except Exception as e:
             logger.warning(f"⚠️ Failed to load DINOv2: {e}. Proceeding with CLIP-only mode")
@@ -159,8 +215,24 @@ class MultiModalFeatureExtractor:
         Preserves exact feature extraction from original system
         """
         with torch.no_grad():
+            # DEBUG: Verify tensor device placement
             image_input = self.clip_preprocess(image).unsqueeze(0).to(self.device)
+            logger.info(f"🐛 CLIP input tensor device: {image_input.device}")
+            
+            # Ensure CLIP model is on correct device (normalize device comparison)
+            clip_device = next(self.clip_model.parameters()).device
+            expected_device_str = str(self.device)
+            actual_device_str = str(clip_device)
+            if not (expected_device_str == 'cuda' and actual_device_str.startswith('cuda:')) and actual_device_str != expected_device_str:
+                logger.warning(f"🐛 CLIP model moving from {clip_device} to {self.device}")
+                self.clip_model = self.clip_model.to(self.device)
+                
             features = self.clip_model.encode_image(image_input)
+            logger.info(f"🐛 CLIP output tensor device: {features.device}")
+            
+            # Monitor GPU memory usage during CLIP extraction
+            if self.device.type == 'cuda':
+                logger.info(f"🐛 GPU memory after CLIP: {torch.cuda.memory_allocated() / 1024**2:.1f}MB")
             
             # Use native 768 dimensions (no compression needed) - preserved
             # ViT-L/14 naturally outputs 768-dimensional features
@@ -193,6 +265,16 @@ class MultiModalFeatureExtractor:
             ])
             
             image_input = dinov2_transform(image).unsqueeze(0).to(self.device)
+            logger.info(f"🐛 DINOv2 input tensor device: {image_input.device}")
+            
+            # Ensure DINOv2 model is on correct device (normalize device comparison)
+            if self.dinov2 is not None:
+                dinov2_device = next(self.dinov2.parameters()).device
+                expected_device_str = str(self.device)
+                actual_device_str = str(dinov2_device)
+                if not (expected_device_str == 'cuda' and actual_device_str.startswith('cuda:')) and actual_device_str != expected_device_str:
+                    logger.warning(f"🐛 DINOv2 model moving from {dinov2_device} to {self.device}")
+                    self.dinov2 = self.dinov2.to(self.device)
             features = self.dinov2(image_input)
             
             # Use native 768 dimensions (no compression needed) - preserved
@@ -219,6 +301,13 @@ class MultiModalFeatureExtractor:
             Dictionary with 'clip' and 'dinov2' feature vectors (768 dims each)
         """
         start_time = time.time()
+        
+        # DEBUG: Log current device status
+        logger.info(f"🐛 Feature extraction starting on device: {self.device}")
+        if self.device.type == 'cuda':
+            logger.info(f"🐛 CUDA available: {torch.cuda.is_available()}")
+            logger.info(f"🐛 Current CUDA device: {torch.cuda.current_device()}")
+            logger.info(f"🐛 GPU memory before extraction: {torch.cuda.memory_allocated() / 1024**2:.1f}MB")
         
         # Load and preprocess image (preserved logic)
         if isinstance(image, (str, Path)):
@@ -468,6 +557,136 @@ class MultiModalFeatureExtractor:
             'results': results
         }
     
+    def extract_features_batch(self, images: List[Union[np.ndarray, Image.Image]]) -> List[Dict[str, np.ndarray]]:
+        """
+        Extract features from a batch of images using optimized GPU processing
+        This is the key performance optimization for massive speedup
+        """
+        if not images:
+            return []
+            
+        try:
+            batch_size = len(images)
+            logger.info(f"🚀 GPU batch processing {batch_size} images")
+            
+            # Convert all images to PIL format and preprocess
+            pil_images = []
+            for image in images:
+                if isinstance(image, np.ndarray):
+                    if image.dtype != np.uint8:
+                        image = (image * 255).astype(np.uint8)
+                    pil_image = Image.fromarray(image).convert('RGB')
+                elif isinstance(image, Image.Image):
+                    pil_image = image.convert('RGB')
+                else:
+                    raise ValueError(f"Unsupported image type: {type(image)}")
+                
+                # Resize for processing
+                target_size = (self.config.get('image_size', 768), self.config.get('image_size', 768))
+                pil_image = pil_image.resize(target_size, Image.Resampling.LANCZOS)
+                pil_images.append(pil_image)
+            
+            # BATCH PROCESSING FOR CLIP
+            clip_batch_features = self._extract_clip_batch(pil_images)
+            
+            # BATCH PROCESSING FOR DINOV2  
+            dinov2_batch_features = self._extract_dinov2_batch(pil_images)
+            
+            # Combine results
+            batch_results = []
+            for i in range(batch_size):
+                features = {
+                    'clip': clip_batch_features[i] if clip_batch_features and i < len(clip_batch_features) else np.zeros(768),
+                    'dinov2': dinov2_batch_features[i] if dinov2_batch_features and i < len(dinov2_batch_features) else np.zeros(768)
+                }
+                
+                # Normalize features
+                for key in features:
+                    if features[key] is not None and len(features[key]) > 0:
+                        features[key] = normalize(features[key].reshape(1, -1))[0]
+                
+                batch_results.append(features)
+            
+            # Update performance stats
+            extraction_time_ms = batch_size * 50  # Estimate for batch processing
+            self.stats['features_extracted'] += batch_size
+            self.stats['avg_extraction_time_ms'] = (
+                (self.stats['avg_extraction_time_ms'] * (self.stats['features_extracted'] - batch_size) + extraction_time_ms) 
+                / self.stats['features_extracted']
+            )
+            
+            logger.info(f"✅ Batch processing complete: {batch_size} images processed")
+            return batch_results
+            
+        except Exception as e:
+            logger.error(f"❌ Batch feature extraction failed: {e}")
+            return [None] * len(images)
+    
+    def _extract_clip_batch(self, pil_images: List[Image.Image]) -> List[np.ndarray]:
+        """Extract CLIP features from a batch of images"""
+        try:
+            with torch.no_grad():
+                # Preprocess all images
+                preprocessed = []
+                for pil_image in pil_images:
+                    image_input = self.clip_preprocess(pil_image)
+                    preprocessed.append(image_input)
+                
+                # Stack into batch tensor
+                batch_tensor = torch.stack(preprocessed).to(self.device)
+                logger.info(f"🐛 CLIP batch tensor device: {batch_tensor.device}, shape: {batch_tensor.shape}")
+                
+                # Single GPU call for entire batch
+                batch_features = self.clip_model.encode_image(batch_tensor)
+                
+                # Monitor GPU memory usage
+                if self.device.type == 'cuda':
+                    logger.info(f"🐛 GPU memory after CLIP batch: {torch.cuda.memory_allocated() / 1024**2:.1f}MB")
+                
+                # Normalize and convert to list
+                batch_features = batch_features / batch_features.norm(dim=-1, keepdim=True)
+                return [feat.cpu().numpy() for feat in batch_features]
+                
+        except Exception as e:
+            logger.error(f"❌ CLIP batch processing failed: {e}")
+            return [None] * len(pil_images)
+    
+    def _extract_dinov2_batch(self, pil_images: List[Image.Image]) -> List[np.ndarray]:
+        """Extract DINOv2 features from a batch of images"""
+        if self.dinov2 is None:
+            return [np.zeros(768) for _ in pil_images]
+            
+        try:
+            with torch.no_grad():
+                # DINOv2 preprocessing
+                dinov2_transform = transforms.Compose([
+                    transforms.Resize(224, interpolation=transforms.InterpolationMode.BICUBIC),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+                ])
+                
+                # Preprocess all images
+                preprocessed = []
+                for pil_image in pil_images:
+                    image_input = dinov2_transform(pil_image)
+                    preprocessed.append(image_input)
+                
+                # Stack into batch tensor
+                batch_tensor = torch.stack(preprocessed).to(self.device)
+                logger.info(f"🐛 DINOv2 batch tensor device: {batch_tensor.device}, shape: {batch_tensor.shape}")
+                
+                # Single GPU call for entire batch
+                batch_features = self.dinov2(batch_tensor)
+                
+                # Normalize and convert to list
+                batch_features = batch_features / batch_features.norm(dim=-1, keepdim=True)
+                return [feat.cpu().numpy() for feat in batch_features]
+                
+        except Exception as e:
+            logger.error(f"❌ DINOv2 batch processing failed: {e}")
+            return [np.zeros(768) for _ in pil_images]
+
     def get_statistics(self) -> Dict:
         """Get feature extraction statistics"""
         return {

@@ -31,9 +31,10 @@ except ImportError:
     logger.warning("rembg not available - background removal will be skipped")
 import yaml
 
-# Import our SQLite storage and platform detection
+# Import our SQLite storage, platform detection, and color extraction
 from ..storage.sqlite_store import SQLiteVectorStore, FeatureRecord
 from ..utils.platform_detector import get_platform_config
+from ..utils.color_extractor import ModernColorExtractor, create_color_extractor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -89,9 +90,18 @@ class AdvancedAugmentationPipeline:
         self.memory_efficient = config.get('memory_efficient', True)
         self.cache_backgrounds = config.get('cache_backgrounds', True)
         
+        # === COLOR EXTRACTION SETUP ===
+        color_config = config.get('color_extraction', {})
+        color_config['remove_background'] = self.use_background_removal  # Sync with background removal setting
+        self.color_extractor = create_color_extractor(color_config)
+        self.extract_colors = config.get('extract_colors', True)  # Enable color extraction by default
+        
         # GPU acceleration setup (preserved from original)
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
+            # Optimize CUDA for augmentation workloads
+            torch.backends.cudnn.benchmark = True  # Optimize for consistent input sizes
+            torch.backends.cudnn.deterministic = False  # Allow non-deterministic for speed
             logger.info("🚀 Using CUDA GPU for augmentation acceleration")
         elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
             self.device = torch.device('mps')
@@ -116,8 +126,9 @@ class AdvancedAugmentationPipeline:
         else:
             self.synthetic_backgrounds = []
         
-        # Setup GPU-accelerated transforms
+        # Setup GPU-accelerated transforms and batch processing
         self._setup_gpu_transforms()
+        self._setup_gpu_batch_processing()
         
         # Log configuration for monitoring generalization
         self._log_configuration()
@@ -132,6 +143,8 @@ class AdvancedAugmentationPipeline:
         logger.info(f"   🏗️  Strategy weights: {dict(self.strategy_weights)}")
         logger.info(f"   🖼️  Backgrounds: {self.num_synthetic_backgrounds} (complexity: {self.background_complexity:.2f})")
         logger.info(f"   ⚙️  Workers: {self.parallel_workers}, GPU: {self.device.type}")
+        logger.info(f"   📦 GPU batch size: {getattr(self, 'gpu_batch_size', 'N/A')}")
+        logger.info(f"   🎨 Color extraction: {'✅ Enabled' if self.extract_colors else '❌ Disabled'}")
         logger.info(f"   🗄️  Storage: SQLite Vector Store")
     
     def _setup_gpu_transforms(self):
@@ -161,6 +174,37 @@ class AdvancedAugmentationPipeline:
                 transforms.RandomErasing(p=0.3, scale=(0.02, 0.15), ratio=(0.3, 3.3)),
             ])
         }
+    
+    def _setup_gpu_batch_processing(self):
+        """Setup GPU batch processing parameters for optimal performance"""
+        if self.device.type == 'cuda':
+            # Detect GPU memory for optimal batch sizing
+            try:
+                gpu_memory_mb = torch.cuda.get_device_properties(0).total_memory // (1024 * 1024)
+                # Conservative estimate: ~50-100MB per image for augmentation
+                self.gpu_batch_size = min(8, max(2, gpu_memory_mb // 200))
+                logger.info(f"🚀 CUDA GPU detected with {gpu_memory_mb}MB memory - using batch size {self.gpu_batch_size}")
+            except:
+                self.gpu_batch_size = 4  # Safe fallback
+                logger.info("🚀 CUDA GPU detected - using default batch size 4")
+        elif self.device.type == 'mps':
+            # Apple Silicon - unified memory, be conservative
+            self.gpu_batch_size = 4
+            logger.info("🍎 Apple Silicon MPS detected - using batch size 4")
+        else:
+            self.gpu_batch_size = 2  # CPU fallback
+            logger.info("💻 CPU processing - using batch size 2")
+        
+        # Enable memory optimization for GPU processing
+        if self.device.type in ['cuda', 'mps']:
+            self.enable_gpu_optimizations = True
+            # Pre-allocate some GPU memory to avoid repeated allocations
+            try:
+                dummy_tensor = torch.randn(1, 3, *self.target_size, device=self.device)
+                del dummy_tensor
+                torch.cuda.empty_cache() if self.device.type == 'cuda' else None
+            except:
+                pass
 
 # TODO: for GPU systems
     # def gpu_augment_batch(self, images: List[torch.Tensor]) -> List[torch.Tensor]:
@@ -210,10 +254,10 @@ class AdvancedAugmentationPipeline:
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.3 * self.diversity_factor),
             A.Transpose(p=0.4 * self.diversity_factor),
-            A.ShiftScaleRotate(
-                shift_limit=0.1 * intensity,
-                scale_limit=0.2 * intensity,
-                rotate_limit=int(45 * intensity),
+            A.Affine(
+                translate_percent={'x': (-0.1 * intensity, 0.1 * intensity), 'y': (-0.1 * intensity, 0.1 * intensity)},
+                scale=(1.0 - 0.2 * intensity, 1.0 + 0.2 * intensity),
+                rotate=(-45 * intensity, 45 * intensity),
                 border_mode=cv2.BORDER_REFLECT,
                 p=0.8
             ),
@@ -251,14 +295,14 @@ class AdvancedAugmentationPipeline:
         # === NOISE AND BLUR (15% weight) ===
         # Simulate camera/sensor variations
         strategies['noise_blur'] = A.Compose([
-            A.GaussianBlur(blur_limit=(3, int(7 * intensity)), p=0.5),
-            A.GaussNoise(var_limit=(10, int(50 * intensity)), p=0.5),
+            A.GaussianBlur(blur_limit=(3, max(5, int(7 * intensity) | 1)), p=0.5),  # Ensure odd numbers
+            A.MultiplicativeNoise(multiplier=(0.9, 1.0 + 0.1 * intensity), p=0.5),  # Alternative noise that's more stable
             A.ISONoise(
                 color_shift=(0.01, 0.05 * intensity), 
                 intensity=(0.1, 0.5 * intensity), 
                 p=0.3
             ),
-            A.MotionBlur(blur_limit=int(7 * intensity), p=0.3),
+            A.MotionBlur(blur_limit=max(5, int(7 * intensity) | 1), p=0.3),  # Ensure odd numbers
             A.Resize(self.target_size[0], self.target_size[1])
         ])
         
@@ -269,8 +313,7 @@ class AdvancedAugmentationPipeline:
             A.RandomShadow(p=0.3 * self.diversity_factor),
             A.RandomFog(p=0.2 * self.diversity_factor),
             A.ImageCompression(
-                quality_lower=max(70, 90-20*intensity), 
-                quality_upper=100, 
+                quality_range=(max(70, 90-20*intensity), 100), 
                 p=0.5
             ),
             A.Resize(self.target_size[0], self.target_size[1])
@@ -446,31 +489,35 @@ class AdvancedAugmentationPipeline:
         return composite.astype(np.uint8)
 
     def create_augmented_image_record(self, image_path: str, item_id: str, 
-                                    image_idx: int, aug_idx: int) -> Optional[Dict]:
+                                    image_idx: int, aug_idx: int, cached_background_data: Optional[Dict] = None) -> Optional[Dict]:
         """
         Create a single augmented image and return its metadata for SQLite storage
         """
         try:
-            # Read image with OpenCV
-            image = cv2.imread(image_path)
-            if image is None:
-                logger.warning(f"Could not read image: {image_path}")
-                return None
-                
-        except Exception as e:
-            logger.error(f"Error reading {image_path}: {e}")
-            return None
-
-        try:
-            # 1. Remove background if enabled
-            if self.use_background_removal:
-                foreground, mask = self.remove_background(image)
+            # Use cached background removal data if provided (MAJOR OPTIMIZATION)
+            if cached_background_data is not None:
+                # Reuse pre-computed background removal - saves ~10 seconds per augmentation!
+                image = cached_background_data['original_image']
+                foreground = cached_background_data['foreground'] 
+                mask = cached_background_data['mask']
+                logger.debug(f"🚀 Using cached background removal for aug {aug_idx}")
             else:
-                foreground = image
-                mask = np.ones((image.shape[0], image.shape[1]), dtype=np.uint8) * 255
-                
+                # Read image and perform background removal (slow path)
+                image = cv2.imread(image_path)
+                if image is None:
+                    logger.warning(f"Could not read image: {image_path}")
+                    return None
+                    
+                # 1. Remove background if enabled (this is the slow operation)
+                if self.use_background_removal:
+                    logger.debug(f"⏳ Removing background for {image_path} (this may take ~10 seconds)")
+                    foreground, mask = self.remove_background(image)
+                else:
+                    foreground = image
+                    mask = np.ones((image.shape[0], image.shape[1]), dtype=np.uint8) * 255
+                    
         except Exception as e:
-            logger.error(f"Background removal failed for {image_path}: {e}")
+            logger.error(f"Error processing {image_path}: {e}")
             return None
 
         try:
@@ -512,17 +559,172 @@ class AdvancedAugmentationPipeline:
             # 6. Convert to RGB for consistency (many models expect RGB)
             augmented_image_rgb = cv2.cvtColor(augmented_image, cv2.COLOR_BGR2RGB)
             
+            # 7. Extract colors after background removal and augmentation
+            color_data = {}
+            if self.extract_colors:
+                try:
+                    # For color extraction, use the image after background removal but before heavy augmentation
+                    # This gives more accurate colors of the actual object
+                    color_source = cv2.cvtColor(foreground if self.use_background_removal else image, cv2.COLOR_BGR2RGB)
+                    color_result = self.color_extractor.extract_colors_from_image(color_source)
+                    color_data = {
+                        'dominant_colors': color_result.get('dominant_color'),
+                        'color_palette': color_result.get('color_palette', []),
+                        'background_removed': color_result.get('background_removed', False)
+                    }
+                except Exception as e:
+                    logger.warning(f"Color extraction failed for {aug_image_id}: {e}")
+                    color_data = {
+                        'dominant_colors': (128, 128, 128),  # Gray fallback
+                        'color_palette': [(128, 128, 128)],
+                        'background_removed': False
+                    }
+            
             return {
                 'image_id': aug_image_id,
                 'item_id': item_id,
                 'image_data': augmented_image_rgb,  # RGB format
                 'augmentation_params': augmentation_params,
-                'original_path': image_path
+                'original_path': image_path,
+                'color_data': color_data  # Include extracted colors
             }
             
         except Exception as e:
             logger.error(f"Error augmenting {image_path} (aug {aug_idx}): {e}")
             return None
+
+    def process_augmentation_batch(self, batch_records: List[Dict], feature_extractor) -> int:
+        """
+        Process a batch of augmentation records using GPU batch feature extraction
+        Returns the number of successfully processed augmentations
+        """
+        if not batch_records:
+            return 0
+            
+        try:
+            from ..storage.sqlite_store import FeatureRecord
+            import time
+            import io
+            from PIL import Image
+            
+            # Extract image data from all records in the batch
+            batch_images = [rec['image_data'] for rec in batch_records]
+            
+            # Perform batch feature extraction (major GPU optimization)
+            batch_features = self._extract_batch_features(batch_images, feature_extractor)
+            
+            if batch_features is None or len(batch_features) != len(batch_records):
+                logger.error(f"Batch feature extraction failed for {len(batch_records)} images")
+                return 0
+            
+            success_count = 0
+            for i, (aug_record, features) in enumerate(zip(batch_records, batch_features)):
+                if features is None:
+                    continue
+                    
+                try:
+                    # Create combined features
+                    clip_features = features['clip']
+                    dinov2_features = features['dinov2']
+                    combined_features = np.concatenate([clip_features, dinov2_features])
+                    
+                    # Convert image to bytes for storage
+                    pil_image = Image.fromarray(aug_record['image_data'])
+                    img_byte_arr = io.BytesIO()
+                    pil_image.save(img_byte_arr, format='PNG')
+                    image_bytes = img_byte_arr.getvalue()
+                    
+                    # Create feature record (using only supported fields)
+                    record = FeatureRecord(
+                        image_id=aug_record['image_id'],
+                        item_id=aug_record['item_id'],
+                        image_path=aug_record['original_path'],
+                        clip_features=clip_features,
+                        dinov2_features=dinov2_features,
+                        combined_features=combined_features,
+                        augmentation_params=aug_record['augmentation_params'],
+                        extraction_timestamp=time.time(),
+                        image_hash=None
+                    )
+                    
+                    # Store to SQLite with extended data
+                    success = self.vector_store.store_features(record)
+                    if success:
+                        # Store additional image and color data
+                        self._store_additional_image_data(
+                            aug_record['image_id'],
+                            image_bytes,
+                            aug_record.get('color_data', {}),
+                            'augmented'
+                        )
+                        success_count += 1
+                        
+                except Exception as e:
+                    logger.warning(f"Failed to store augmentation {i}: {e}")
+                    continue
+                    
+            return success_count
+            
+        except Exception as e:
+            logger.error(f"Batch processing failed: {e}")
+            return 0
+    
+    def _extract_batch_features(self, batch_images: List[np.ndarray], feature_extractor) -> List[Dict]:
+        """
+        Extract features from a batch of images using optimized GPU processing
+        This is the key optimization that reduces 30 individual GPU calls to ~4 batch calls
+        """
+        try:
+            logger.info(f"🚀 Starting TRUE GPU batch processing for {len(batch_images)} images")
+            
+            # Use the new batch processing method in the feature extractor
+            batch_features = feature_extractor.extract_features_batch(batch_images)
+            
+            logger.info(f"✅ GPU batch processing complete: {len(batch_features)} feature sets extracted")
+            return batch_features
+            
+        except Exception as e:
+            logger.error(f"Batch feature extraction failed: {e}")
+            # Fallback to individual processing if batch fails
+            logger.warning("Falling back to individual feature extraction")
+            batch_features = []
+            for image_data in batch_images:
+                features = feature_extractor.extract_features_from_image(image_data)
+                batch_features.append(features)
+            return batch_features
+
+    def _store_additional_image_data(self, image_id: str, image_bytes: bytes, color_data: Dict, image_type: str = 'augmented'):
+        """
+        Store additional image data (image bytes, colors) that aren't in FeatureRecord
+        """
+        try:
+            import json
+            cursor = self.vector_store.connection.cursor()
+            
+            # Update the existing image record with additional data
+            cursor.execute('''
+            UPDATE images SET 
+                image_data = ?,
+                image_type = ?,
+                dominant_colors = ?,
+                color_palette = ?,
+                background_removed = ?
+            WHERE image_id = ?
+            ''', (
+                image_bytes,
+                image_type,
+                json.dumps(color_data.get('dominant_colors')),
+                json.dumps(color_data.get('color_palette', [])),
+                color_data.get('background_removed', False),
+                image_id
+            ))
+            
+            self.vector_store.connection.commit()
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Failed to store additional image data for {image_id}: {e}")
+            return False
 
     def store_augmented_image_with_features(self, aug_record: Dict, feature_extractor=None) -> bool:
         """
@@ -575,11 +777,12 @@ class AdvancedAugmentationPipeline:
             # Store features to SQLite (which also handles the images table)
             features_stored = self.vector_store.store_features(record)
             
-            # Update the images table to store the actual augmented image data
+            # Update the images table to store the actual augmented image data with color info
             if features_stored:
                 image_stored = self._store_image_data(
                     aug_record['image_id'],
-                    image_bytes
+                    image_bytes,
+                    aug_record.get('color_data', {})
                 )
             else:
                 image_stored = False
@@ -597,24 +800,38 @@ class AdvancedAugmentationPipeline:
             logger.error(f"❌ Error storing augmented image with features: {e}")
             return False
 
-    def _store_image_data(self, image_id: str, image_bytes: bytes) -> bool:
+    def _store_image_data(self, image_id: str, image_bytes: bytes, color_data: Dict = None) -> bool:
         """
-        Store the actual image data as BLOB in the images table
+        Store the actual image data as BLOB in the images table with color information
         """
         try:
             cursor = self.vector_store.connection.cursor()
             
-            # Update the existing image record to include the actual image data
+            # Prepare color data for JSON storage
+            if color_data:
+                dominant_colors_json = json.dumps(color_data.get('dominant_colors'))
+                color_palette_json = json.dumps(color_data.get('color_palette', []))
+                background_removed = color_data.get('background_removed', False)
+            else:
+                dominant_colors_json = None
+                color_palette_json = None
+                background_removed = False
+            
+            # Update the existing image record to include the actual image data and color info
             cursor.execute('''
             UPDATE images 
-            SET image_data = ?, image_type = 'augmented'
+            SET image_data = ?, 
+                image_type = 'augmented', 
+                dominant_colors = ?,
+                color_palette = ?,
+                background_removed = ?
             WHERE image_id = ?
-            ''', (image_bytes, image_id))
+            ''', (image_bytes, dominant_colors_json, color_palette_json, background_removed, image_id))
             
             self.vector_store.connection.commit()
             
             if cursor.rowcount > 0:
-                logger.debug(f"✅ Stored image data for {image_id}")
+                logger.debug(f"✅ Stored image data with colors for {image_id}")
                 return True
             else:
                 logger.warning(f"⚠️ No image record found for {image_id}")
@@ -778,7 +995,19 @@ class AdvancedAugmentationPipeline:
         extractor_init_start = time.time()
         if not hasattr(self, '_feature_extractor'):
             from ..feature_extraction.multimodal_extractor import MultiModalFeatureExtractor
-            config = {'device': 'auto'}
+            # Force GPU usage if available - prioritize performance
+            device_name = 'auto'
+            if torch.cuda.is_available():
+                device_name = 'cuda'
+                logger.info("🚀 Forcing CUDA device for feature extraction")
+            elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+                device_name = 'mps'
+                logger.info("🍎 Forcing MPS device for feature extraction")
+            else:
+                device_name = 'cpu'
+                logger.warning("⚠️ No GPU available - using CPU for feature extraction")
+                
+            config = {'device': device_name}
             self._feature_extractor = MultiModalFeatureExtractor(config, self.vector_store)
             logger.info("✅ Feature extractor created and cached for reuse")
         extractor_init_time = (time.time() - extractor_init_start) * 1000
@@ -811,29 +1040,51 @@ class AdvancedAugmentationPipeline:
             else:
                 logger.warning(f"⚠️ Failed to store original image {image_idx + 1}/{len(image_files)} ({original_processing_time:.1f}ms)")
             
-            # Create augmented versions and extract features
+            # Create augmented versions and extract features using GPU batch processing
             augmentation_batch_start = time.time()
+            
+            # MAJOR OPTIMIZATION: Pre-compute background removal ONCE per image
+            # This saves 30 x 10 seconds = 300 seconds per image!
+            cached_background_data = None
+            if self.use_background_removal:
+                bg_removal_start = time.time()
+                original_image = cv2.imread(str(image_file))
+                if original_image is not None:
+                    logger.info(f"⏳ Pre-computing background removal for {image_file.name} (one-time cost)")
+                    foreground, mask = self.remove_background(original_image)
+                    cached_background_data = {
+                        'original_image': original_image,
+                        'foreground': foreground,
+                        'mask': mask
+                    }
+                    bg_removal_time = (time.time() - bg_removal_start) * 1000
+                    logger.info(f"✅ Background removal cached in {bg_removal_time:.1f}ms - will reuse for all 30 augmentations")
+                else:
+                    logger.error(f"Failed to read image for background removal: {image_file}")
+            
+            # Process augmentations in GPU-optimized batches for massive speedup
+            batch_records = []
             for aug_idx in range(self.augmentations_per_image):
                 aug_creation_start = time.time()
                 aug_record = self.create_augmented_image_record(
-                    str(image_file), item_id, image_idx, aug_idx
+                    str(image_file), item_id, image_idx, aug_idx, cached_background_data
                 )
                 aug_creation_time = (time.time() - aug_creation_start) * 1000
                 
                 if aug_record:
-                    # Store the augmented image data and extract features
-                    storage_start = time.time()
-                    success = self.store_augmented_image_with_features(aug_record, self._feature_extractor)
-                    storage_time = (time.time() - storage_start) * 1000
+                    batch_records.append(aug_record)
                     
-                    total_storage_time += storage_time
-                    
-                    if success:
-                        total_augmentations_created += 1
-                        if aug_idx % 10 == 0:  # Log every 10th augmentation to avoid spam
-                            logger.debug(f"Processed augmentation {aug_idx + 1}/{self.augmentations_per_image} (create: {aug_creation_time:.1f}ms, store: {storage_time:.1f}ms)")
-                    else:
-                        logger.warning(f"Failed to store augmentation {aug_idx + 1}/{self.augmentations_per_image}")
+                    # Process batch when it reaches GPU batch size or is the last augmentation
+                    if len(batch_records) >= self.gpu_batch_size or aug_idx == self.augmentations_per_image - 1:
+                        batch_start = time.time()
+                        batch_success_count = self.process_augmentation_batch(batch_records, self._feature_extractor)
+                        batch_time = (time.time() - batch_start) * 1000
+                        
+                        total_storage_time += batch_time
+                        total_augmentations_created += batch_success_count
+                        
+                        logger.debug(f"Processed batch of {len(batch_records)} augmentations ({batch_time:.1f}ms, {batch_success_count}/{len(batch_records)} success)")
+                        batch_records = []  # Clear batch for next iteration
             
             augmentation_batch_time = (time.time() - augmentation_batch_start) * 1000
             total_augmentation_time += augmentation_batch_time

@@ -26,10 +26,11 @@ try:
 except ImportError:
     REMBG_AVAILABLE = False
 
-# Import SQLite storage and platform detection
+# Import SQLite storage, platform detection, and color extraction
 from ..storage.sqlite_store import SQLiteVectorStore, SearchResult
 from ..feature_extraction.multimodal_extractor import MultiModalFeatureExtractor
 from ..utils.platform_detector import get_platform_config
+from ..utils.color_extractor import create_color_extractor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -65,17 +66,18 @@ class SQLiteRecognitionPipeline:
         
         # === CRITICAL: PRESERVED DECISION THRESHOLDS ===
         # These exact values are essential for maintaining 99%+ accuracy
-        self.confidence_threshold = config.get('confidence_threshold', 0.98)
-        self.min_stage1_confidence = config.get('min_stage1_confidence', 0.85)
-        self.high_confidence_threshold = config.get('high_confidence_threshold', 0.95)
-        self.refinement_threshold = config.get('refinement_threshold', 0.82)
-        self.confidence_gap_threshold = config.get('confidence_gap_threshold', 0.15)
-        self.max_candidate_score_gap = config.get('max_candidate_score_gap', 0.1)
-        self.min_top_score_margin = config.get('min_top_score_margin', 0.05)
+        recognition_config = config.get('recognition', {})
+        self.confidence_threshold = 0.80  # Set to 80% as requested - recognition_config.get('confidence_threshold', 0.98)
+        self.min_stage1_confidence = recognition_config.get('min_stage1_confidence', 0.85)
+        self.high_confidence_threshold = recognition_config.get('high_confidence_threshold', 0.95)
+        self.refinement_threshold = recognition_config.get('refinement_threshold', 0.82)
+        self.confidence_gap_threshold = recognition_config.get('confidence_gap_threshold', 0.15)
+        self.max_candidate_score_gap = recognition_config.get('max_candidate_score_gap', 0.08)
+        self.min_top_score_margin = recognition_config.get('min_top_score_margin', 0.05)
         
         # Search parameters
-        self.initial_search_k = config.get('initial_search_k', 50)
-        self.final_candidates_k = config.get('final_candidates_k', 10)
+        self.initial_search_k = recognition_config.get('initial_search_k', 50)
+        self.final_candidates_k = recognition_config.get('final_candidates_k', 10)
         
         # === ENSEMBLE WEIGHTING (HYBRID MODE) ===
         # Preserved exact weights for confidence-based ensemble
@@ -103,6 +105,13 @@ class SQLiteRecognitionPipeline:
         if self.use_background_removal and not REMBG_AVAILABLE:
             logger.warning("⚠️ Background removal requested but rembg not available")
             self.use_background_removal = False
+        
+        # Color extraction configuration
+        self.use_color_matching = recognition_config.get('color_matching', True)
+        color_config = config.get('color_extraction', {})
+        color_config['remove_background'] = self.use_background_removal  # Sync with background removal
+        self.color_extractor = create_color_extractor(color_config)
+        self.color_similarity_weight = recognition_config.get('color_similarity_weight', 0.15)  # Weight for color-based filtering
         
         # Initialize cache for performance
         self.cache = {}
@@ -276,6 +285,176 @@ class SQLiteRecognitionPipeline:
         similarity = np.dot(query_norm, stored_norm)
         
         return float(similarity)
+    
+    def _apply_color_filtering(self, candidates: List[Tuple[str, float]], 
+                             query_colors: Dict) -> List[Tuple[str, float]]:
+        """
+        Apply color-based filtering to refine candidates using stored color data
+        
+        Args:
+            candidates: List of (item_id, similarity_score) tuples
+            query_colors: Dictionary containing dominant_color and color_palette from query image
+            
+        Returns:
+            Filtered and re-scored candidates with color similarity incorporated
+        """
+        if not query_colors or not candidates:
+            return candidates
+        
+        try:
+            query_dominant = query_colors.get('dominant_color')
+            query_palette = query_colors.get('color_palette', [])
+            
+            if not query_dominant:
+                return candidates
+            
+            color_enhanced_candidates = []
+            
+            for item_id, similarity_score in candidates:
+                try:
+                    # Get stored color data for this item from database
+                    stored_colors = self._get_item_color_data(item_id)
+                    
+                    if not stored_colors:
+                        # No color data available, keep original score
+                        color_enhanced_candidates.append((item_id, similarity_score))
+                        continue
+                    
+                    # Calculate color similarity
+                    color_similarity = self._calculate_color_similarity(
+                        query_colors, stored_colors
+                    )
+                    
+                    # Combine feature similarity with color similarity
+                    # Feature similarity gets higher weight (0.85), color gets smaller weight (0.15)
+                    enhanced_score = (
+                        (1.0 - self.color_similarity_weight) * similarity_score + 
+                        self.color_similarity_weight * color_similarity
+                    )
+                    
+                    color_enhanced_candidates.append((item_id, enhanced_score))
+                    
+                except Exception as e:
+                    logger.warning(f"Color filtering failed for item {item_id}: {e}")
+                    # Fall back to original score
+                    color_enhanced_candidates.append((item_id, similarity_score))
+            
+            # Re-sort by enhanced scores
+            color_enhanced_candidates.sort(key=lambda x: x[1], reverse=True)
+            
+            logger.debug(f"Color filtering applied: {len(candidates)} → {len(color_enhanced_candidates)} candidates")
+            
+            return color_enhanced_candidates
+            
+        except Exception as e:
+            logger.warning(f"Color filtering failed: {e}")
+            return candidates  # Fall back to original candidates
+    
+    def _get_item_color_data(self, item_id: str) -> Dict:
+        """
+        Retrieve color data for an item from the database
+        
+        Args:
+            item_id: Item identifier
+            
+        Returns:
+            Dictionary containing color data or empty dict if not found
+        """
+        try:
+            cursor = self.vector_store.connection.cursor()
+            
+            # Get color data from images table for this item
+            # Average colors from multiple images of the same item
+            cursor.execute('''
+            SELECT dominant_colors, color_palette
+            FROM images 
+            WHERE item_id = ? AND dominant_colors IS NOT NULL
+            LIMIT 5
+            ''', (item_id,))
+            
+            results = cursor.fetchall()
+            
+            if not results:
+                return {}
+            
+            # For simplicity, use the color data from the first available image
+            # In a more sophisticated system, we could average/combine colors from multiple images
+            dominant_colors_json, color_palette_json = results[0]
+            
+            color_data = {}
+            if dominant_colors_json:
+                color_data['dominant_color'] = json.loads(dominant_colors_json)
+            if color_palette_json:
+                color_data['color_palette'] = json.loads(color_palette_json)
+            
+            return color_data
+            
+        except Exception as e:
+            logger.warning(f"Failed to retrieve color data for item {item_id}: {e}")
+            return {}
+    
+    def _calculate_color_similarity(self, query_colors: Dict, stored_colors: Dict) -> float:
+        """
+        Calculate similarity between query colors and stored colors
+        
+        Args:
+            query_colors: Query image color data
+            stored_colors: Database stored color data
+            
+        Returns:
+            Color similarity score between 0.0 and 1.0
+        """
+        try:
+            query_dominant = query_colors.get('dominant_color')
+            stored_dominant = stored_colors.get('dominant_color')
+            
+            if not query_dominant or not stored_dominant:
+                return 0.5  # Neutral score if color data missing
+            
+            # Calculate distance between dominant colors in RGB space
+            dominant_distance = self.color_extractor.color_distance(
+                tuple(query_dominant), tuple(stored_dominant)
+            )
+            
+            # Convert distance to similarity (0-1 scale)
+            # Max reasonable distance in RGB space is ~441 (black to white)
+            # We'll use 200 as a reasonable threshold for "different" colors
+            max_reasonable_distance = 200.0
+            dominant_similarity = max(0.0, 1.0 - (dominant_distance / max_reasonable_distance))
+            
+            # Also compare color palettes if available
+            query_palette = query_colors.get('color_palette', [])
+            stored_palette = stored_colors.get('color_palette', [])
+            
+            if query_palette and stored_palette:
+                # Find best matches between palettes
+                palette_matches = []
+                for query_color in query_palette[:3]:  # Top 3 query colors
+                    best_match_distance = float('inf')
+                    for stored_color in stored_palette[:3]:  # Top 3 stored colors
+                        distance = self.color_extractor.color_distance(
+                            tuple(query_color), tuple(stored_color)
+                        )
+                        best_match_distance = min(best_match_distance, distance)
+                    
+                    # Convert to similarity
+                    match_similarity = max(0.0, 1.0 - (best_match_distance / max_reasonable_distance))
+                    palette_matches.append(match_similarity)
+                
+                # Average palette similarity
+                palette_similarity = np.mean(palette_matches) if palette_matches else 0.5
+                
+                # Combine dominant and palette similarity
+                final_similarity = 0.7 * dominant_similarity + 0.3 * palette_similarity
+            else:
+                # Only dominant color available
+                final_similarity = dominant_similarity
+            
+            return float(np.clip(final_similarity, 0.0, 1.0))
+            
+        except Exception as e:
+            logger.warning(f"Color similarity calculation failed: {e}")
+            return 0.5  # Neutral score on error
     
     def _stage3_geometric_verification(self, query_image: np.ndarray, 
                                      candidates: List[Tuple[str, float]]) -> List[Tuple[str, float]]:
@@ -462,6 +641,20 @@ class SQLiteRecognitionPipeline:
         # Combine features for recognition (preserved logic)
         combined_features = np.concatenate([features['clip'], features['dinov2']])
         
+        # === Color Extraction for Enhanced Matching ===
+        query_colors = None
+        if self.use_color_matching:
+            try:
+                logger.debug("Extracting colors from query image for enhanced matching...")
+                color_result = self.color_extractor.extract_colors_from_image(preprocessed_image)
+                query_colors = {
+                    'dominant_color': color_result.get('dominant_color'),
+                    'color_palette': color_result.get('color_palette', [])
+                }
+            except Exception as e:
+                logger.warning(f"Color extraction failed, proceeding without color matching: {e}")
+                query_colors = None
+        
         # === Stage 1: SQLite Vector Search (replaces FAISS) ===
         logger.debug("Stage 1: SQLite vector similarity search...")
         stage1_candidates = self._stage1_sqlite_search(combined_features, self.initial_search_k)
@@ -480,6 +673,21 @@ class SQLiteRecognitionPipeline:
                 similarity_scores=[],
                 recognition_method="sqlite_vec"
             )
+        
+        # === Color-Based Candidate Refinement ===
+        if query_colors and self.use_color_matching:
+            logger.info(f"🎨 Applying color-based filtering to {len(stage1_candidates)} candidates...")
+            original_count = len(stage1_candidates)
+            stage1_candidates = self._apply_color_filtering(stage1_candidates, query_colors)
+            new_count = len(stage1_candidates)
+            
+            if new_count < original_count:
+                removed = original_count - new_count
+                logger.warning(f"⚠️ Color filtering removed {removed} candidates ({original_count} → {new_count})")
+                if new_count == 0:
+                    logger.error("❌ Color filtering removed ALL candidates - this is too strict!")
+            else:
+                logger.info(f"✅ Color filtering kept all {new_count} candidates")
         
         # === Stage 2: Multi-Modal Feature Matching (conditional) ===
         if stage1_candidates[0][1] < self.high_confidence_threshold:
@@ -514,7 +722,7 @@ class SQLiteRecognitionPipeline:
             # For now, use existing results
             pass
         
-        # === Final Result Preparation (preserved decision logic) ===
+        # === Final Result Preparation (improved decision logic) ===
         should_reject = False
         rejection_reason = ""
         
@@ -523,16 +731,34 @@ class SQLiteRecognitionPipeline:
             second_score = final_candidates[1][1]
             score_gap = top_score - second_score
             
-            # Check for ambiguous matches (preserved logic)
-            if score_gap < self.max_candidate_score_gap:
-                should_reject = True
-                rejection_reason = f"Ambiguous match: candidates too close ({score_gap:.3f} < {self.max_candidate_score_gap})"
+            # Log detailed scoring information
+            logger.info(f"🎯 Top candidate: {final_candidates[0][0]} (score: {top_score:.4f})")
+            logger.info(f"🥈 Second candidate: {final_candidates[1][0]} (score: {second_score:.4f})")
+            logger.info(f"📊 Score gap: {score_gap:.4f} (threshold: {self.max_candidate_score_gap})")
             
+            # IMPROVED LOGIC: Only reject if BOTH candidates are very close AND both are high confidence
+            # This prevents rejecting clear winners like 98.25% vs 89.03%
+            if (score_gap < self.max_candidate_score_gap and 
+                second_score > 0.90):  # Only worry about ambiguity if both scores are very high
+                should_reject = True
+                rejection_reason = f"True ambiguous match: both candidates high confidence ({score_gap:.3f} < {self.max_candidate_score_gap}, second: {second_score:.3f})"
+                logger.warning(f"⚠️ {rejection_reason}")
+            elif score_gap < self.max_candidate_score_gap:
+                # Large confidence gap - choose the clear winner
+                logger.info(f"✅ Clear winner despite small gap: {top_score:.3f} >> {second_score:.3f}")
+            
+            # Keep the minimum margin check for very small differences
             if score_gap < self.min_top_score_margin:
                 should_reject = True
                 rejection_reason = f"Insufficient margin: {score_gap:.3f} < {self.min_top_score_margin}"
         
-        # Final decision (preserved thresholds)
+        # Final decision (preserved thresholds)  
+        logger.info(f"🎯 Final decision check:")
+        logger.info(f"   Has candidates: {bool(final_candidates)}")
+        if final_candidates:
+            logger.info(f"   Top confidence: {final_candidates[0][1]:.4f} > {self.confidence_threshold} = {final_candidates[0][1] > self.confidence_threshold}")
+        logger.info(f"   Should reject: {should_reject} ({rejection_reason})")
+        
         if (final_candidates and final_candidates[0][1] > self.confidence_threshold and not should_reject):
             # Successful recognition
             result = RecognitionResult(
