@@ -1272,11 +1272,14 @@ class AddItemsTab(QWidget):
         category = self.category_input.text().strip()
         description = self.description_input.toPlainText().strip()
         
-        # Disable controls
+        # Disable controls and setup progress tracking
         self.add_item_btn.setEnabled(False)
         self.progress_bar.setVisible(True)
-        self.progress_bar.setRange(0, 0)  # Indeterminate
-        self.status_label.setText("Processing item...")
+        # Use determinate progress for better user experience
+        total_steps = len(self.selected_images) * (8 if self.enable_augmentation.isChecked() else 1) + 2  # +2 for setup/cleanup
+        self.progress_bar.setRange(0, total_steps)
+        self.progress_bar.setValue(0)
+        self.status_label.setText("Starting item processing...")
         
         # Create worker thread for item processing
         self.worker_thread = QThread()
@@ -1290,6 +1293,7 @@ class AddItemsTab(QWidget):
         # Connect signals
         self.worker.finished.connect(self.on_add_finished)
         self.worker.progress.connect(self.on_add_progress)
+        self.worker.progress_value.connect(self.progress_bar.setValue)  # NEW: Connect numeric progress
         self.worker.error.connect(self.on_add_error)
         
         self.worker_thread.started.connect(self.worker.process_item)
@@ -1355,6 +1359,7 @@ class AddItemWorker(QObject):
     
     finished = Signal(dict)
     progress = Signal(str)
+    progress_value = Signal(int)  # NEW: Numeric progress signal
     error = Signal(str)
     
     def __init__(self, system, item_id, item_name, category, description, 
@@ -1368,13 +1373,23 @@ class AddItemWorker(QObject):
         self.image_paths = image_paths
         self.enable_augmentation = enable_augmentation
         self.enable_background_removal = enable_background_removal
+        
+        # Progress tracking
+        self.total_steps = len(image_paths) * (8 if enable_augmentation else 1) + 2
+        self.current_step = 0
+    
+    def update_progress(self, message: str):
+        """Update progress with both message and numeric value"""
+        self.current_step += 1
+        self.progress.emit(message)
+        self.progress_value.emit(self.current_step)
     
     def process_item(self):
         """Process and add the item using the full pipeline"""
         try:
             start_time = time.time()
             
-            self.progress.emit(f"Starting to process {len(self.image_paths)} images...")
+            self.update_progress(f"Starting to process {len(self.image_paths)} images...")
             
             # Create temporary directory for processing
             import tempfile
@@ -1385,14 +1400,14 @@ class AddItemWorker(QObject):
                 item_dir.mkdir()
                 
                 # Copy images to temporary directory
-                self.progress.emit("Copying images to processing directory...")
+                self.update_progress("Copying images to processing directory...")
                 for i, image_path in enumerate(self.image_paths):
                     src_path = Path(image_path)
                     dst_path = item_dir / f"image_{i:03d}{src_path.suffix}"
                     shutil.copy2(src_path, dst_path)
                 
                 # Add item to database first
-                self.progress.emit("Adding item to database...")
+                self.update_progress("Adding item metadata to database...")
                 metadata = {
                     'item_name': self.item_name,
                     'category': self.category,
@@ -1410,30 +1425,37 @@ class AddItemWorker(QObject):
                 
                 # Process images with augmentation pipeline if enabled
                 if self.enable_augmentation:
-                    self.progress.emit("Processing with augmentation pipeline...")
+                    self.update_progress("Setting up high-speed augmentation pipeline...")
                     
-                    # Create augmentation config optimized for GPU
+                    # Create GUI-optimized augmentation config - FAST processing for interactive use
                     augmentation_config = {
-                        'augmentations_per_image': 30,  # Reduced for GUI processing
+                        'augmentations_per_image': 8,   # DRAMATICALLY reduced for GUI speed (was 30)
                         'background_removal': self.enable_background_removal,
                         'strategy_weights': {
-                            'geometric': 0.30,
-                            'perspective': 0.25, 
-                            'lighting': 0.25,
-                            'noise_blur': 0.15,
-                            'effects': 0.05
+                            'geometric': 0.40,          # Focus on most effective augmentations
+                            'perspective': 0.30, 
+                            'lighting': 0.20,
+                            'noise_blur': 0.10,         # Reduce less effective augmentations
+                            'effects': 0.00             # Disable slowest effects for GUI
                         },
-                        # GPU optimization settings
+                        # GUI-SPECIFIC optimizations for responsive interface
                         'batch_processing': True,       # Enable batch processing for GPU efficiency
-                        'parallel_workers': 4,          # Use parallel workers for CPU tasks
-                        'memory_efficient': False,      # Disable memory efficiency for speed when GPU available
+                        'parallel_workers': 2,          # Reduce workers for GUI responsiveness (was 4)
+                        'memory_efficient': True,       # Enable memory efficiency for GUI stability
                         'cache_backgrounds': True,      # Cache synthetic backgrounds
+                        'use_hybrid_pipeline': True,    # Enable CPU-GPU hybrid processing
+                        'early_crop_optimization': True, # Crop first for 16x speedup
+                        'gpu_batch_normalization': True, # Batch normalize on GPU
                         'extract_colors': True,         # Enable color extraction
                         'color_extraction': {
-                            'num_colors': 5,            # Fewer colors for faster processing
-                            'color_quality': 3,         # Slightly lower quality for speed
+                            'num_colors': 3,            # Reduced colors for faster processing (was 5)
+                            'color_quality': 2,         # Lower quality for GUI speed (was 3)
                             'remove_background': self.enable_background_removal
-                        }
+                        },
+                        # GUI threading optimizations
+                        'fix_opencv_threading': True,   # Prevent DataLoader conflicts
+                        'progress_callback': self.progress.emit,  # Enable progress updates
+                        'gui_mode': True                # Enable GUI-specific optimizations
                     }
                     
                     from src.data_preparation.advanced_augmentation import AdvancedAugmentationPipeline
@@ -1441,16 +1463,20 @@ class AddItemWorker(QObject):
                         augmentation_config, self.system.vector_store
                     )
                     
-                    # Process the item directory
+                    # Process the item directory with progress updates
+                    self.update_progress(f"Applying 8 fast augmentations to {len(self.image_paths)} images...")
                     augment_result = augmentation_pipeline.process_item_to_sqlite(item_dir, self.item_id)
                     
                     if augment_result.get('status') != 'success':
-                        raise RuntimeError("Augmentation processing failed")
-                        
+                        error_msg = augment_result.get('error', 'Augmentation processing failed')
+                        self.progress.emit(f"Augmentation failed: {error_msg}")
+                        raise RuntimeError(f"Augmentation processing failed: {error_msg}")
+                    
                     images_processed = augment_result.get('total_images_processed', len(self.image_paths))
+                    self.update_progress(f"✅ Processed {images_processed} images with fast augmentation")
                 else:
                     # Process without augmentation - just extract features
-                    self.progress.emit("Extracting features without augmentation...")
+                    self.update_progress("Extracting CLIP + DINOv2 features (no augmentation)...")
                     
                     feature_result = self.system.feature_extractor.process_item_directory_to_sqlite(item_dir, self.item_id)
                     
@@ -1458,9 +1484,11 @@ class AddItemWorker(QObject):
                         raise RuntimeError("Feature extraction failed")
                         
                     images_processed = feature_result.get('success_count', len(self.image_paths))
+                    self.update_progress(f"✅ Extracted features from {images_processed} images")
                 
                 # Final processing time
                 processing_time = time.time() - start_time
+                self.update_progress(f"Finalizing database... ({processing_time:.1f}s total)")
                 
                 # Get final statistics
                 stats = self.system.vector_store.get_statistics()

@@ -22,6 +22,15 @@ from PIL import Image
 import random
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+
+# OpenCV threading fix for DataLoader workers (CRITICAL OPTIMIZATION)
+try:
+    import cv2
+    cv2.setNumThreads(0)  # Disable OpenCV threading to prevent DataLoader conflicts
+    OPENCV_AVAILABLE = True
+except ImportError:
+    OPENCV_AVAILABLE = False
+    logger.warning("OpenCV not available - some optimizations will be skipped")
 # Background removal - optional dependency
 try:
     from rembg import remove
@@ -149,6 +158,12 @@ class AdvancedAugmentationPipeline:
     
     def _setup_gpu_transforms(self):
         """Setup GPU-accelerated PyTorch transforms for maximum speed (preserved)"""
+        # OPTIMIZATION: GPU normalization separated from CPU augmentation for hybrid pipeline
+        self.gpu_normalization = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+        
         self.gpu_transforms = {
             'geometric': transforms.Compose([
                 transforms.RandomRotation(degrees=45, fill=0),
@@ -198,13 +213,182 @@ class AdvancedAugmentationPipeline:
         # Enable memory optimization for GPU processing
         if self.device.type in ['cuda', 'mps']:
             self.enable_gpu_optimizations = True
+            
+        # CRITICAL OPTIMIZATION: Setup optimized CPU Albumentations pipeline 
+        # Crop early for 16x speedup potential
+        self._setup_optimized_albumentations_pipeline()
+    
+    def _setup_optimized_albumentations_pipeline(self):
+        """
+        Setup GPU-optimized Albumentations pipeline following best practices
+        Key optimizations:
+        1. Crop FIRST for 16x speedup (smaller images = faster processing)
+        2. Keep images as uint8 until final normalization 
+        3. Exclude normalization for hybrid CPU-GPU pipeline
+        4. Use most efficient transforms first
+        """
+        logger.info("🚀 Setting up GPU-optimized Albumentations pipeline...")
+        
+        # OPTIMIZATION: Crop early - processes smaller images for massive speedup
+        # This can provide up to 16x speedup according to Albumentations docs
+        self.optimized_cpu_pipeline = A.Compose([
+            # 1. CROP FIRST - This is the key optimization!
+            A.RandomResizedCrop(
+                size=self.target_size, 
+                scale=(0.8, 1.0),
+                ratio=(0.75, 1.33),
+                p=1.0
+            ),
+            
+            # 2. Fast geometric transforms (operate on smaller cropped images)
+            A.HorizontalFlip(p=0.5),
+            A.RandomRotate90(p=0.5),
+            A.Affine(
+                translate_percent={'x': (-0.1, 0.1), 'y': (-0.1, 0.1)},
+                scale=(0.8, 1.2), 
+                rotate=(-15, 15),
+                p=0.7
+            ),
+            
+            # 3. Perspective and distortion (more expensive, but on smaller images)
+            A.Perspective(scale=(0.05, 0.1), p=0.3),
+            A.ElasticTransform(alpha=1, sigma=20, alpha_affine=20, p=0.2),
+            
+            # 4. Color augmentations (efficient on smaller images)
+            A.RandomBrightnessContrast(
+                brightness_limit=0.3, 
+                contrast_limit=0.3, 
+                p=0.7
+            ),
+            A.HueSaturationValue(
+                hue_shift_limit=20,
+                sat_shift_limit=20,
+                val_shift_limit=20,
+                p=0.5
+            ),
+            A.CLAHE(clip_limit=2.0, p=0.3),
+            
+            # 5. Noise and blur (fast operations)
+            A.OneOf([
+                A.GaussianBlur(blur_limit=3, p=0.5),
+                A.MotionBlur(blur_limit=3, p=0.5),
+                A.MedianBlur(blur_limit=3, p=0.3),
+            ], p=0.4),
+            
+            A.OneOf([
+                A.GaussNoise(var_limit=(5.0, 15.0), p=0.5),
+                A.ISONoise(color_shift=(0.01, 0.10), intensity=(0.1, 0.3), p=0.3),
+            ], p=0.3),
+            
+            # 6. Effects (applied last, minimal performance impact)
+            A.OneOf([
+                A.RandomShadow(p=0.3),
+                A.RandomSunFlare(p=0.1),
+                A.RandomFog(fog_coef_limit=(0.1, 0.3), p=0.2),
+            ], p=0.2),
+            
+            # NOTE: NO Normalize here - will be done on GPU in batch for hybrid pipeline
+        ])
+        
+        # HYBRID OPTIMIZATION: Setup batch processing for GPU normalization
+        if self.device.type in ['cuda', 'mps']:
             # Pre-allocate some GPU memory to avoid repeated allocations
             try:
                 dummy_tensor = torch.randn(1, 3, *self.target_size, device=self.device)
                 del dummy_tensor
                 torch.cuda.empty_cache() if self.device.type == 'cuda' else None
-            except:
-                pass
+                logger.info(f"✅ GPU memory pre-allocated for {self.device.type.upper()} batch processing")
+            except Exception as e:
+                logger.warning(f"⚠️ GPU memory pre-allocation failed: {e}")
+    
+    def process_images_hybrid_pipeline(self, images: List[np.ndarray]) -> List[torch.Tensor]:
+        """
+        Process images using hybrid CPU-GPU pipeline for maximum GPU utilization
+        
+        Pipeline:
+        1. CPU: Albumentations augmentation (optimized with early cropping)
+        2. GPU: Batch normalization and tensor conversion
+        
+        This approach maximizes GPU utilization by keeping GPU busy with normalization
+        while CPU handles the heavy augmentation work on optimally-sized images.
+        
+        Args:
+            images: List of BGR numpy arrays
+            
+        Returns:
+            List of normalized GPU tensors ready for feature extraction
+        """
+        if not images:
+            return []
+            
+        logger.debug(f"🔄 Processing {len(images)} images with hybrid CPU-GPU pipeline")
+        
+        # PHASE 1: CPU Augmentation (optimized with early cropping)
+        cpu_processed = []
+        for img in images:
+            try:
+                # Convert BGR to RGB for Albumentations
+                img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                
+                # Apply optimized CPU pipeline (crops early for speed)
+                augmented = self.optimized_cpu_pipeline(image=img_rgb)
+                cpu_processed.append(augmented['image'])
+                
+            except Exception as e:
+                logger.warning(f"⚠️ CPU augmentation failed: {e}, using original")
+                # Fallback: resize and convert original
+                img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                img_resized = cv2.resize(img_rgb, self.target_size)
+                cpu_processed.append(img_resized)
+        
+        # PHASE 2: GPU Batch Processing (normalization + tensor conversion)
+        if self.device.type in ['cuda', 'mps'] and len(cpu_processed) > 1:
+            try:
+                # Stack images into batch tensor
+                batch_array = np.stack(cpu_processed, axis=0)  # [batch, H, W, C]
+                
+                # Convert to torch tensor (keep on CPU temporarily)
+                batch_tensor = torch.from_numpy(batch_array).float()
+                batch_tensor = batch_tensor.permute(0, 3, 1, 2) / 255.0  # [batch, C, H, W] normalized
+                
+                # Move to GPU and apply normalization in batch
+                batch_tensor = batch_tensor.to(self.device)
+                
+                # GPU batch normalization (much faster than individual normalization)
+                normalized_batch = transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], 
+                    std=[0.229, 0.224, 0.225]
+                )(batch_tensor)
+                
+                # Split back into individual tensors
+                gpu_tensors = [normalized_batch[i] for i in range(len(cpu_processed))]
+                
+                logger.debug(f"✅ GPU batch normalization completed for {len(cpu_processed)} images")
+                return gpu_tensors
+                
+            except Exception as e:
+                logger.warning(f"⚠️ GPU batch processing failed: {e}, falling back to individual processing")
+        
+        # FALLBACK: Individual processing
+        gpu_tensors = []
+        for img in cpu_processed:
+            try:
+                # Convert to tensor and normalize individually
+                tensor = transforms.ToTensor()(img)
+                if self.device.type != 'cpu':
+                    tensor = tensor.to(self.device)
+                normalized = transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], 
+                    std=[0.229, 0.224, 0.225]
+                )(tensor)
+                gpu_tensors.append(normalized)
+            except Exception as e:
+                logger.error(f"❌ Individual tensor processing failed: {e}")
+                # Create zero tensor as fallback
+                zero_tensor = torch.zeros(3, *self.target_size, device=self.device)
+                gpu_tensors.append(zero_tensor)
+        
+        return gpu_tensors
 
 # TODO: for GPU systems
     # def gpu_augment_batch(self, images: List[torch.Tensor]) -> List[torch.Tensor]:
